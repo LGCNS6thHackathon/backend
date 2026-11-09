@@ -1,13 +1,13 @@
 # LMS API 명세
 
-87개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
+74개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
 
 ## 공통 규칙
 
 - 기본 주소: `http://localhost:8080`. 운영 주소는 배포 환경에 맞게 교체합니다.
 - 인증: 공개 API를 제외하고 `Authorization: Bearer <accessToken>`. 토큰은 응답 JSON으로 반환하며 쿠키를 사용하지 않습니다.
 - JSON 요청: `Content-Type: application/json`. 파일은 `multipart/form-data`, 단일 파트 이름은 `file`입니다.
-- 응답은 객체·배열을 직접 반환합니다. 목록은 보통 `{items,page,size,total}`이며 `page=0`, `size=20`, 최대100입니다. 일정·출결 기본 크기는50입니다. 로드맵·스터디 회원은 배열입니다.
+- 응답은 객체·배열을 직접 반환합니다. 목록은 보통 `{items,page,size,total}`이며 `page=0`, `size=20`, 최대100입니다. 일정·출결 기본 크기는50입니다.
 - 날짜는 `YYYY-MM-DD`, 월은 `YYYY-MM`. 시각은 `2026-11-09T09:00:00+09:00`처럼 오프셋을 반드시 포함합니다. 응답 시각은 UTC입니다. 월 필터·교육 날짜·오늘 기준은 한국 시간입니다.
 - PATCH는 제공한 필드만 변경합니다. PUT 출결은 날짜별 생성/갱신, PUT 제출은 본인 제출의 생성/재제출, PUT 평가 답안은 제공 문항만 갱신합니다.
 - 생성은201, 일반 조회·수정은200, 삭제·로그아웃·비밀번호 변경은204(본문 없음)입니다. 제출물 PUT은 생성일 때도200입니다.
@@ -69,13 +69,13 @@
 | GET | `/api/courses/{courseId}/cohorts` | 기수 목록 | 200 | 권한: ADMIN 전체; 그 외 본인 ACTIVE 등록 기수. |
 | POST | `/api/courses/{courseId}/cohorts` | 기수 생성 | 201 | 권한: 전역 ADMIN. endDate >= startDate |
 | GET | `/api/cohorts/{cohortId}` | 기수 상세 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
-| PATCH | `/api/cohorts/{cohortId}` | 기수 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE MANAGER. 기존 로드맵·일정·과제 마감·평가·출결 기록을 포함하는 교육 기간이어야 합니다. |
+| PATCH | `/api/cohorts/{cohortId}` | 기수 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE MANAGER. 기존 일정·과제 마감·평가·출결 기록을 포함하는 교육 기간이어야 합니다. |
 | GET | `/api/cohorts/{cohortId}/enrollments` | 수강 등록 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
 | POST | `/api/cohorts/{cohortId}/enrollments` | 수강 등록 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE MANAGER. INSTRUCTOR/MANAGER 배정은 전역 ADMIN만 가능합니다. 중복 등록은409입니다. |
 | PATCH | `/api/cohorts/{cohortId}/enrollments/{enrollmentId}` | 수강 등록 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE MANAGER. 기수 MANAGER는 STUDENT 등록만 수정할 수 있습니다. |
 | GET | `/api/cohorts/{cohortId}/dashboard` | 대시보드 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 진행률은 달력 날짜 기준. 출석률은 등록된 출결 기록 기준이며 EXCUSED를 출석에 포함합니다. |
 
-### 일정·로드맵
+### 일정
 
 | 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
 |---|---|---|---|---|
@@ -83,11 +83,6 @@
 | POST | `/api/cohorts/{cohortId}/events` | 일정 생성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. endAt > startAt. 한국 날짜 기준 기수 교육 기간 안에 있어야 합니다. |
 | PATCH | `/api/events/{id}` | 일정 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
 | DELETE | `/api/events/{id}` | 일정 삭제 | 204 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| GET | `/api/cohorts/{cohortId}/roadmap` | 로드맵 조회 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 단계별 modules 배열을 반환합니다. status는 한국의 오늘 날짜로 계산합니다. |
-| POST | `/api/cohorts/{cohortId}/roadmap` | 로드맵 단계 생성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| PATCH | `/api/roadmap/phases/{id}` | 로드맵 단계 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 기존 모듈 기간을 포함해야 합니다. |
-| POST | `/api/roadmap/phases/{phaseId}/modules` | 로드맵 모듈 생성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 기간은 상위 단계 안에 있어야 합니다. |
-| PATCH | `/api/roadmap/modules/{id}` | 로드맵 모듈 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
 
 ### 출결
 
@@ -145,19 +140,6 @@
 | PUT | `/api/assessment-attempts/{id}/answers` | 응시 답안 저장 | 200 | 권한: 응시자 본인. 주어진 문항만 생성·갱신하고 나머지 저장 답안은 유지합니다. 중복 문항·다른 평가 선택지는400. 마감 후409. |
 | POST | `/api/assessment-attempts/{id}/submit` | 평가 제출·자동 채점 | 200 | 권한: 응시자 본인. 저장한 답안을0~100점으로 정규화. 마감 후에는 EXPIRED로 저장 답안을 채점. 재호출은 기존 결과 반환. 정답·해설 공개 시점은 Question 스키마 참조. |
 | GET | `/api/cohorts/{cohortId}/assessment-report` | 평가 결과·영역별 통계 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 완료·만료 응시만 집계. 본인 또는 스태프가 지정한 회원. cohortAverage는 동일 평가의 기수 평균입니다. |
-
-### 스터디
-
-| 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
-|---|---|---|---|---|
-| GET | `/api/cohorts/{cohortId}/study-groups` | 스터디 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
-| POST | `/api/cohorts/{cohortId}/study-groups` | 스터디 개설 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 상태 OPEN. 개설자는 자동으로 첫 회원이 됩니다. |
-| GET | `/api/study-groups/{groupId}` | 스터디 상세 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. memberCount와 본인 joined를 포함합니다. |
-| PATCH | `/api/study-groups/{groupId}` | 스터디 수정 | 200 | 권한: 운영자 또는 기수 스태프. 현재 회원 수보다 작은 정원은409입니다. |
-| DELETE | `/api/study-groups/{groupId}` | 스터디 삭제 | 204 | 권한: 운영자 또는 기수 스태프. 참여 기록도 삭제합니다. |
-| POST | `/api/study-groups/{groupId}/members/me` | 스터디 참여 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 중복·모집 종료·정원 초과는409. 동시 참여는 부모 행 잠금으로 처리합니다. |
-| DELETE | `/api/study-groups/{groupId}/members/me` | 스터디 탈퇴 | 204 | 권한: 본인 참여 회원. 운영자는 탈퇴할 수 없으며 스터디 삭제를 사용합니다. |
-| GET | `/api/study-groups/{groupId}/members` | 스터디 회원 조회 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
 
 ### 알림
 
@@ -231,7 +213,11 @@ Content-Type: application/json
 
 ## 구현 범위
 
-실제 DB CRUD, JWT 인증·권한, 출결 정정 승인, 과제 제출·채점, 객관식 평가 자동 채점, 파일 저장·권한별 다운로드, 스터디 정원 제어, 서비스 이벤트 알림을 포함합니다. 메일·문자 발송, 비밀번호 찾기, 실시간 강의/채팅, 바이러스 검사, 외부 LMS 데이터 이전은 포함하지 않습니다.
+실제 DB CRUD, JWT 인증·권한, 출결 정정 승인, 과제 제출·채점, 객관식 평가 자동 채점, 파일 저장·권한별 다운로드, 서비스 이벤트 알림을 포함합니다. 메일·문자 발송, 비밀번호 찾기, 실시간 강의/채팅, 바이러스 검사, 외부 LMS 데이터 이전은 포함하지 않습니다.
+
+## 최신 프론트 기준 정리
+
+2026-11-09 frontend main `c835066`의 학생·관리자 화면을 기준으로 스터디 8개와 기존 로드맵 5개 API를 제거했습니다. 기존 경로는 더 이상 제공하지 않습니다. 캘린더 일정, 알림, 과제, 평가 결과, 인증·기수 및 신규 학습 분류·AI·영상·Discord 기반은 유지합니다.
 
 ## 재생성 및 검증
 

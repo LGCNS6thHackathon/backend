@@ -49,20 +49,6 @@ CREATE TABLE schedule_events (
  CONSTRAINT ck_event_time CHECK(end_at > start_at)
 );
 CREATE INDEX ix_event_cohort_time ON schedule_events(cohort_id,start_at);
-CREATE TABLE roadmap_phases (
- id BIGINT AUTO_INCREMENT PRIMARY KEY, cohort_id BIGINT NOT NULL, title VARCHAR(160) NOT NULL,
- description TEXT NOT NULL, position INT NOT NULL, hours INT NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL,
- CONSTRAINT uq_phase_position UNIQUE(cohort_id,position),
- CONSTRAINT fk_phase_cohort FOREIGN KEY(cohort_id) REFERENCES cohorts(id),
- CONSTRAINT ck_phase_hours CHECK(hours >= 0), CONSTRAINT ck_phase_dates CHECK(end_date >= start_date)
-);
-CREATE TABLE roadmap_modules (
- id BIGINT AUTO_INCREMENT PRIMARY KEY, phase_id BIGINT NOT NULL, title VARCHAR(160) NOT NULL,
- hours INT NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL, position INT NOT NULL,
- CONSTRAINT uq_module_position UNIQUE(phase_id,position),
- CONSTRAINT fk_module_phase FOREIGN KEY(phase_id) REFERENCES roadmap_phases(id),
- CONSTRAINT ck_module_hours CHECK(hours >= 0), CONSTRAINT ck_module_dates CHECK(end_date >= start_date)
-);
 CREATE TABLE attendance_records (
  id BIGINT AUTO_INCREMENT PRIMARY KEY, enrollment_id BIGINT NOT NULL, attendance_date DATE NOT NULL,
  status VARCHAR(20) NOT NULL, check_in DATETIME(6), check_out DATETIME(6), note VARCHAR(1000), updated_at DATETIME(6) NOT NULL,
@@ -191,22 +177,6 @@ CREATE TABLE assessment_answers (
  CONSTRAINT fk_answer_attempt FOREIGN KEY(attempt_id) REFERENCES assessment_attempts(id),
  CONSTRAINT fk_answer_question FOREIGN KEY(question_id) REFERENCES assessment_questions(id),
  CONSTRAINT fk_answer_option FOREIGN KEY(option_id) REFERENCES assessment_options(id)
-);
-CREATE TABLE study_groups (
- id BIGINT AUTO_INCREMENT PRIMARY KEY, cohort_id BIGINT NOT NULL, owner_id BIGINT NOT NULL, name VARCHAR(120) NOT NULL,
- description TEXT NOT NULL, capacity INT NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
- created_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL,
- CONSTRAINT fk_group_cohort FOREIGN KEY(cohort_id) REFERENCES cohorts(id),
- CONSTRAINT fk_group_owner FOREIGN KEY(owner_id) REFERENCES users(id),
- CONSTRAINT ck_group_capacity CHECK(capacity BETWEEN 2 AND 30),
- CONSTRAINT ck_group_status CHECK(status IN ('OPEN','CLOSED'))
-);
-CREATE INDEX ix_group_cohort ON study_groups(cohort_id);
-CREATE TABLE study_group_members (
- id BIGINT AUTO_INCREMENT PRIMARY KEY, group_id BIGINT NOT NULL, user_id BIGINT NOT NULL, joined_at DATETIME(6) NOT NULL,
- CONSTRAINT uq_group_member UNIQUE(group_id,user_id),
- CONSTRAINT fk_member_group FOREIGN KEY(group_id) REFERENCES study_groups(id),
- CONSTRAINT fk_member_user FOREIGN KEY(user_id) REFERENCES users(id)
 );
 CREATE TABLE notifications (
  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT NOT NULL, cohort_id BIGINT, type VARCHAR(40) NOT NULL,

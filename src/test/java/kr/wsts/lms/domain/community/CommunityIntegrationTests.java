@@ -8,7 +8,6 @@ import com.jayway.jsonpath.JsonPath;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.concurrent.*;
 import kr.wsts.lms.global.support.Db;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,16 +86,17 @@ class CommunityIntegrationTests {
         send(delete("/api/files/"+file),c.student,null,204);
         send(get("/api/files/"+file+"/download"),c.student,null,404);
     }
-    @Test void concurrentJoiningCannotOverfillGroup()throws Exception{
-        var c=context();long group=id(send(post("/api/cohorts/"+c.cohort+"/study-groups"),c.admin,Map.of("name","동시 가입 검증","description","마지막 한 자리","capacity",2),201));
-        ExecutorService executor=Executors.newFixedThreadPool(2);CountDownLatch ready=new CountDownLatch(2),start=new CountDownLatch(1);
-        try{
-            List<Future<Integer>> futures=new ArrayList<>();
-            for(User u:List.of(c.student,c.other))futures.add(executor.submit(()->{ready.countDown();start.await();return mvc.perform(post("/api/study-groups/"+group+"/members/me").header("Authorization","Bearer "+u.token)).andReturn().getResponse().getStatus();}));
-            assertTrue(ready.await(5,TimeUnit.SECONDS));start.countDown();var statuses=new ArrayList<Integer>();for(var f:futures)statuses.add(f.get(10,TimeUnit.SECONDS));Collections.sort(statuses);assertEquals(List.of(201,409),statuses);
-            assertEquals(2,db.count("SELECT COUNT(*) FROM study_group_members WHERE group_id=?",group));
-        }finally{executor.shutdownNow();}
-        send(post("/api/study-groups/"+group+"/members/me"),c.outsider,null,403);
-        send(patch("/api/study-groups/"+group),c.student,Map.of("capacity",3),403);
+    @Test void removedStudyRoutesAreUnavailableToStudentsAndAdministrators()throws Exception{
+        for(User actor:List.of(user(true),user(false))){
+            String collection="/api/cohorts/1/study-groups",item="/api/study-groups/1";
+            send(get(collection),actor,null,404);
+            send(post(collection),actor,Map.of("name","삭제된 스터디","description","더 이상 제공하지 않는 기능","capacity",2),404);
+            send(get(item),actor,null,404);
+            send(patch(item),actor,Map.of("capacity",3),404);
+            send(delete(item),actor,null,404);
+            send(get(item+"/members"),actor,null,404);
+            send(post(item+"/members/me"),actor,null,404);
+            send(delete(item+"/members/me"),actor,null,404);
+        }
     }
 }
