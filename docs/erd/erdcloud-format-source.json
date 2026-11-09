@@ -20,9 +20,9 @@
     "Import skips entities with existing pName. Updated definitions must be imported into a new blank diagram."
   ],
   "validation": {
-    "tables": 35,
-    "columns": 302,
-    "foreignKeys": 61,
+    "tables": 31,
+    "columns": 274,
+    "foreignKeys": 55,
     "allRelationshipReferencesResolved": true,
     "officialImportNormalizer": "verified locally using the official handler and color palette; no live upload of the foundation schema",
     "liveUploadPerformed": false

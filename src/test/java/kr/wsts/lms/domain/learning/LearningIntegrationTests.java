@@ -48,7 +48,7 @@ class LearningIntegrationTests {
     }
 
     @Test
-    void studentsCanReadTheirScheduleAndRoadmapButCannotManageOrCrossCohortBoundary() throws Exception {
+    void studentsCanReadTheirScheduleButCannotManageOrCrossCohortBoundary() throws Exception {
         long foreignCohort=createCohort();
         Map<String,Object> event=Map.of("title","실습 일정","type","LECTURE","startAt",iso(Db.now().plusHours(1)),"endAt",iso(Db.now().plusHours(2)),"location","교육장");
         long eventId=id(call(admin,post("/api/cohorts/"+cohortId+"/events"),event,201));
@@ -57,11 +57,23 @@ class LearningIntegrationTests {
         call(first,post("/api/cohorts/"+cohortId+"/events"),event,403);
         call(first,get("/api/cohorts/"+foreignCohort+"/events"),null,403);
         call(first,put("/api/cohorts/"+cohortId+"/attendance"),Map.of("userId",first.id,"date",today.toString(),"status","PRESENT"),403);
-        long phase=id(call(admin,post("/api/cohorts/"+cohortId+"/roadmap"),Map.of("title","기본 역량","position",1,"hours",80,"startDate",today.minusDays(1).toString(),"endDate",today.plusDays(10).toString()),201));
-        long module=id(call(admin,post("/api/roadmap/phases/"+phase+"/modules"),Map.of("title","API 실습","position",1,"hours",8,"startDate",today.toString(),"endDate",today.plusDays(1).toString()),201));
-        mvc.perform(get("/api/cohorts/"+cohortId+"/roadmap").header("Authorization",bearer(first)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[0].modules[0].id").value(module));
-        call(first,patch("/api/roadmap/modules/"+module),Map.of("title","권한 없는 수정"),403);
+        call(first,patch("/api/events/"+eventId),Map.of("title","권한 없는 수정"),403);
+        call(admin,patch("/api/events/"+eventId),Map.of("title","수정한 교육 일정"),200);
+        mvc.perform(get("/api/cohorts/"+cohortId+"/events").header("Authorization",bearer(first)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].title").value("수정한 교육 일정"));
+        call(admin,patch("/api/cohorts/"+cohortId),Map.of("endDate",today.minusDays(1).toString()),409);
+        call(admin,patch("/api/cohorts/"+cohortId),Map.of("name","일정이 있는 기수 이름 변경"),200);
+        call(first,delete("/api/events/"+eventId),null,403);
+        call(admin,delete("/api/events/"+eventId),null,204);
+    }
+
+    @Test
+    void retiredRoadmapRoutesAreUnavailableEvenToAdministrators() throws Exception {
+        call(admin,get("/api/cohorts/"+cohortId+"/roadmap"),null,404);
+        call(admin,post("/api/cohorts/"+cohortId+"/roadmap"),Map.of("title","더 이상 제공하지 않는 단계"),404);
+        call(admin,patch("/api/roadmap/phases/1"),Map.of("title","단계 수정"),404);
+        call(admin,post("/api/roadmap/phases/1/modules"),Map.of("title","모듈 생성"),404);
+        call(admin,patch("/api/roadmap/modules/1"),Map.of("title","모듈 수정"),404);
     }
 
     @Test

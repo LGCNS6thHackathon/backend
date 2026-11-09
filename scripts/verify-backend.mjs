@@ -123,9 +123,12 @@ await api('PATCH',`/api/submissions/${screenSubmission.id}/review`,admin.accessT
 const gradedCard=await api('GET',`/api/assignments/${screenAssignment.id}`,a.accessToken);
 await api('PUT',`/api/assignments/${screenAssignment.id}/submission`,a.accessToken,{submitMemo:'채점 이후 수정'},409);
 check(gradedCard.reviewStatus==='REVIEWED' && gradedCard.feedback.score==='92 / 100' && gradedCard.feedback.comment==='실제 화면 연동 평가입니다.' && gradedCard.feedback.mentor && !gradedCard.canResubmit && gradedCard.lockReason==='REVIEWED','Real grading populates card feedback and locks resubmission');
-const group=await api('POST',`/api/cohorts/${cohort.id}/study-groups`,a.accessToken,{name:'함께 복습하는 스터디',description:'정원을 검증합니다.',capacity:2},201);
-await api('POST',`/api/study-groups/${group.id}/members/me`,b.accessToken,undefined,201);
-await api('POST',`/api/study-groups/${group.id}/members/me`,admin.accessToken,undefined,409);check(true,'Study group capacity enforced');
+for(const [method,path] of [['GET',`/api/cohorts/${cohort.id}/study-groups`],['POST',`/api/cohorts/${cohort.id}/study-groups`],['GET','/api/study-groups/1'],['PATCH','/api/study-groups/1'],['DELETE','/api/study-groups/1'],['GET','/api/study-groups/1/members'],['POST','/api/study-groups/1/members/me'],['DELETE','/api/study-groups/1/members/me']])
+  await api(method,path,admin.accessToken,undefined,404);
+check(true,'Retired study routes are unavailable');
+for(const [method,path] of [['GET',`/api/cohorts/${cohort.id}/roadmap`],['POST',`/api/cohorts/${cohort.id}/roadmap`],['PATCH','/api/roadmap/phases/1'],['POST','/api/roadmap/phases/1/modules'],['PATCH','/api/roadmap/modules/1']])
+  await api(method,path,admin.accessToken,undefined,404);
+check(true,'Retired roadmap routes are unavailable');
 const assessment=await api('POST',`/api/cohorts/${cohort.id}/assessments`,admin.accessToken,{title:'DB 기초 평가',description:'객관식 검증',domain:'DATABASE',startAt:at(-1),endAt:at(1),durationMinutes:20},201);
 await api('POST',`/api/assessments/${assessment.id}/questions`,admin.accessToken,{prompt:'데이터 무결성을 보장하는 제약은?',position:1,points:1,explanation:'외래키는 참조 무결성을 보장합니다.',options:[{label:'FOREIGN KEY',isCorrect:true},{label:'ORDER BY',isCorrect:false}]},201);
 await api('PATCH',`/api/assessments/${assessment.id}`,admin.accessToken,{status:'PUBLISHED'});

@@ -2,11 +2,13 @@
 
 기준: [Notion 기능명세서](https://app.notion.com/p/c4f933854d4a45d5a545bf62cd8e2045?pvs=23), 2026-11-09 재확인. 비어 있지 않은 26개 행과 채팅에서 확정한 관리자 계정 발급·출결 정정 정책을 반영합니다. 빈 행 3개는 기능으로 계산하지 않습니다.
 
+현재 제공 범위는 2026-11-09 확인한 [프론트 main `c835066`](https://github.com/LGCNS6thHackathon/frontend/commit/c835066)의 학생·관리자 화면을 우선합니다. 대응 화면이 없는 독립 스터디와 기존 로드맵 단계·모듈 기능은 V5에서 제거했습니다. 캘린더 일정 및 신규 과목·단원·핵심 개념은 기존 로드맵과 별개이며 유지합니다.
+
 AI·영상·Discord 신규 기능의 범위는 **MariaDB 스키마·ERD·순수 Java 도메인 모델·저장소 인터페이스**입니다. 해당 기능의 신규 서비스·컨트롤러·저장소 구현·외부 API 호출은 각 담당자가 이 기반 위에 구현합니다. 기존 JDBC API에는 공개 회원가입 제거·관리자 계정 발급, 일자/회차 출결·정정·논리 삭제, 과제 담당 강사·논리 삭제를 반영했습니다. 과제 화면에 필요한 본인 카드, 저장소/배포 주소·메모, multipart 제출, 첨부 재조회와 평가자 이름도 백엔드에 구현하며 프런트엔드 연결은 별도 작업입니다.
 
 ## 공통 결정
 
-- 적용된 V1/V2/V3는 수정하지 않습니다. 기능 기반 확장은 V2, 관리자 계정 발급 이력은 V3, 현재 과제 화면 필드는 V4 마이그레이션입니다. 기존 INSERT는 추가 컬럼의 NULL/default로 호환합니다.
+- 적용된 V1~V4는 수정하지 않습니다. 기능 기반 확장은 V2, 관리자 계정 발급 이력은 V3, 현재 과제 화면 필드는 V4 마이그레이션입니다. V5는 사용하지 않는 `study_group_members`, `study_groups`, `roadmap_modules`, `roadmap_phases` 테이블과 데이터를 삭제하고 `STUDY_GROUP` 알림을 정리합니다.
 - 공개 회원가입은 제공하지 않습니다. 관리자가 `POST /api/users`로 계정을 발급하고 기존 기수 수강 등록 API로 소속을 지정합니다. 발급자와 발급 시각은 서버가 기록하며 기존 계정과 초기 관리자에는 알 수 없는 발급자를 추정하지 않습니다.
 - Java 17 record와 중첩 enum, 숫자 FK ID를 사용합니다. JPA/ORM/미구현 Spring Bean은 추가하지 않습니다.
 - 공개 공지와 AI 복습 본인 조회는 향후 서비스와 소유자 범위를 받는 저장소 계약으로 구분합니다. 과제 제출·평가·첨부의 본인 조회는 기존 API의 소유자 조건과 권한 검사를 재사용합니다. 도메인 모델은 API 응답 DTO가 아닙니다.
@@ -48,7 +50,9 @@ AI·영상·Discord 신규 기능의 범위는 **MariaDB 스키마·ERD·순수 
 | review_quiz_questions | id, quiz_session_id FK review_quizzes(session_id), sequence_no(>0), prompt, choice_a/b/c/d(필수), correct_choice(1~4), explanation, selected_choice(NULL 또는1~4), is_correct(NULL), created_at, answered_at(NULL). unique(quiz_session_id, sequence_no) |
 | notice_deliveries | id, post_id FK, requested_by FK users, channel(DISCORD), status(PENDING/SENT/FAILED), idempotency_key unique, title_snapshot, summary_snapshot, public_url, external_message_id(NULL), attempt_count(기본0), error_code(NULL), created_at, sent_at(NULL) |
 
-총 35개 테이블, 61개 FK입니다. V3는 `users` 자기참조 FK 하나만 추가하고 V4는 선택 컬럼 두 개만 추가하며 테이블 수를 늘리지 않습니다. 기존 기능의 테이블은 제거하지 않습니다. 새 AI/영상 기능의 관계를 따로 저장하기 때문에 기존 24개보다 늘어납니다.
+총 31개 테이블, 55개 FK입니다. V3는 `users` 자기참조 FK 하나만 추가하고 V4는 선택 컬럼 두 개만 추가합니다. V5는 독립 스터디와 기존 로드맵의 네 테이블·여섯 FK를 제거합니다. 기존 DB에서 V5를 적용하면 해당 기능의 저장 데이터도 삭제되며, 계정·기수·일정·출결·과제·평가 결과 및 신규 AI/영상/Discord 데이터는 유지합니다.
+
+학생 시험 응시 화면은 현재 프론트에 없지만 평가 응시·답안·채점 데이터는 관리자 평가 운영, 학생 성적 리포트와 문항별 복습 공개 검사의 기반입니다. 이를 생성·조회하는 평가 API는 공통 기반으로 유지합니다. 알림 피드·모두 읽음도 현재 사이드바에 있으므로 유지합니다.
 
 ## 담당자별 구현 경계
 
@@ -64,4 +68,4 @@ AI·영상·Discord 신규 기능의 범위는 **MariaDB 스키마·ERD·순수 
 
 기존 파일을 이동하지 않고, 기능별 `domain/<feature>/model`과 `domain/<feature>/repository`를 추가합니다. 기존 Map/JDBC 구현과 신규 typed 모델은 담당자가 연결해야 합니다.
 
-`auth`, `catalog`, `schedule`, `attendance`, `community`, `assignment`, `assessment`, `study`, `notification`, `attachment`, `curriculum`, `lecture`, `review`, `announcement`.
+`auth`, `catalog`, `schedule`, `attendance`, `community`, `assignment`, `assessment`, `notification`, `attachment`, `curriculum`, `lecture`, `review`, `announcement`.
