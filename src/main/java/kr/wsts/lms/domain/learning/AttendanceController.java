@@ -138,7 +138,7 @@ public class AttendanceController {
         return db.one("SELECT * FROM attendance_corrections WHERE id=?",id);
     }
 
-    private static boolean requiresCorrection(String original,String requested) {
+    static boolean requiresCorrection(String original,String requested) {
         return (original.equals("ABSENT")&&(requested.equals("LATE")||requested.equals("PRESENT")))
                 ||(Set.of("LATE","EXCUSED","LEAVE","EARLY").contains(original)&&requested.equals("PRESENT"));
     }
