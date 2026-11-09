@@ -1,15 +1,15 @@
 # MariaDB 데이터베이스와 ERD
 
-실행 기준은 `src/main/resources/db/migration`의 V1 + V2 + V3입니다. `docs/erd/lms-mariadb.sql`는 세 마이그레이션 적용 후의 전체 스키마입니다. 35개 테이블과 61개 외래 키를 ERD Cloud 스냅샷 JSON으로 제공합니다.
+실행 기준은 `src/main/resources/db/migration`의 V1 + V2 + V3 + V4입니다. `docs/erd/lms-mariadb.sql`는 네 마이그레이션 적용 후의 전체 스키마입니다. 35개 테이블과 61개 외래 키를 ERD Cloud 스냅샷 JSON으로 제공합니다.
 
-V2는 추가 기능의 DB 기반이고, V3는 관리자 계정 발급 이력입니다. 관리자 계정 발급·출결 소명·과제 업로드 시각 등 기존 API의 명세 변경을 반영했습니다. 신규 Java 모델·저장소 인터페이스를 제공하며 서비스·컨트롤러·AI/Discord 호출 구현은 담당자 작업 범위입니다. [설계 범위](foundation/DOMAIN_PLAN.md)와 [팀 인수인계](foundation/TEAM_HANDOFF.md)를 먼저 확인하세요.
+V2는 추가 기능의 DB 기반이고, V3는 관리자 계정 발급 이력입니다. V4는 현재 과제 화면의 과목 표시명과 제출 배포 URL을 저장하며 기존 행은 NULL을 유지합니다. 관리자 계정 발급·출결 소명·과제 제출/첨부/평가 API를 구현했습니다. AI·영상·Discord의 신규 Java 모델·저장소 인터페이스는 기반이며 서비스·컨트롤러·외부 호출 구현은 각 담당자 작업 범위입니다. [설계 범위](foundation/DOMAIN_PLAN.md)와 [팀 인수인계](foundation/TEAM_HANDOFF.md)를 먼저 확인하세요.
 
 ## 제공 파일
 
 | 파일 | 용도 |
 |---|---|
 | [erd/lms.erdcloud.json](erd/lms.erdcloud.json) | **ERD Cloud Upload Snapshot용**. 35개 엔티티·61개 관계·화면 배치 포함 |
-| [erd/lms-mariadb.sql](erd/lms-mariadb.sql) | V1+V2+V3 통합 스키마. 새 DB 생성·ERD Cloud SQL Import용. 기존 DB에는 Flyway 후속 마이그레이션 적용 |
+| [erd/lms-mariadb.sql](erd/lms-mariadb.sql) | V1+V2+V3+V4 통합 스키마. 새 DB 생성·ERD Cloud SQL Import용. 기존 DB에는 Flyway 후속 마이그레이션 적용 |
 | [erd/lms-schema.json](erd/lms-schema.json) | 컬럼·타입·널 허용·PK·FK·유니크·CHECK·인덱스를 담은 자체 JSON |
 | [erd/erdcloud-format-source.json](erd/erdcloud-format-source.json) | 공식 형식의 출처·검증 범위 |
 
@@ -157,4 +157,4 @@ erDiagram
 python scripts/generate-docs.py
 ```
 
-테이블 구조는 V1+V2+V3 통합 SQL을 읽어 재생성하고, API 계약은 실제 컨트롤러 경로와 대조합니다. 스키마 변경 시 마이그레이션·통합 SQL·도메인 모델을 함께 맞추고 마이그레이션 테스트로 일치 여부를 확인하세요.
+테이블 구조는 V1+V2+V3+V4 통합 SQL을 읽어 재생성하고, API 계약은 실제 컨트롤러 경로와 대조합니다. 스키마 변경 시 마이그레이션·통합 SQL·도메인 모델을 함께 맞추고 마이그레이션 테스트로 일치 여부를 확인하세요.

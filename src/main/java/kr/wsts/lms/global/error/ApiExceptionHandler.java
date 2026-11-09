@@ -25,7 +25,7 @@ public class ApiExceptionHandler {
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentNotValidException.class, MethodArgumentTypeMismatchException.class})
     ResponseEntity<?> validation(Exception e) { return ResponseEntity.badRequest().body(error("INVALID_REQUEST","요청 형식과 입력 값을 확인해주세요.")); }
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    ResponseEntity<?> tooLarge(Exception e) { return ResponseEntity.status(413).body(error("FILE_TOO_LARGE","첨부파일은 10MB 이하로 업로드해주세요.")); }
+    ResponseEntity<?> tooLarge(Exception e) { return ResponseEntity.status(413).body(error("FILE_TOO_LARGE","첨부파일 또는 요청이 허용된 최대 크기를 초과했습니다.")); }
     @ExceptionHandler(Exception.class)
     ResponseEntity<?> unexpected(Exception e) {
         if(e instanceof ErrorResponse response && response.getStatusCode().is4xxClientError())return ResponseEntity.status(response.getStatusCode()).body(error("INVALID_REQUEST","요청 경로, HTTP 메서드, 입력 형식과 필수 항목을 확인해주세요."));

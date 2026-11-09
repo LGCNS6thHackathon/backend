@@ -3494,7 +3494,7 @@
     "/api/cohorts/{cohortId}/assignments": {
       "get": {
         "summary": "과제 목록",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 카드 표시 필드와 로그인 본인의 제출·첨부·평가를 함께 반환합니다. 학생에게 다른 회원의 제출 내역을 노출하지 않습니다.",
         "operationId": "get_api_cohorts_cohortId_assignments",
         "tags": [
           "과제"
@@ -3505,7 +3505,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssignmentPage"
+                  "$ref": "#/components/schemas/AssignmentCardPage"
                 }
               }
             }
@@ -3704,7 +3704,7 @@
     "/api/assignments/{id}": {
       "get": {
         "summary": "과제 상세·내 제출·피드백",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. files는 과제 안내 첨부, mySubmission.files는 본인 제출 첨부입니다. feedback은 실제 채점 전 null입니다.",
         "operationId": "get_api_assignments_id",
         "tags": [
           "과제"
@@ -3955,7 +3955,7 @@
     "/api/assignments/{assignmentId}/submissions": {
       "get": {
         "summary": "제출물 목록",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 수강생은 본인 제출만, 스태프는 전체 제출을 조회합니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 수강생은 본인 제출만, 스태프는 전체 제출을 조회합니다. 제출 파일·다운로드 경로·리뷰어 이름을 함께 반환합니다.",
         "operationId": "get_api_assignments_assignmentId_submissions",
         "tags": [
           "과제"
@@ -4060,7 +4060,7 @@
       },
       "post": {
         "summary": "과제 최초 제출",
-        "description": "권한: 해당 기수 ACTIVE 등록 회원. 중복 제출은409. 기한 전만 가능합니다.",
+        "description": "권한: 해당 기수 ACTIVE 등록 회원. 저장소 URL 또는 제출 메모 중 하나는 필요합니다. 중복 제출은409. 기한 전만 가능합니다.",
         "operationId": "post_api_assignments_assignmentId_submissions",
         "tags": [
           "과제"
@@ -4154,7 +4154,7 @@
     "/api/assignments/{assignmentId}/submission": {
       "put": {
         "summary": "내 과제 제출·재제출",
-        "description": "권한: 해당 기수 ACTIVE 등록 회원. 없으면 생성, 있으면 수정. 기한 만료 또는 채점 완료 시409.",
+        "description": "권한: 해당 기수 ACTIVE 등록 회원. 없으면 생성, 있으면 수정. JSON 또는 multipart/form-data를 받습니다. multipart의 file은 선택이며 내용·첨부를 하나의 트랜잭션으로 저장합니다. 생략한 필드는 기존값을 보존하고 명시적 null은 빈 값으로 지웁니다. canonical/별칭을 함께 보냈을 때 공백 제거 후 다르면400입니다. 저장소 URL 또는 제출 메모 중 하나는 필요합니다. 기존 제출 파일이 있으면 JSON 수정만으로 최종 업로드 시각을 바꾸지 않습니다. 기한 만료 또는 채점 완료 시409.",
         "operationId": "put_api_assignments_assignmentId_submission",
         "tags": [
           "과제"
@@ -4219,6 +4219,16 @@
                 }
               }
             }
+          },
+          "413": {
+            "description": "업로드 크기 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -4239,6 +4249,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/put_api_assignments_assignmentId_submissionRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MultipartSubmissionRequest"
               }
             }
           }
@@ -7331,7 +7346,7 @@
     "/api/posts/{postId}/files": {
       "post": {
         "summary": "첨부파일 업로드",
-        "description": "권한: 게시글 작성자 또는 기수 스태프. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
+        "description": "권한: 게시글 작성자 또는 기수 스태프. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자, 크기는 10MiB 이하입니다. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
         "operationId": "post_api_posts_postId_files",
         "tags": [
           "첨부파일"
@@ -7435,7 +7450,7 @@
     "/api/assignments/{assignmentId}/files": {
       "post": {
         "summary": "첨부파일 업로드",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자, 크기는 10MiB 이하입니다. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
         "operationId": "post_api_assignments_assignmentId_files",
         "tags": [
           "첨부파일"
@@ -7539,7 +7554,7 @@
     "/api/submissions/{submissionId}/files": {
       "post": {
         "summary": "첨부파일 업로드",
-        "description": "권한: 제출자 본인(ADMIN 예외); 기한 전·검토 전. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
+        "description": "권한: 제출자 본인(ADMIN 예외); 기한 전·검토 전. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자, 크기는 50MiB 이하입니다. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
         "operationId": "post_api_submissions_submissionId_files",
         "tags": [
           "첨부파일"
@@ -7638,6 +7653,91 @@
             }
           }
         }
+      },
+      "get": {
+        "summary": "제출 파일 목록",
+        "description": "권한: 제출자 본인 또는 해당 기수 스태프. 삭제되지 않은 제출 파일의 이름·크기·다운로드 경로를 반환합니다. 삭제된 과제는404입니다.",
+        "operationId": "get_api_submissions_submissionId_files",
+        "tags": [
+          "첨부파일"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubmissionFile"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "submissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
       }
     },
     "/api/files/{fileId}": {
@@ -8815,6 +8915,17 @@
                 "type": "null"
               }
             ]
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -8828,7 +8939,8 @@
           "createdAt",
           "updatedAt",
           "instructorId",
-          "instructorName"
+          "instructorName",
+          "subject"
         ]
       },
       "Submission": {
@@ -8870,6 +8982,17 @@
             "format": "date-time",
             "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
           },
+          "deploymentUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "userName": {
             "type": "string"
           },
@@ -8904,6 +9027,65 @@
                 "type": "null"
               }
             ]
+          },
+          "reviewerName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repoUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deployUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "submitMemo": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubmissionFile"
+            }
+          },
+          "fileName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUBMITTED",
+              "REVIEWED"
+            ]
           }
         },
         "required": [
@@ -8913,7 +9095,8 @@
           "body",
           "repositoryUrl",
           "submittedAt",
-          "updatedAt"
+          "updatedAt",
+          "deploymentUrl"
         ]
       },
       "SubmissionReview": {
@@ -8947,6 +9130,9 @@
             "type": "string",
             "format": "date-time",
             "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "reviewerName": {
+            "type": "string"
           }
         },
         "required": [
@@ -9508,6 +9694,10 @@
                 "type": "null"
               }
             ]
+          },
+          "downloadUrl": {
+            "type": "string",
+            "description": "Bearer 인증이 필요한 다운로드 API의 상대 경로"
           }
         },
         "required": [
@@ -9554,6 +9744,44 @@
           "contentType",
           "sizeBytes",
           "createdAt"
+        ]
+      },
+      "SubmissionFile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "originalName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "contentType": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "downloadUrl": {
+            "type": "string",
+            "description": "Bearer 인증이 필요한 다운로드 API의 상대 경로"
+          }
+        },
+        "required": [
+          "id",
+          "originalName",
+          "contentType",
+          "sizeBytes",
+          "createdAt",
+          "downloadUrl"
         ]
       },
       "PostListItem": {
@@ -9779,6 +10007,225 @@
           "joinedAt"
         ]
       },
+      "AssignmentFeedback": {
+        "type": "object",
+        "properties": {
+          "mentor": {
+            "type": "string"
+          },
+          "score": {
+            "type": "string",
+            "description": "점수 / 만점. 예: 90 / 100"
+          },
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mentor",
+          "score",
+          "comment"
+        ]
+      },
+      "AssignmentCard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cohortId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "authorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "description": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "maxScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "instructorId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instructorName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deletedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subject": {
+            "type": "string",
+            "description": "과목 표시명. 미지정 과제는 과제로 표시"
+          },
+          "author": {
+            "type": "string",
+            "description": "화면 담당 강사 표시명"
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "한국 시각 yyyy-MM-dd HH:mm"
+          },
+          "dDay": {
+            "type": "string",
+            "description": "오늘 마감, D-N, 마감 또는 제출완료"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "미제출",
+              "제출완료"
+            ]
+          },
+          "submissionDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "본인 최종 제출 시각, 한국 시각 yyyy-MM-dd HH:mm"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssignmentFeedback"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "NOT_SUBMITTED",
+              "SUBMITTED",
+              "REVIEWED"
+            ]
+          },
+          "canSubmit": {
+            "type": "boolean"
+          },
+          "canResubmit": {
+            "type": "boolean"
+          },
+          "submissionLocked": {
+            "type": "boolean"
+          },
+          "lockReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "DEADLINE_PASSED",
+                  "REVIEWED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mySubmission": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Submission"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "myReview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubmissionReview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "cohortId",
+          "authorId",
+          "title",
+          "description",
+          "dueAt",
+          "maxScore",
+          "createdAt",
+          "updatedAt",
+          "instructorId",
+          "instructorName",
+          "subject",
+          "author",
+          "dueDate",
+          "dDay",
+          "status",
+          "submissionDate",
+          "feedback",
+          "reviewStatus",
+          "canSubmit",
+          "canResubmit",
+          "submissionLocked",
+          "lockReason",
+          "mySubmission",
+          "myReview"
+        ]
+      },
       "AssignmentDetail": {
         "type": "object",
         "properties": {
@@ -9854,6 +10301,81 @@
               }
             ]
           },
+          "subject": {
+            "type": "string",
+            "description": "과목 표시명. 미지정 과제는 과제로 표시"
+          },
+          "author": {
+            "type": "string",
+            "description": "화면 담당 강사 표시명"
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "한국 시각 yyyy-MM-dd HH:mm"
+          },
+          "dDay": {
+            "type": "string",
+            "description": "오늘 마감, D-N, 마감 또는 제출완료"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "미제출",
+              "제출완료"
+            ]
+          },
+          "submissionDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "본인 최종 제출 시각, 한국 시각 yyyy-MM-dd HH:mm"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssignmentFeedback"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "NOT_SUBMITTED",
+              "SUBMITTED",
+              "REVIEWED"
+            ]
+          },
+          "canSubmit": {
+            "type": "boolean"
+          },
+          "canResubmit": {
+            "type": "boolean"
+          },
+          "submissionLocked": {
+            "type": "boolean"
+          },
+          "lockReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "DEADLINE_PASSED",
+                  "REVIEWED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "mySubmission": {
             "anyOf": [
               {
@@ -9892,7 +10414,22 @@
           "createdAt",
           "updatedAt",
           "instructorId",
-          "instructorName"
+          "instructorName",
+          "subject",
+          "author",
+          "dueDate",
+          "dDay",
+          "status",
+          "submissionDate",
+          "feedback",
+          "reviewStatus",
+          "canSubmit",
+          "canResubmit",
+          "submissionLocked",
+          "lockReason",
+          "mySubmission",
+          "myReview",
+          "files"
         ]
       },
       "AssessmentDetail": {
@@ -11162,13 +11699,13 @@
           "status"
         ]
       },
-      "AssignmentPage": {
+      "AssignmentCardPage": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Assignment"
+              "$ref": "#/components/schemas/AssignmentCard"
             }
           },
           "page": {
@@ -11240,6 +11777,18 @@
                 "type": "null"
               }
             ]
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "과목 뱃지에 쓸 단순 표시명. 별도 학습 분류 관리 불필요",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -11295,6 +11844,18 @@
                 "type": "null"
               }
             ]
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "과목 뱃지에 쓸 단순 표시명. 별도 학습 분류 관리 불필요",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -11333,37 +11894,237 @@
         "type": "object",
         "properties": {
           "body": {
-            "type": "string",
-            "minLength": 2,
-            "maxLength": 30000
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "제출 메모. 저장소 URL이 있으면 비워도 됨",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "repositoryUrl": {
-            "type": "string",
-            "description": "빈 문자열 또는 인증정보 없는 HTTPS URL",
-            "maxLength": 2000
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "빈 문자열 또는 인증정보 없는 HTTPS URL",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deploymentUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "선택 배포 URL. 빈 문자열 또는 인증정보 없는 HTTPS URL",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repoUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "화면 필드명. repositoryUrl의 별칭",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deployUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "화면 필드명. deploymentUrl의 별칭",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "submitMemo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "화면 필드명. body의 별칭",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
-        },
-        "required": [
-          "body"
-        ]
+        }
       },
       "put_api_assignments_assignmentId_submissionRequest": {
         "type": "object",
         "properties": {
           "body": {
-            "type": "string",
-            "minLength": 2,
-            "maxLength": 30000
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "제출 메모. 저장소 URL이 있으면 비워도 됨",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "repositoryUrl": {
-            "type": "string",
-            "description": "빈 문자열 또는 인증정보 없는 HTTPS URL",
-            "maxLength": 2000
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "빈 문자열 또는 인증정보 없는 HTTPS URL",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deploymentUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "선택 배포 URL. 빈 문자열 또는 인증정보 없는 HTTPS URL",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repoUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "화면 필드명. repositoryUrl의 별칭",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deployUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "화면 필드명. deploymentUrl의 별칭",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "submitMemo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "화면 필드명. body의 별칭",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
-        },
-        "required": [
-          "body"
-        ]
+        }
+      },
+      "MultipartSubmissionRequest": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "제출 메모. 저장소 URL이 있으면 비워도 됨",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repositoryUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "빈 문자열 또는 인증정보 없는 HTTPS URL",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deploymentUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "선택 배포 URL. 빈 문자열 또는 인증정보 없는 HTTPS URL",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repoUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "화면 필드명. repositoryUrl의 별칭",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deployUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "화면 필드명. deploymentUrl의 별칭",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "submitMemo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "화면 필드명. body의 별칭",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "선택 첨부. 1바이트~50MiB"
+          }
+        }
       },
       "patch_api_submissions_submissionId_reviewRequest": {
         "type": "object",
@@ -11932,7 +12693,7 @@
           "file": {
             "type": "string",
             "format": "binary",
-            "description": "1바이트~10MiB, 단일 파일"
+            "description": "1바이트~50MiB, 단일 파일"
           }
         },
         "required": [

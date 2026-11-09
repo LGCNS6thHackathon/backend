@@ -1919,6 +1919,20 @@
           "relFieldId": null,
           "relType": null,
           "relGroupId": null
+        },
+        {
+          "_id": "e053c4e29e7e484df",
+          "name": "subject",
+          "pName": "subject",
+          "domain": "",
+          "type": "VARCHAR(100)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
         }
       ],
       "keys": {
@@ -2030,6 +2044,20 @@
           "type": "DATETIME(6)",
           "defaultValue": "",
           "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "c952ef4edf85a221b",
+          "name": "deployment_url",
+          "pName": "deployment_url",
+          "domain": "",
+          "type": "VARCHAR(2000)",
+          "defaultValue": "",
+          "isAllowNull": true,
           "comment": "",
           "relEntity": null,
           "relFieldId": null,
@@ -4833,7 +4861,7 @@
   ],
   "memoData": [],
   "domainData": [],
-  "createdAt": "2026-11-09T08:07:06.100Z",
+  "createdAt": "2026-11-09T09:43:12.331Z",
   "creatorName": "",
   "creatorThumb": ""
 }

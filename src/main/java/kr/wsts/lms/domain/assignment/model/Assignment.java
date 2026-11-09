@@ -21,6 +21,7 @@ public record Assignment(
         Instant updatedAt,
         Long instructorId,
         String instructorName,
-        Instant deletedAt
+        Instant deletedAt,
+        String subject
 ) {
 }

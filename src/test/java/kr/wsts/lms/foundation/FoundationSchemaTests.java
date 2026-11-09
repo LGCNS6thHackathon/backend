@@ -27,6 +27,28 @@ class FoundationSchemaTests {
     }
 
     @Test
+    void assignmentScreenUpgradePreservesExistingSubmissionsAndAddsOptionalFormFields() {
+        var dataSource = database();
+        migration(dataSource, "3").migrate();
+        var jdbc = new JdbcTemplate(dataSource);
+        seedEnrollment(jdbc);
+        jdbc.update("INSERT INTO assignments(id,cohort_id,author_id,title,description,due_at,created_at,updated_at) VALUES(1,1,1,'Legacy assignment','Instructions',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO submissions(id,assignment_id,user_id,body,repository_url,submitted_at,updated_at) VALUES(1,1,1,'Legacy memo','https://github.com/example/legacy',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+
+        migration(dataSource, null).migrate();
+
+        assertEquals("Legacy assignment", jdbc.queryForObject("SELECT title FROM assignments WHERE id=1", String.class));
+        assertNull(jdbc.queryForObject("SELECT subject FROM assignments WHERE id=1", String.class));
+        assertEquals("Legacy memo", jdbc.queryForObject("SELECT body FROM submissions WHERE id=1", String.class));
+        assertEquals("https://github.com/example/legacy", jdbc.queryForObject("SELECT repository_url FROM submissions WHERE id=1", String.class));
+        assertNull(jdbc.queryForObject("SELECT deployment_url FROM submissions WHERE id=1", String.class));
+        jdbc.update("UPDATE assignments SET subject='웹 개발' WHERE id=1");
+        jdbc.update("UPDATE submissions SET deployment_url='https://example.test/demo' WHERE id=1");
+        assertEquals("웹 개발", jdbc.queryForObject("SELECT subject FROM assignments WHERE id=1", String.class));
+        assertEquals("https://example.test/demo", jdbc.queryForObject("SELECT deployment_url FROM submissions WHERE id=1", String.class));
+    }
+
+    @Test
     void managedAccountUpgradePreservesLegacyAccountsAndTracksKnownIssuers() {
         var dataSource = database();
         migration(dataSource, "2").migrate();

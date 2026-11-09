@@ -21,7 +21,7 @@
   ],
   "validation": {
     "tables": 35,
-    "columns": 300,
+    "columns": 302,
     "foreignKeys": 61,
     "allRelationshipReferencesResolved": true,
     "officialImportNormalizer": "verified locally using the official handler and color palette; no live upload of the foundation schema",
