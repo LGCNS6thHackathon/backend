@@ -22,7 +22,7 @@ public class CommunityController {
         var args=new ArrayList<Object>();args.add(cohortId);String where=" FROM posts p JOIN users u ON u.id=p.author_id WHERE p.cohort_id=? AND p.deleted_at IS NULL";
         if(!category.isBlank()){if(!Set.of("COURSE","SYSTEM","QUESTION","FAQ").contains(category))throw AppException.bad("게시판 분류를 확인해주세요.");where+=" AND p.category=?";args.add(category);}
         if(!q.isBlank()){where+=" AND (p.title LIKE ? OR p.body LIKE ?)";args.add("%"+q+"%");args.add("%"+q+"%");}
-        return db.page("SELECT p.id,p.cohort_id,p.author_id,u.name AS author_name,p.category,p.title,p.pinned,p.views,p.created_at,p.updated_at,p.visibility,p.public_slug,(SELECT d.status FROM notice_deliveries d WHERE d.post_id=p.id ORDER BY d.id DESC LIMIT 1) AS delivery_status"+where+" ORDER BY p.pinned DESC,p.id DESC","SELECT COUNT(*)"+where,page,size,args.toArray());
+        return db.page("SELECT p.id,p.cohort_id,p.author_id,u.name AS author_name,p.category,p.title,p.pinned,p.views,p.created_at,p.updated_at"+where+" ORDER BY p.pinned DESC,p.id DESC","SELECT COUNT(*)"+where,page,size,args.toArray());
     }
     @PostMapping("/cohorts/{cohortId}/posts") @ResponseStatus(HttpStatus.CREATED) @Transactional
     public Map<String,Object> create(@PathVariable long cohortId,@RequestBody Map<String,Object> input){
@@ -30,7 +30,7 @@ public class CommunityController {
         if(!category.equals("QUESTION")||pinned)actor.staff(cohortId);
         long id=db.insert("INSERT INTO posts(cohort_id,author_id,category,title,body,pinned,views,created_at,updated_at) VALUES(?,?,?,?,?,?,0,?,?)",cohortId,actor.id(),category,Input.str(input,"title",2,160),Input.str(input,"body",2,20000),pinned,Db.now(),Db.now());
         if(!category.equals("QUESTION"))notices.cohort(cohortId,actor.id(),"POST","새 공지사항",Input.str(input,"title",2,160),"POST",id);
-        visibility(id,input);return post(id);
+        return post(id);
     }
     @GetMapping("/posts/{postId}") @Transactional
     public Map<String,Object> get(@PathVariable long postId){var p=post(postId);actor.cohort(Db.id(p,"cohortId"));db.update("UPDATE posts SET views=views+1 WHERE id=?",postId);var result=post(postId);result.put("files",db.list("SELECT id,original_name,content_type,size_bytes,created_at FROM files WHERE post_id=? AND deleted_at IS NULL ORDER BY id",postId));return result;}
@@ -40,7 +40,7 @@ public class CommunityController {
         boolean pinned=Input.bool(input,"pinned",Boolean.TRUE.equals(p.get("pinned")));
         if(!category.equals("QUESTION")||!p.get("category").equals("QUESTION")||pinned)actor.staff(cohort);
         db.update("UPDATE posts SET title=?,body=?,category=?,pinned=?,updated_at=? WHERE id=?",input.containsKey("title")?Input.str(input,"title",2,160):p.get("title"),input.containsKey("body")?Input.str(input,"body",2,20000):p.get("body"),category,pinned,Db.now(),postId);
-        visibility(postId,input);return post(postId);
+        return post(postId);
     }
     @DeleteMapping("/posts/{postId}") @ResponseStatus(HttpStatus.NO_CONTENT) @Transactional
     public void delete(@PathVariable long postId){var p=post(postId);edit(p);db.update("UPDATE posts SET deleted_at=?,updated_at=? WHERE id=?",Db.now(),Db.now(),postId);}
@@ -53,11 +53,4 @@ public class CommunityController {
     public Map<String,Object> editComment(@PathVariable long commentId,@RequestBody Map<String,Object> input){ownComment(commentId);db.update("UPDATE comments SET body=?,updated_at=? WHERE id=?",Input.str(input,"body",1,5000),Db.now(),commentId);return db.one("SELECT id,post_id,author_id,body,created_at,updated_at FROM comments WHERE id=?",commentId);}
     @DeleteMapping("/comments/{commentId}") @ResponseStatus(HttpStatus.NO_CONTENT) @Transactional
     public void deleteComment(@PathVariable long commentId){ownComment(commentId);db.update("UPDATE comments SET deleted_at=?,updated_at=? WHERE id=?",Db.now(),Db.now(),commentId);}
-    private void visibility(long id,Map<String,Object> body){
-        if(!body.containsKey("visibility")&&!body.containsKey("publicSlug"))return;
-        var p=post(id);actor.staff(Db.id(p,"cohortId"));String scope=body.containsKey("visibility")?Input.choice(body,"visibility","COHORT","PUBLIC"):(String)p.get("visibility");
-        String slug=Input.optional(body,"publicSlug",Objects.toString(p.get("publicSlug"),""),160);
-        if(scope.equals("PUBLIC")&&!slug.matches("[a-z0-9]+(?:-[a-z0-9]+)*"))throw AppException.bad("공개 링크 슬러그를 확인해주세요.");
-        db.update("UPDATE posts SET visibility=?,public_slug=? WHERE id=?",scope,slug.isBlank()?null:slug,id);
-    }
 }

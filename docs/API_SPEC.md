@@ -1,6 +1,6 @@
 # LMS API 명세
 
-103개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
+74개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
 
 ## 공통 규칙
 
@@ -140,7 +140,6 @@
 | PUT | `/api/assessment-attempts/{id}/answers` | 응시 답안 저장 | 200 | 권한: 응시자 본인. 주어진 문항만 생성·갱신하고 나머지 저장 답안은 유지합니다. 중복 문항·다른 평가 선택지는400. 마감 후409. |
 | POST | `/api/assessment-attempts/{id}/submit` | 평가 제출·자동 채점 | 200 | 권한: 응시자 본인. 저장한 답안을0~100점으로 정규화. 마감 후에는 EXPIRED로 저장 답안을 채점. 재호출은 기존 결과 반환. 정답·해설 공개 시점은 Question 스키마 참조. |
 | GET | `/api/cohorts/{cohortId}/assessment-report` | 평가 결과·영역별 통계 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 완료·만료 응시만 집계. 본인 또는 스태프가 지정한 회원. cohortAverage는 동일 평가의 기수 평균입니다. |
-| GET | `/api/cohorts/{cohortId}/assessment-summary` | 기수 평가 성적 요약 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
 
 ### 알림
 
@@ -167,49 +166,6 @@
 | 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
 |---|---|---|---|---|
 | GET | `/api/health` | 서비스 상태 | 200 | 권한: 공개. |
-
-### 학습 자료
-
-| 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
-|---|---|---|---|---|
-| GET | `/api/cohorts/{cohortId}/subjects` | subjects 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생에게는 공개 영상과 해당 소단원만 제공하며 다른 기수 접근은 차단합니다. |
-| POST | `/api/cohorts/{cohortId}/subjects` | subjects 등록 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| PATCH | `/api/subjects/{id}` | subjects 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| DELETE | `/api/subjects/{id}` | subjects 삭제 | 204 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 하위 커리큘럼이 남아 있으면 409입니다. 소단원 삭제 시 문항 연결도 제거합니다. |
-| GET | `/api/cohorts/{cohortId}/units` | units 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생에게는 공개 영상과 해당 소단원만 제공하며 다른 기수 접근은 차단합니다. |
-| POST | `/api/cohorts/{cohortId}/units` | units 등록 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| PATCH | `/api/units/{id}` | units 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| DELETE | `/api/units/{id}` | units 삭제 | 204 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 하위 커리큘럼이 남아 있으면 409입니다. 소단원 삭제 시 문항 연결도 제거합니다. |
-| GET | `/api/cohorts/{cohortId}/topics` | topics 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생에게는 공개 영상과 해당 소단원만 제공하며 다른 기수 접근은 차단합니다. |
-| POST | `/api/cohorts/{cohortId}/topics` | topics 등록 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| PATCH | `/api/topics/{id}` | topics 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| DELETE | `/api/topics/{id}` | topics 삭제 | 204 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 하위 커리큘럼이 남아 있으면 409입니다. 소단원 삭제 시 문항 연결도 제거합니다. |
-| GET | `/api/cohorts/{cohortId}/videos` | videos 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생에게는 공개 영상과 해당 소단원만 제공하며 다른 기수 접근은 차단합니다. |
-| POST | `/api/cohorts/{cohortId}/videos` | videos 등록 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| PATCH | `/api/videos/{id}` | videos 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| DELETE | `/api/videos/{id}` | videos 삭제 | 204 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 하위 커리큘럼이 남아 있으면 409입니다. 소단원 삭제 시 문항 연결도 제거합니다. |
-| GET | `/api/cohorts/{cohortId}/chapters` | chapters 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생에게는 공개 영상과 해당 소단원만 제공하며 다른 기수 접근은 차단합니다. |
-| POST | `/api/cohorts/{cohortId}/chapters` | chapters 등록 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| PATCH | `/api/chapters/{id}` | chapters 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
-| DELETE | `/api/chapters/{id}` | chapters 삭제 | 204 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 하위 커리큘럼이 남아 있으면 409입니다. 소단원 삭제 시 문항 연결도 제거합니다. |
-
-### Discord
-
-| 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
-|---|---|---|---|---|
-| GET | `/api/public/notices/{slug}` | 공개 공지 조회 | 200 | 권한: 공개. PUBLIC 범위의 삭제되지 않은 과정·시스템 공지만 조회합니다. |
-| POST | `/api/posts/{id}/discord` | Discord 전송 및 실패 재시도 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 공개 링크가 있는 공지만 전송합니다. 게시글 잠금과 전송 상태로 중복 요청을 차단합니다. Webhook 미설정은 FAILED/DISCORD_NOT_CONFIGURED로 저장합니다. |
-
-### AI 복습
-
-| 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
-|---|---|---|---|---|
-| POST | `/api/cohorts/{cohortId}/review-sessions` | 복습 세션 생성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
-| GET | `/api/review-sessions/{id}` | 본인 복습 조회 | 200 | 권한: 본인 및 소속 기수 회원. 퀴즈 정답·해설은 해당 문제 답안 제출 이후에만 제공합니다. |
-| PATCH | `/api/review-sessions/{id}` | 본인 복습 종료 | 200 | 권한: 본인. |
-| PUT | `/api/review-sessions/{id}/blank` | 백지 복습 AI 피드백 및 재시도 | 200 | 권한: 본인. 실패 시 FAILED 상태를 보존하고 503을 반환합니다. 서버에 OPENAI_API_KEY 및 OPENAI_MODEL 설정이 필요합니다. |
-| POST | `/api/review-sessions/{id}/questions` | 다음 객관식 문제 생성 | 200 | 권한: 본인. 미응답 문항이 있으면 새 생성 없이 기존 문항을 반환합니다. 정답은 응답 전에 숨깁니다. |
-| POST | `/api/review-questions/{id}/answer` | 객관식 복습 답안 제출 | 200 | 권한: 본인. 단일 선택 답안을 저장하고 정답·해설을 반환합니다. 재답변은409입니다. |
 
 ## 연결 예시
 

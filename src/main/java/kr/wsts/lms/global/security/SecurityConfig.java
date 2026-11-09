@@ -94,7 +94,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/health", "/api/public/notices/*", "/actuator/health", "/actuator/health/**", "/api-docs", "/api-docs/**", "/docs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/health", "/actuator/health", "/actuator/health/**", "/api-docs", "/api-docs/**", "/docs/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint((request, response, exception) -> writeSecurityError(response, 401, "UNAUTHORIZED", "인증이 필요하거나 토큰이 만료되었습니다.")))
