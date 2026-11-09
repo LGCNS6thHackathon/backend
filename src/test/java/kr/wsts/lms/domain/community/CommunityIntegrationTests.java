@@ -1,0 +1,99 @@
+package kr.wsts.lms.domain.community;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import com.jayway.jsonpath.JsonPath;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.concurrent.*;
+import kr.wsts.lms.global.support.Db;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import tools.jackson.databind.json.JsonMapper;
+
+@SpringBootTest(properties={
+    "spring.datasource.url=jdbc:h2:mem:lms-community-tests;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+    "app.security.jwt-secret=community-test-only-secret-at-least-32-bytes",
+    "app.bootstrap.admin-email=","app.bootstrap.admin-password="
+})
+@ActiveProfiles("test") @AutoConfigureMockMvc
+class CommunityIntegrationTests {
+    @Autowired MockMvc mvc;
+    @Autowired Db db;
+    private static final JsonMapper JSON=JsonMapper.builder().build();
+    private static final String PASSWORD="TestPassword!42";
+    record User(long id,String token){}
+    record Context(User admin,User student,User other,User outsider,long cohort){}
+    private String send(MockHttpServletRequestBuilder request,User user,Object body,int status)throws Exception{
+        if(user!=null)request.header("Authorization","Bearer "+user.token);
+        if(body!=null)request.contentType(MediaType.APPLICATION_JSON).content(JSON.writeValueAsString(body));
+        return mvc.perform(request).andExpect(status().is(status)).andReturn().getResponse().getContentAsString();
+    }
+    private static long id(String json){return ((Number)JsonPath.read(json,"$.id")).longValue();}
+    private User user(boolean admin)throws Exception{
+        String email="case-"+UUID.randomUUID()+"@example.test";
+        long id=id(send(post("/api/auth/register"),null,Map.of("email",email,"password",PASSWORD,"name","테스트사용자"),201));
+        if(admin)db.update("UPDATE users SET role='ADMIN' WHERE id=?",id);
+        String json=send(post("/api/auth/login"),null,Map.of("email",email,"password",PASSWORD),200);
+        return new User(id,JsonPath.read(json,"$.accessToken"));
+    }
+    private Context context()throws Exception{
+        User admin=user(true),student=user(false),other=user(false),outsider=user(false);
+        long course=id(send(post("/api/courses"),admin,Map.of("title","검증용과정","description","통합검증","totalHours",100),201));
+        long cohort=id(send(post("/api/courses/"+course+"/cohorts"),admin,Map.of("name","테스트기수","startDate",LocalDate.now().minusDays(10).toString(),"endDate",LocalDate.now().plusDays(100).toString()),201));
+        for(User u:List.of(student,other))send(post("/api/cohorts/"+cohort+"/enrollments"),admin,Map.of("userId",u.id,"role","STUDENT"),201);
+        return new Context(admin,student,other,outsider,cohort);
+    }
+    @Test void postsCommentsAndNotificationsRespectOwnershipAndCohort()throws Exception{
+        var c=context();String base="/api/cohorts/"+c.cohort+"/posts";
+        send(get(base),c.outsider,null,403);
+        send(post(base),c.student,Map.of("category","COURSE","title","권한 검증","body","작성 불가"),403);
+        long post=id(send(post(base),c.student,Map.of("category","QUESTION","title","질문을 나눕니다","body","도움이 필요한 학습 내용입니다."),201));
+        send(patch("/api/posts/"+post),c.other,Map.of("title","침범 수정"),403);
+        send(patch("/api/posts/"+post),c.student,Map.of("title","질문을 수정합니다"),200);
+        String detail=send(get("/api/posts/"+post),c.other,null,200);
+        assertEquals("질문을 수정합니다",JsonPath.read(detail,"$.title"));
+        long comment=id(send(post("/api/posts/"+post+"/comments"),c.other,Map.of("body","동료의 답변"),201));
+        send(patch("/api/comments/"+comment),c.student,Map.of("body","다른 사람 댓글 변경"),403);
+        send(delete("/api/comments/"+comment),c.other,null,204);
+        String notifications=send(get("/api/notifications"),c.student,null,200);
+        assertTrue(((Number)JsonPath.read(notifications,"$.total")).intValue()>0);
+        send(post("/api/notifications/read-all"),c.student,null,200);
+        assertEquals(0L,db.count("SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL",c.student.id));
+        send(delete("/api/posts/"+post),c.student,null,204);
+        send(get("/api/posts/"+post),c.other,null,404);
+    }
+    @Test void attachmentRoundTripUsesSafeFilenameAndChecksMembership()throws Exception{
+        var c=context();long post=id(send(post("/api/cohorts/"+c.cohort+"/posts"),c.student,Map.of("category","QUESTION","title","첨부파일 테스트","body","파일 권한을 확인합니다."),201));
+        byte[] contents="샘플 학습 자료".getBytes(StandardCharsets.UTF_8);
+        String uploaded=mvc.perform(multipart("/api/posts/"+post+"/files").file(new MockMultipartFile("file","../../guide.txt","text/plain",contents)).header("Authorization","Bearer "+c.student.token)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long file=id(uploaded);assertEquals("guide.txt",JsonPath.read(uploaded,"$.originalName"));assertFalse(uploaded.contains("storedName"));
+        send(get("/api/files/"+file+"/download"),c.outsider,null,403);
+        byte[] downloaded=mvc.perform(get("/api/files/"+file+"/download").header("Authorization","Bearer "+c.other.token)).andExpect(status().isOk()).andExpect(header().string("X-Content-Type-Options","nosniff")).andReturn().getResponse().getContentAsByteArray();
+        assertArrayEquals(contents,downloaded);
+        send(delete("/api/files/"+file),c.student,null,204);
+        send(get("/api/files/"+file+"/download"),c.student,null,404);
+    }
+    @Test void concurrentJoiningCannotOverfillGroup()throws Exception{
+        var c=context();long group=id(send(post("/api/cohorts/"+c.cohort+"/study-groups"),c.admin,Map.of("name","동시 가입 검증","description","마지막 한 자리","capacity",2),201));
+        ExecutorService executor=Executors.newFixedThreadPool(2);CountDownLatch ready=new CountDownLatch(2),start=new CountDownLatch(1);
+        try{
+            List<Future<Integer>> futures=new ArrayList<>();
+            for(User u:List.of(c.student,c.other))futures.add(executor.submit(()->{ready.countDown();start.await();return mvc.perform(post("/api/study-groups/"+group+"/members/me").header("Authorization","Bearer "+u.token)).andReturn().getResponse().getStatus();}));
+            assertTrue(ready.await(5,TimeUnit.SECONDS));start.countDown();var statuses=new ArrayList<Integer>();for(var f:futures)statuses.add(f.get(10,TimeUnit.SECONDS));Collections.sort(statuses);assertEquals(List.of(201,409),statuses);
+            assertEquals(2,db.count("SELECT COUNT(*) FROM study_group_members WHERE group_id=?",group));
+        }finally{executor.shutdownNow();}
+        send(post("/api/study-groups/"+group+"/members/me"),c.outsider,null,403);
+        send(patch("/api/study-groups/"+group),c.student,Map.of("capacity",3),403);
+    }
+}

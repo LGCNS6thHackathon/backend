@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:lms-test;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+app:
+  storage:
+    directory: ./build/test-storage

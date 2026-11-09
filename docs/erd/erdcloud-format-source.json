@@ -1,0 +1,27 @@
+{
+  "service": "ERD Cloud",
+  "verifiedOn": "2026-11-09",
+  "officialSource": "https://www.erdcloud.com/5047fbca2ec9ce8539d8b7739ab250f2f1850d14.js?meteor_js_resource=true",
+  "downloadedBundleSha256": "8463e6fdb22028aa85893b88f2bc58fe39b4cfa92a7e825c8e9df75ecd38ee46",
+  "modules": [
+    "lp_erd_export.ts",
+    "lp_erd_import.ts",
+    "DDLParser.ts",
+    "ERDCardinality.ts",
+    "EntityCollection.ts"
+  ],
+  "observations": [
+    "Export uses entityData, memoData, domainData, createdAt, creatorName, creatorThumb.",
+    "Upload Snapshot normalizes entity position/name/pName/keys/fields/color, remaps entity IDs and rebinds relationships.",
+    "Only identifying FK columns belong in keys.fks; ordinary FKs remain in fields.",
+    "Relationship types ZERO_OR_ONE and ZERO_OR_MANY are official enum values."
+  ],
+  "validation": {
+    "tables": 24,
+    "columns": 192,
+    "foreignKeys": 42,
+    "allRelationshipReferencesResolved": true,
+    "officialImportNormalizer": "passed in isolated local Node VM using functions extracted from the official public bundle",
+    "liveUploadPerformed": false
+  }
+}

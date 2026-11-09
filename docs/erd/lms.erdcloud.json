@@ -1,0 +1,3129 @@
+{
+  "entityData": [
+    {
+      "_id": "de694949b51a78e40",
+      "_diagramId": null,
+      "position": {
+        "x": 80,
+        "y": 80
+      },
+      "name": "users",
+      "pName": "users",
+      "fields": [
+        {
+          "_id": "f719e4aedc7eff90a",
+          "name": "email",
+          "pName": "email",
+          "domain": "",
+          "type": "VARCHAR(254)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "UNIQUE",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "d5d70bfabead55581",
+          "name": "password_hash",
+          "pName": "password_hash",
+          "domain": "",
+          "type": "VARCHAR(255)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "3577e33ce611fd9f9",
+          "name": "name",
+          "pName": "name",
+          "domain": "",
+          "type": "VARCHAR(80)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "a1163e7b926c76dc7",
+          "name": "phone",
+          "pName": "phone",
+          "domain": "",
+          "type": "VARCHAR(30)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "2846a3d252469d2a9",
+          "name": "role",
+          "pName": "role",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "'STUDENT'",
+          "isAllowNull": false,
+          "comment": "허용값: ADMIN, INSTRUCTOR, STUDENT",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "ccd5ce674dbbe9e76",
+          "name": "status",
+          "pName": "status",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "'ACTIVE'",
+          "isAllowNull": false,
+          "comment": "허용값: ACTIVE, DISABLED",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "70f468d4663720f44",
+          "name": "token_version",
+          "pName": "token_version",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "0",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "e1f2f15c450aaae24",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "6a978324d5d38585e",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "b5ebc02052b8bff5f",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "d0b0176a8a4064180",
+      "_diagramId": null,
+      "position": {
+        "x": 880,
+        "y": 80
+      },
+      "name": "refresh_tokens",
+      "pName": "refresh_tokens",
+      "fields": [
+        {
+          "_id": "34b14ccf40fe3100a",
+          "name": "user_id",
+          "pName": "user_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "57c42805f765428e3"
+        },
+        {
+          "_id": "748ae52e39f4f1960",
+          "name": "token_hash",
+          "pName": "token_hash",
+          "domain": "",
+          "type": "CHAR(64)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "UNIQUE",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "42cc0501d261b2844",
+          "name": "family_id",
+          "pName": "family_id",
+          "domain": "",
+          "type": "VARCHAR(36)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "065aee596e2635904",
+          "name": "expires_at",
+          "pName": "expires_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "a4eff0a828aa11a1f",
+          "name": "revoked_at",
+          "pName": "revoked_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "2a9681e715c91c920",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "32297fef8e4a53108",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "f5662815b36476e63",
+      "_diagramId": null,
+      "position": {
+        "x": 1680,
+        "y": 80
+      },
+      "name": "courses",
+      "pName": "courses",
+      "fields": [
+        {
+          "_id": "a5a43bd25a23d8f60",
+          "name": "title",
+          "pName": "title",
+          "domain": "",
+          "type": "VARCHAR(160)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "89c1d85af99b8fe0b",
+          "name": "description",
+          "pName": "description",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "79adbd462120bb1e1",
+          "name": "total_hours",
+          "pName": "total_hours",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "0",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "8bfa0e9c2651ecb8b",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "7f964a13cda870f46",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "92ffc6f1b745c9338",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "a4fb595b5419d9f6c",
+      "_diagramId": null,
+      "position": {
+        "x": 2480,
+        "y": 80
+      },
+      "name": "cohorts",
+      "pName": "cohorts",
+      "fields": [
+        {
+          "_id": "28e7c9e3dfa632db4",
+          "name": "course_id",
+          "pName": "course_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "f5662815b36476e63",
+          "relFieldId": "92ffc6f1b745c9338",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "28ee5e7ba8eaa9748"
+        },
+        {
+          "_id": "dbe3d891c9346ee51",
+          "name": "name",
+          "pName": "name",
+          "domain": "",
+          "type": "VARCHAR(120)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "e07437be017cc2893",
+          "name": "start_date",
+          "pName": "start_date",
+          "domain": "",
+          "type": "DATE",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "f644eea843142ee3a",
+          "name": "end_date",
+          "pName": "end_date",
+          "domain": "",
+          "type": "DATE",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "be0a978bb68e45995",
+          "name": "classroom_url",
+          "pName": "classroom_url",
+          "domain": "",
+          "type": "VARCHAR(2000)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "21dd1ab1e8993db20",
+          "name": "materials_url",
+          "pName": "materials_url",
+          "domain": "",
+          "type": "VARCHAR(2000)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "4cf5e92f760327fa4",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "80f7d608e2e4043b8",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "32da87d8034be24e4",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "7e0afb1526db82466",
+      "_diagramId": null,
+      "position": {
+        "x": 3280,
+        "y": 80
+      },
+      "name": "enrollments",
+      "pName": "enrollments",
+      "fields": [
+        {
+          "_id": "6183f0d03eab36cdd",
+          "name": "cohort_id",
+          "pName": "cohort_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "a4fb595b5419d9f6c",
+          "relFieldId": "32da87d8034be24e4",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "e267e2c12255a6fc9"
+        },
+        {
+          "_id": "963b5f9872ed4a4e4",
+          "name": "user_id",
+          "pName": "user_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "c997ea29b6c3bfbde"
+        },
+        {
+          "_id": "f5331f9cbefda72be",
+          "name": "role",
+          "pName": "role",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "'STUDENT'",
+          "isAllowNull": false,
+          "comment": "허용값: STUDENT, INSTRUCTOR, MANAGER",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "970276db8a7d3dbb0",
+          "name": "status",
+          "pName": "status",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "'ACTIVE'",
+          "isAllowNull": false,
+          "comment": "허용값: ACTIVE, WITHDRAWN",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "b89a7b78fef47c0fe",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "055a343e0d667dfa6",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "20cd5f58c9a19a54e",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "0afbbb307b7580084",
+      "_diagramId": null,
+      "position": {
+        "x": 80,
+        "y": 980
+      },
+      "name": "schedule_events",
+      "pName": "schedule_events",
+      "fields": [
+        {
+          "_id": "0d6146ec630c26630",
+          "name": "cohort_id",
+          "pName": "cohort_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "a4fb595b5419d9f6c",
+          "relFieldId": "32da87d8034be24e4",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "2a886c1431ed3ca4f"
+        },
+        {
+          "_id": "5156b42e2edd7c013",
+          "name": "title",
+          "pName": "title",
+          "domain": "",
+          "type": "VARCHAR(160)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "505584a7e32c492d0",
+          "name": "type",
+          "pName": "type",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "허용값: LECTURE, PROJECT, SPECIAL, HOLIDAY",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "485dfe33c5587e2a1",
+          "name": "start_at",
+          "pName": "start_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "4961c25761da7fdff",
+          "name": "end_at",
+          "pName": "end_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "803832da4e7eaa296",
+          "name": "location",
+          "pName": "location",
+          "domain": "",
+          "type": "VARCHAR(200)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "3b3669786c202ee34",
+          "name": "description",
+          "pName": "description",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "3db6a98336b8ac19a",
+          "name": "created_by",
+          "pName": "created_by",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "b00b028b98509d83e"
+        },
+        {
+          "_id": "80f68875238fdba89",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "198094e06e9a1417a",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "8708250465ebcb8e4",
+      "_diagramId": null,
+      "position": {
+        "x": 880,
+        "y": 980
+      },
+      "name": "roadmap_phases",
+      "pName": "roadmap_phases",
+      "fields": [
+        {
+          "_id": "bf131825d23fd57ff",
+          "name": "cohort_id",
+          "pName": "cohort_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "a4fb595b5419d9f6c",
+          "relFieldId": "32da87d8034be24e4",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "b19df4e589d5b2ce2"
+        },
+        {
+          "_id": "0432ba629dd9da34f",
+          "name": "title",
+          "pName": "title",
+          "domain": "",
+          "type": "VARCHAR(160)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "f5a881d5adc99c4bb",
+          "name": "description",
+          "pName": "description",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "2b92a97ba18b36618",
+          "name": "position",
+          "pName": "position",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "c30d05ecc572f4da1",
+          "name": "hours",
+          "pName": "hours",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "b474c7cd787eadd7d",
+          "name": "start_date",
+          "pName": "start_date",
+          "domain": "",
+          "type": "DATE",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "b00a5969f262460c2",
+          "name": "end_date",
+          "pName": "end_date",
+          "domain": "",
+          "type": "DATE",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "0363442ed0f3d0e53",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "ced3f81fd72eb3bca",
+      "_diagramId": null,
+      "position": {
+        "x": 1680,
+        "y": 980
+      },
+      "name": "roadmap_modules",
+      "pName": "roadmap_modules",
+      "fields": [
+        {
+          "_id": "48cb6f1686333e93f",
+          "name": "phase_id",
+          "pName": "phase_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "8708250465ebcb8e4",
+          "relFieldId": "0363442ed0f3d0e53",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "da77565c755a37b3a"
+        },
+        {
+          "_id": "0b19bb09748796a7f",
+          "name": "title",
+          "pName": "title",
+          "domain": "",
+          "type": "VARCHAR(160)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "eac1a5af4e5a15ded",
+          "name": "hours",
+          "pName": "hours",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "73e658bf06549cda0",
+          "name": "start_date",
+          "pName": "start_date",
+          "domain": "",
+          "type": "DATE",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "833e24fc97a1a4bf1",
+          "name": "end_date",
+          "pName": "end_date",
+          "domain": "",
+          "type": "DATE",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "80722f3aed041ad46",
+          "name": "position",
+          "pName": "position",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "fc0274999bc8a848e",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "a1ad304828b1df862",
+      "_diagramId": null,
+      "position": {
+        "x": 2480,
+        "y": 980
+      },
+      "name": "attendance_records",
+      "pName": "attendance_records",
+      "fields": [
+        {
+          "_id": "02e0bfb35169186d9",
+          "name": "enrollment_id",
+          "pName": "enrollment_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "7e0afb1526db82466",
+          "relFieldId": "20cd5f58c9a19a54e",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "4fe730455752cbf2b"
+        },
+        {
+          "_id": "b4e0554cebc4039da",
+          "name": "attendance_date",
+          "pName": "attendance_date",
+          "domain": "",
+          "type": "DATE",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "cb5b61cce97005661",
+          "name": "status",
+          "pName": "status",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "허용값: PRESENT, LATE, EARLY, ABSENT, EXCUSED",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "c0cd20917d24d08a9",
+          "name": "check_in",
+          "pName": "check_in",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "a741f040cf444afe3",
+          "name": "check_out",
+          "pName": "check_out",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "4e9d1de11104c2372",
+          "name": "note",
+          "pName": "note",
+          "domain": "",
+          "type": "VARCHAR(1000)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "6a4e58e60d713913d",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "fd38a3871dd2a6951",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "2c3b5f15faf84c6ae",
+      "_diagramId": null,
+      "position": {
+        "x": 3280,
+        "y": 980
+      },
+      "name": "attendance_corrections",
+      "pName": "attendance_corrections",
+      "fields": [
+        {
+          "_id": "b5b8f026885e00eb2",
+          "name": "attendance_id",
+          "pName": "attendance_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "a1ad304828b1df862",
+          "relFieldId": "fd38a3871dd2a6951",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "7968eed3ae057cdd8"
+        },
+        {
+          "_id": "a30db2587f57fd5db",
+          "name": "enrollment_id",
+          "pName": "enrollment_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "7e0afb1526db82466",
+          "relFieldId": "20cd5f58c9a19a54e",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "b8916e27290f4428a"
+        },
+        {
+          "_id": "0ba8862697a34268c",
+          "name": "requested_status",
+          "pName": "requested_status",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "허용값: PRESENT, LATE, EARLY, ABSENT, EXCUSED",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "fdb76b94398d12e86",
+          "name": "reason",
+          "pName": "reason",
+          "domain": "",
+          "type": "VARCHAR(2000)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "6af10e0f81da68b12",
+          "name": "status",
+          "pName": "status",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "'PENDING'",
+          "isAllowNull": false,
+          "comment": "허용값: PENDING, APPROVED, REJECTED",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "557abef89dacec9bd",
+          "name": "reviewed_by",
+          "pName": "reviewed_by",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "5d40e2b238cb5739b"
+        },
+        {
+          "_id": "041c286ac140e5643",
+          "name": "review_note",
+          "pName": "review_note",
+          "domain": "",
+          "type": "VARCHAR(2000)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "71dd3443fb8dd6192",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "ae1ddd05468ab93db",
+          "name": "reviewed_at",
+          "pName": "reviewed_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "8ebd5068748e554e7",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "b90c4eaed997027f5",
+      "_diagramId": null,
+      "position": {
+        "x": 80,
+        "y": 1880
+      },
+      "name": "posts",
+      "pName": "posts",
+      "fields": [
+        {
+          "_id": "5669baa6175beace9",
+          "name": "cohort_id",
+          "pName": "cohort_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "a4fb595b5419d9f6c",
+          "relFieldId": "32da87d8034be24e4",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "63844471f5a69a5f1"
+        },
+        {
+          "_id": "81206472851bf82a0",
+          "name": "author_id",
+          "pName": "author_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "cb052b4500f933110"
+        },
+        {
+          "_id": "a890d41b5bdfe8566",
+          "name": "category",
+          "pName": "category",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "허용값: COURSE, SYSTEM, QUESTION, FAQ",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "28a5f0aa45580465a",
+          "name": "title",
+          "pName": "title",
+          "domain": "",
+          "type": "VARCHAR(160)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "f1b712f2ca8930ce5",
+          "name": "body",
+          "pName": "body",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "63c61652f821efd38",
+          "name": "pinned",
+          "pName": "pinned",
+          "domain": "",
+          "type": "BOOLEAN",
+          "defaultValue": "FALSE",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "63b1815f0f3964fc2",
+          "name": "views",
+          "pName": "views",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "0",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "d612b08dc182993df",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "3cf391409424b86ca",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "cf5773e243b16e848",
+          "name": "deleted_at",
+          "pName": "deleted_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "7e400ca1059900f01",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "4a5a937d2d19c5a01",
+      "_diagramId": null,
+      "position": {
+        "x": 880,
+        "y": 1880
+      },
+      "name": "comments",
+      "pName": "comments",
+      "fields": [
+        {
+          "_id": "94721e29c254bfc8b",
+          "name": "post_id",
+          "pName": "post_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "b90c4eaed997027f5",
+          "relFieldId": "7e400ca1059900f01",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "478dd475e025bc762"
+        },
+        {
+          "_id": "50964c13f23910ad8",
+          "name": "author_id",
+          "pName": "author_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "861fa55e1d750ab38"
+        },
+        {
+          "_id": "552bc417e316ebe47",
+          "name": "body",
+          "pName": "body",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "23571be54f897ed42",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "3be6ce7b8767282f2",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "5b09e864d03a3ff69",
+          "name": "deleted_at",
+          "pName": "deleted_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "25a7c7f10957e982b",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "34cc3e3b484630e38",
+      "_diagramId": null,
+      "position": {
+        "x": 1680,
+        "y": 1880
+      },
+      "name": "assignments",
+      "pName": "assignments",
+      "fields": [
+        {
+          "_id": "f468cf2bf1d553a75",
+          "name": "cohort_id",
+          "pName": "cohort_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "a4fb595b5419d9f6c",
+          "relFieldId": "32da87d8034be24e4",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "15bec1ac436b2fc91"
+        },
+        {
+          "_id": "e03aa45be52aeb7c6",
+          "name": "author_id",
+          "pName": "author_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "40e4d9cc6411e9ea3"
+        },
+        {
+          "_id": "780fe3b9ec4c52661",
+          "name": "title",
+          "pName": "title",
+          "domain": "",
+          "type": "VARCHAR(160)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "8a86cd247d50ad545",
+          "name": "description",
+          "pName": "description",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "9cbc92d63ddab577b",
+          "name": "due_at",
+          "pName": "due_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "198a056adf0136ddf",
+          "name": "max_score",
+          "pName": "max_score",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "100",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "50083f4c9f1161d69",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "1f001b3a78fcb468d",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "6c8a915c2f5a24112",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "b27ba79ba61a8e3a3",
+      "_diagramId": null,
+      "position": {
+        "x": 2480,
+        "y": 1880
+      },
+      "name": "submissions",
+      "pName": "submissions",
+      "fields": [
+        {
+          "_id": "bc07aea8f422a4435",
+          "name": "assignment_id",
+          "pName": "assignment_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "34cc3e3b484630e38",
+          "relFieldId": "6c8a915c2f5a24112",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "aaed7bba160f9a971"
+        },
+        {
+          "_id": "b3829da14c818342e",
+          "name": "user_id",
+          "pName": "user_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "1e40bb1b68eef5465"
+        },
+        {
+          "_id": "cc9c27bba789ad286",
+          "name": "body",
+          "pName": "body",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "32873596d36270009",
+          "name": "repository_url",
+          "pName": "repository_url",
+          "domain": "",
+          "type": "VARCHAR(2000)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "1f8ce22df71508b9c",
+          "name": "submitted_at",
+          "pName": "submitted_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "203a2bd7e3a0e3ae1",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "ca2b5a88419bbf4df",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "2d9e94d0f5cae6a22",
+      "_diagramId": null,
+      "position": {
+        "x": 3280,
+        "y": 1880
+      },
+      "name": "submission_reviews",
+      "pName": "submission_reviews",
+      "fields": [
+        {
+          "_id": "0f13d944ae1c6f72b",
+          "name": "submission_id",
+          "pName": "submission_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "UNIQUE",
+          "relEntity": "b27ba79ba61a8e3a3",
+          "relFieldId": "ca2b5a88419bbf4df",
+          "relType": "ZERO_OR_ONE",
+          "relGroupId": "99d97fe093cc14376"
+        },
+        {
+          "_id": "e01b04831a66586d0",
+          "name": "reviewer_id",
+          "pName": "reviewer_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "11c03d84dc9000a65"
+        },
+        {
+          "_id": "88090367044d63cbe",
+          "name": "score",
+          "pName": "score",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "419918db69067a278",
+          "name": "feedback",
+          "pName": "feedback",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "21f4a441c471758fd",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "63f858d3498b9a4db",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "cbb1be5dcd8aa70e8",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "e6369ad6cbb52eb5f",
+      "_diagramId": null,
+      "position": {
+        "x": 80,
+        "y": 2780
+      },
+      "name": "assessments",
+      "pName": "assessments",
+      "fields": [
+        {
+          "_id": "de1743b3975fa099e",
+          "name": "cohort_id",
+          "pName": "cohort_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "a4fb595b5419d9f6c",
+          "relFieldId": "32da87d8034be24e4",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "6602074b5a3e5f4aa"
+        },
+        {
+          "_id": "95bf84faf25759fc1",
+          "name": "title",
+          "pName": "title",
+          "domain": "",
+          "type": "VARCHAR(160)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "87b7ad9c748380eb5",
+          "name": "description",
+          "pName": "description",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "9f21387b688fefe31",
+          "name": "domain",
+          "pName": "domain",
+          "domain": "",
+          "type": "VARCHAR(100)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "8e61eecc69c9cef34",
+          "name": "start_at",
+          "pName": "start_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "2aa4a35cfe2caa673",
+          "name": "end_at",
+          "pName": "end_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "48f13e42baf764a99",
+          "name": "duration_minutes",
+          "pName": "duration_minutes",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "95c65a99136d11d28",
+          "name": "status",
+          "pName": "status",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "'DRAFT'",
+          "isAllowNull": false,
+          "comment": "허용값: DRAFT, PUBLISHED, CLOSED",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "b7078aa8ee51fce58",
+          "name": "created_by",
+          "pName": "created_by",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "1e5a6745e4bc14cef"
+        },
+        {
+          "_id": "41f0cff3560ccbf03",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "e619a9e4ebd282ee6",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "004662bf0442fea28",
+      "_diagramId": null,
+      "position": {
+        "x": 880,
+        "y": 2780
+      },
+      "name": "assessment_questions",
+      "pName": "assessment_questions",
+      "fields": [
+        {
+          "_id": "7e3dd0f5e7d51a3d4",
+          "name": "assessment_id",
+          "pName": "assessment_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "e6369ad6cbb52eb5f",
+          "relFieldId": "e619a9e4ebd282ee6",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "22e1288016fc19f85"
+        },
+        {
+          "_id": "1dab1f785c596a6d0",
+          "name": "prompt",
+          "pName": "prompt",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "8ef644b49dd319f7b",
+          "name": "position",
+          "pName": "position",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "df2ba33bd727be18a",
+          "name": "points",
+          "pName": "points",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "1",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "7cebd43f97ec3e249",
+          "name": "explanation",
+          "pName": "explanation",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "8e4dac926f60a9063",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "2f777413a26195ee8",
+      "_diagramId": null,
+      "position": {
+        "x": 1680,
+        "y": 2780
+      },
+      "name": "assessment_options",
+      "pName": "assessment_options",
+      "fields": [
+        {
+          "_id": "2488f368ac4b266aa",
+          "name": "question_id",
+          "pName": "question_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "004662bf0442fea28",
+          "relFieldId": "8e4dac926f60a9063",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "c77e3cb8425f68650"
+        },
+        {
+          "_id": "48e37ad573ae2b130",
+          "name": "label",
+          "pName": "label",
+          "domain": "",
+          "type": "VARCHAR(2000)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "0f0b42efbb5fc9aa8",
+          "name": "is_correct",
+          "pName": "is_correct",
+          "domain": "",
+          "type": "BOOLEAN",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "441cb5fefbe69fe35",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "23203ae662443b348",
+      "_diagramId": null,
+      "position": {
+        "x": 2480,
+        "y": 2780
+      },
+      "name": "assessment_attempts",
+      "pName": "assessment_attempts",
+      "fields": [
+        {
+          "_id": "a19a61914583ccf56",
+          "name": "assessment_id",
+          "pName": "assessment_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "e6369ad6cbb52eb5f",
+          "relFieldId": "e619a9e4ebd282ee6",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "bc7dc6d62ed14a65e"
+        },
+        {
+          "_id": "b6d90b750eb89ed07",
+          "name": "user_id",
+          "pName": "user_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "9aec9a28e33d25f60"
+        },
+        {
+          "_id": "08765b15dbba82b25",
+          "name": "status",
+          "pName": "status",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "'IN_PROGRESS'",
+          "isAllowNull": false,
+          "comment": "허용값: IN_PROGRESS, SUBMITTED, EXPIRED",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "c6028c13e33e0747f",
+          "name": "started_at",
+          "pName": "started_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "ae7bb735479faa059",
+          "name": "submitted_at",
+          "pName": "submitted_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "31e10ac2946fbce8a",
+          "name": "score",
+          "pName": "score",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "0b53ceaceab19a979",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "fa38d56d319d7f62d",
+      "_diagramId": null,
+      "position": {
+        "x": 3280,
+        "y": 2780
+      },
+      "name": "assessment_answers",
+      "pName": "assessment_answers",
+      "fields": [
+        {
+          "_id": "d4e30187803aae8af",
+          "name": "attempt_id",
+          "pName": "attempt_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "23203ae662443b348",
+          "relFieldId": "0b53ceaceab19a979",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "57b322c33f9f6f0bf"
+        },
+        {
+          "_id": "eb82d6fb7eea9e9b3",
+          "name": "question_id",
+          "pName": "question_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "004662bf0442fea28",
+          "relFieldId": "8e4dac926f60a9063",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "0617b83af90ec75ad"
+        },
+        {
+          "_id": "a5883a391b27e85e5",
+          "name": "option_id",
+          "pName": "option_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "2f777413a26195ee8",
+          "relFieldId": "441cb5fefbe69fe35",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "6000e68043b7604cc"
+        },
+        {
+          "_id": "642f3ab8f90878273",
+          "name": "is_correct",
+          "pName": "is_correct",
+          "domain": "",
+          "type": "BOOLEAN",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "7f0557caee3ede1a8",
+          "name": "earned_points",
+          "pName": "earned_points",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "6168f54f79287558e",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "0954958cdce440ca4",
+      "_diagramId": null,
+      "position": {
+        "x": 80,
+        "y": 3680
+      },
+      "name": "study_groups",
+      "pName": "study_groups",
+      "fields": [
+        {
+          "_id": "7131ad751b7206e6c",
+          "name": "cohort_id",
+          "pName": "cohort_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "a4fb595b5419d9f6c",
+          "relFieldId": "32da87d8034be24e4",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "73f40ee1d9c2318d2"
+        },
+        {
+          "_id": "e73870d9c43af8e4d",
+          "name": "owner_id",
+          "pName": "owner_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "a428f37f69971c4e6"
+        },
+        {
+          "_id": "e5b19edaef0249fa8",
+          "name": "name",
+          "pName": "name",
+          "domain": "",
+          "type": "VARCHAR(120)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "5f2c4ecae318afaf3",
+          "name": "description",
+          "pName": "description",
+          "domain": "",
+          "type": "TEXT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "0dfa535dd5084cbdf",
+          "name": "capacity",
+          "pName": "capacity",
+          "domain": "",
+          "type": "INT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "265132d35b40ac9c1",
+          "name": "status",
+          "pName": "status",
+          "domain": "",
+          "type": "VARCHAR(20)",
+          "defaultValue": "'OPEN'",
+          "isAllowNull": false,
+          "comment": "허용값: OPEN, CLOSED",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "44c22d7474f446d52",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "0d158103d1166b571",
+          "name": "updated_at",
+          "pName": "updated_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "e1514582598e0cd8d",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "7b8884e0047fa1bb5",
+      "_diagramId": null,
+      "position": {
+        "x": 880,
+        "y": 3680
+      },
+      "name": "study_group_members",
+      "pName": "study_group_members",
+      "fields": [
+        {
+          "_id": "c0f50cc6d560b83e3",
+          "name": "group_id",
+          "pName": "group_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "0954958cdce440ca4",
+          "relFieldId": "e1514582598e0cd8d",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "cff7358af784e402c"
+        },
+        {
+          "_id": "be31f9d15cdfecea4",
+          "name": "user_id",
+          "pName": "user_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "218b74c1adb591ea6"
+        },
+        {
+          "_id": "2dbfae31b4ae86b0e",
+          "name": "joined_at",
+          "pName": "joined_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "44903732cafe5139f",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "85f12ddb005ede85a",
+      "_diagramId": null,
+      "position": {
+        "x": 1680,
+        "y": 3680
+      },
+      "name": "notifications",
+      "pName": "notifications",
+      "fields": [
+        {
+          "_id": "2a6983a5f1c08fda7",
+          "name": "user_id",
+          "pName": "user_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "34b39331548f9f5db"
+        },
+        {
+          "_id": "1bd4d630d10368051",
+          "name": "cohort_id",
+          "pName": "cohort_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": "a4fb595b5419d9f6c",
+          "relFieldId": "32da87d8034be24e4",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "55d29f8e1b5dfdb6e"
+        },
+        {
+          "_id": "de0318b04e7a7bda9",
+          "name": "type",
+          "pName": "type",
+          "domain": "",
+          "type": "VARCHAR(40)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "280942232a264f676",
+          "name": "title",
+          "pName": "title",
+          "domain": "",
+          "type": "VARCHAR(160)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "b958457adef9181e2",
+          "name": "body",
+          "pName": "body",
+          "domain": "",
+          "type": "VARCHAR(2000)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "34bd2fd869a60ff2d",
+          "name": "resource_type",
+          "pName": "resource_type",
+          "domain": "",
+          "type": "VARCHAR(40)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "c63d94a8deca2f367",
+          "name": "resource_id",
+          "pName": "resource_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "b1da2539028adde1a",
+          "name": "read_at",
+          "pName": "read_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "be115c4a42992f58b",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "2c05923baddb3b397",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    },
+    {
+      "_id": "4ae69d3bc48c8cf5e",
+      "_diagramId": null,
+      "position": {
+        "x": 2480,
+        "y": 3680
+      },
+      "name": "files",
+      "pName": "files",
+      "fields": [
+        {
+          "_id": "f117c4900742a6ae2",
+          "name": "cohort_id",
+          "pName": "cohort_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "a4fb595b5419d9f6c",
+          "relFieldId": "32da87d8034be24e4",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "2d9e6405395c8e25f"
+        },
+        {
+          "_id": "0b466a121264c1687",
+          "name": "uploader_id",
+          "pName": "uploader_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "49b94a7ea223da74f"
+        },
+        {
+          "_id": "25abe0282e27a87c4",
+          "name": "post_id",
+          "pName": "post_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": "b90c4eaed997027f5",
+          "relFieldId": "7e400ca1059900f01",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "2682327d38ac260cc"
+        },
+        {
+          "_id": "28833884400aae373",
+          "name": "assignment_id",
+          "pName": "assignment_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": "34cc3e3b484630e38",
+          "relFieldId": "6c8a915c2f5a24112",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "f8678de37168c27a8"
+        },
+        {
+          "_id": "4f4dffdbf82985fff",
+          "name": "submission_id",
+          "pName": "submission_id",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": "b27ba79ba61a8e3a3",
+          "relFieldId": "ca2b5a88419bbf4df",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "a2f0b9077d7481af6"
+        },
+        {
+          "_id": "ed5092bad03bfabda",
+          "name": "original_name",
+          "pName": "original_name",
+          "domain": "",
+          "type": "VARCHAR(255)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "7aa7995b883f9e099",
+          "name": "stored_name",
+          "pName": "stored_name",
+          "domain": "",
+          "type": "VARCHAR(100)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "UNIQUE",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "9c7ba54545f023b27",
+          "name": "content_type",
+          "pName": "content_type",
+          "domain": "",
+          "type": "VARCHAR(160)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "189bb257421cf225b",
+          "name": "size_bytes",
+          "pName": "size_bytes",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "3e29fa72f52b74768",
+          "name": "created_at",
+          "pName": "created_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "c5aaac5f9a5dec593",
+          "name": "deleted_at",
+          "pName": "deleted_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        }
+      ],
+      "keys": {
+        "pks": [
+          {
+            "_id": "47d14be33352c5505",
+            "name": "id",
+            "pName": "id",
+            "domain": "",
+            "type": "BIGINT",
+            "defaultValue": "",
+            "isAllowNull": false,
+            "comment": "AUTO_INCREMENT",
+            "relEntity": null,
+            "relFieldId": null,
+            "relType": null,
+            "relGroupId": null
+          }
+        ],
+        "fks": []
+      },
+      "color": "#2D5A73"
+    }
+  ],
+  "memoData": [],
+  "domainData": [],
+  "createdAt": "2026-11-09T06:29:32.515756Z",
+  "creatorName": "",
+  "creatorThumb": ""
+}

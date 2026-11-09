@@ -1,0 +1,2576 @@
+{
+  "format": "wsts-lms-relational-schema",
+  "formatVersion": "1.0.0",
+  "database": {
+    "engine": "MariaDB",
+    "charset": "utf8mb4",
+    "timeStorage": "UTC",
+    "dateCalendar": "Asia/Seoul"
+  },
+  "source": {
+    "path": "src/main/resources/db/migration/V1__lms_schema.sql",
+    "sha256": "ca0e3d233dfbb9c52dc5f9edfae9ea9a607419a7f3eea745df2c5c853380e96e"
+  },
+  "erdCloud": {
+    "nativeSnapshot": false,
+    "nativeSnapshotFile": "lms.erdcloud.json",
+    "sqlImportFile": "lms-mariadb.sql",
+    "instructions": "이 파일은 자체 스키마 교환 형식입니다. ERD Cloud Upload Snapshot에는 lms.erdcloud.json을 사용하세요."
+  },
+  "tables": [
+    {
+      "name": "users",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "email",
+          "apiName": "email",
+          "type": "VARCHAR(254)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "password_hash",
+          "apiName": "passwordHash",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "name",
+          "apiName": "name",
+          "type": "VARCHAR(80)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "phone",
+          "apiName": "phone",
+          "type": "VARCHAR(30)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "role",
+          "apiName": "role",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'STUDENT'",
+          "enum": [
+            "ADMIN",
+            "INSTRUCTOR",
+            "STUDENT"
+          ]
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'ACTIVE'",
+          "enum": [
+            "ACTIVE",
+            "DISABLED"
+          ]
+        },
+        {
+          "name": "token_version",
+          "apiName": "tokenVersion",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "0"
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": null,
+          "columns": [
+            "email"
+          ]
+        }
+      ],
+      "foreignKeys": [],
+      "checks": [
+        {
+          "name": "ck_users_role",
+          "expression": "role IN ('ADMIN','INSTRUCTOR','STUDENT')"
+        },
+        {
+          "name": "ck_users_status",
+          "expression": "status IN ('ACTIVE','DISABLED')"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "refresh_tokens",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "apiName": "userId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "token_hash",
+          "apiName": "tokenHash",
+          "type": "CHAR(64)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "family_id",
+          "apiName": "familyId",
+          "type": "VARCHAR(36)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "expires_at",
+          "apiName": "expiresAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "revoked_at",
+          "apiName": "revokedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": null,
+          "columns": [
+            "token_hash"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_refresh_user",
+          "columns": [
+            "user_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [],
+      "indexes": [
+        {
+          "name": "ix_refresh_user",
+          "columns": [
+            "user_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "courses",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "description",
+          "apiName": "description",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "total_hours",
+          "apiName": "totalHours",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "0"
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [],
+      "checks": [
+        {
+          "name": "ck_course_hours",
+          "expression": "total_hours >= 0"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "cohorts",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "course_id",
+          "apiName": "courseId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "name",
+          "apiName": "name",
+          "type": "VARCHAR(120)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "start_date",
+          "apiName": "startDate",
+          "type": "DATE",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "end_date",
+          "apiName": "endDate",
+          "type": "DATE",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "classroom_url",
+          "apiName": "classroomUrl",
+          "type": "VARCHAR(2000)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "materials_url",
+          "apiName": "materialsUrl",
+          "type": "VARCHAR(2000)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_cohort_course",
+          "columns": [
+            "course_id"
+          ],
+          "referencedTable": "courses",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_cohort_dates",
+          "expression": "end_date >= start_date"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_cohort_course",
+          "columns": [
+            "course_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "enrollments",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_id",
+          "apiName": "userId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "role",
+          "apiName": "role",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'STUDENT'",
+          "enum": [
+            "STUDENT",
+            "INSTRUCTOR",
+            "MANAGER"
+          ]
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'ACTIVE'",
+          "enum": [
+            "ACTIVE",
+            "WITHDRAWN"
+          ]
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_enrollment",
+          "columns": [
+            "cohort_id",
+            "user_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_enrollment_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_enrollment_user",
+          "columns": [
+            "user_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_enrollment_role",
+          "expression": "role IN ('STUDENT','INSTRUCTOR','MANAGER')"
+        },
+        {
+          "name": "ck_enrollment_status",
+          "expression": "status IN ('ACTIVE','WITHDRAWN')"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_enrollment_user",
+          "columns": [
+            "user_id",
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "schedule_events",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "type",
+          "apiName": "type",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "enum": [
+            "LECTURE",
+            "PROJECT",
+            "SPECIAL",
+            "HOLIDAY"
+          ]
+        },
+        {
+          "name": "start_at",
+          "apiName": "startAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "end_at",
+          "apiName": "endAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "location",
+          "apiName": "location",
+          "type": "VARCHAR(200)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "description",
+          "apiName": "description",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_by",
+          "apiName": "createdBy",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_event_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_event_author",
+          "columns": [
+            "created_by"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_event_type",
+          "expression": "type IN ('LECTURE','PROJECT','SPECIAL','HOLIDAY')"
+        },
+        {
+          "name": "ck_event_time",
+          "expression": "end_at > start_at"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_event_cohort_time",
+          "columns": [
+            "cohort_id",
+            "start_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "roadmap_phases",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "description",
+          "apiName": "description",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "apiName": "position",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "hours",
+          "apiName": "hours",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "start_date",
+          "apiName": "startDate",
+          "type": "DATE",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "end_date",
+          "apiName": "endDate",
+          "type": "DATE",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_phase_position",
+          "columns": [
+            "cohort_id",
+            "position"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_phase_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_phase_hours",
+          "expression": "hours >= 0"
+        },
+        {
+          "name": "ck_phase_dates",
+          "expression": "end_date >= start_date"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "roadmap_modules",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "phase_id",
+          "apiName": "phaseId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "hours",
+          "apiName": "hours",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "start_date",
+          "apiName": "startDate",
+          "type": "DATE",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "end_date",
+          "apiName": "endDate",
+          "type": "DATE",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "apiName": "position",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_module_position",
+          "columns": [
+            "phase_id",
+            "position"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_module_phase",
+          "columns": [
+            "phase_id"
+          ],
+          "referencedTable": "roadmap_phases",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_module_hours",
+          "expression": "hours >= 0"
+        },
+        {
+          "name": "ck_module_dates",
+          "expression": "end_date >= start_date"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "attendance_records",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "enrollment_id",
+          "apiName": "enrollmentId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "attendance_date",
+          "apiName": "attendanceDate",
+          "type": "DATE",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "enum": [
+            "PRESENT",
+            "LATE",
+            "EARLY",
+            "ABSENT",
+            "EXCUSED"
+          ]
+        },
+        {
+          "name": "check_in",
+          "apiName": "checkIn",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "check_out",
+          "apiName": "checkOut",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "note",
+          "apiName": "note",
+          "type": "VARCHAR(1000)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_attendance",
+          "columns": [
+            "enrollment_id",
+            "attendance_date"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_attendance_enrollment",
+          "columns": [
+            "enrollment_id"
+          ],
+          "referencedTable": "enrollments",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_attendance_status",
+          "expression": "status IN ('PRESENT','LATE','EARLY','ABSENT','EXCUSED')"
+        },
+        {
+          "name": "ck_attendance_time",
+          "expression": "check_out IS NULL OR check_in IS NULL OR check_out >= check_in"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "attendance_corrections",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "attendance_id",
+          "apiName": "attendanceId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "enrollment_id",
+          "apiName": "enrollmentId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "requested_status",
+          "apiName": "requestedStatus",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "enum": [
+            "PRESENT",
+            "LATE",
+            "EARLY",
+            "ABSENT",
+            "EXCUSED"
+          ]
+        },
+        {
+          "name": "reason",
+          "apiName": "reason",
+          "type": "VARCHAR(2000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'PENDING'",
+          "enum": [
+            "PENDING",
+            "APPROVED",
+            "REJECTED"
+          ]
+        },
+        {
+          "name": "reviewed_by",
+          "apiName": "reviewedBy",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "review_note",
+          "apiName": "reviewNote",
+          "type": "VARCHAR(2000)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "reviewed_at",
+          "apiName": "reviewedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_correction_record",
+          "columns": [
+            "attendance_id"
+          ],
+          "referencedTable": "attendance_records",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_correction_enrollment",
+          "columns": [
+            "enrollment_id"
+          ],
+          "referencedTable": "enrollments",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_correction_reviewer",
+          "columns": [
+            "reviewed_by"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_correction_status",
+          "expression": "status IN ('PENDING','APPROVED','REJECTED')"
+        },
+        {
+          "name": "ck_correction_requested",
+          "expression": "requested_status IN ('PRESENT','LATE','EARLY','ABSENT','EXCUSED')"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_correction_record_status",
+          "columns": [
+            "attendance_id",
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "posts",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "author_id",
+          "apiName": "authorId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "category",
+          "apiName": "category",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "enum": [
+            "COURSE",
+            "SYSTEM",
+            "QUESTION",
+            "FAQ"
+          ]
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "body",
+          "apiName": "body",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "pinned",
+          "apiName": "pinned",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "FALSE"
+        },
+        {
+          "name": "views",
+          "apiName": "views",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "0"
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "apiName": "deletedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_post_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_post_author",
+          "columns": [
+            "author_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_post_category",
+          "expression": "category IN ('COURSE','SYSTEM','QUESTION','FAQ')"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_post_cohort_category",
+          "columns": [
+            "cohort_id",
+            "category",
+            "created_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "comments",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "post_id",
+          "apiName": "postId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "author_id",
+          "apiName": "authorId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "body",
+          "apiName": "body",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "apiName": "deletedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_comment_post",
+          "columns": [
+            "post_id"
+          ],
+          "referencedTable": "posts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_comment_author",
+          "columns": [
+            "author_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [],
+      "indexes": [
+        {
+          "name": "ix_comment_post",
+          "columns": [
+            "post_id",
+            "created_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "assignments",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "author_id",
+          "apiName": "authorId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "description",
+          "apiName": "description",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "due_at",
+          "apiName": "dueAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "max_score",
+          "apiName": "maxScore",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "100"
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_assignment_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_assignment_author",
+          "columns": [
+            "author_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_assignment_score",
+          "expression": "max_score BETWEEN 1 AND 1000"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_assignment_cohort",
+          "columns": [
+            "cohort_id",
+            "due_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "submissions",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "assignment_id",
+          "apiName": "assignmentId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_id",
+          "apiName": "userId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "body",
+          "apiName": "body",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "repository_url",
+          "apiName": "repositoryUrl",
+          "type": "VARCHAR(2000)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "submitted_at",
+          "apiName": "submittedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_submission",
+          "columns": [
+            "assignment_id",
+            "user_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_submission_assignment",
+          "columns": [
+            "assignment_id"
+          ],
+          "referencedTable": "assignments",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_submission_user",
+          "columns": [
+            "user_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [],
+      "indexes": []
+    },
+    {
+      "name": "submission_reviews",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "submission_id",
+          "apiName": "submissionId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "reviewer_id",
+          "apiName": "reviewerId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "score",
+          "apiName": "score",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "feedback",
+          "apiName": "feedback",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": null,
+          "columns": [
+            "submission_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_review_submission",
+          "columns": [
+            "submission_id"
+          ],
+          "referencedTable": "submissions",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_review_author",
+          "columns": [
+            "reviewer_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_review_score",
+          "expression": "score >= 0"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "assessments",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "description",
+          "apiName": "description",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "domain",
+          "apiName": "domain",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "start_at",
+          "apiName": "startAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "end_at",
+          "apiName": "endAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "duration_minutes",
+          "apiName": "durationMinutes",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'DRAFT'",
+          "enum": [
+            "DRAFT",
+            "PUBLISHED",
+            "CLOSED"
+          ]
+        },
+        {
+          "name": "created_by",
+          "apiName": "createdBy",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_assessment_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_assessment_author",
+          "columns": [
+            "created_by"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_assessment_status",
+          "expression": "status IN ('DRAFT','PUBLISHED','CLOSED')"
+        },
+        {
+          "name": "ck_assessment_duration",
+          "expression": "duration_minutes BETWEEN 1 AND 480"
+        },
+        {
+          "name": "ck_assessment_time",
+          "expression": "end_at > start_at"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "assessment_questions",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "assessment_id",
+          "apiName": "assessmentId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "prompt",
+          "apiName": "prompt",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "apiName": "position",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "points",
+          "apiName": "points",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "1"
+        },
+        {
+          "name": "explanation",
+          "apiName": "explanation",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_question_position",
+          "columns": [
+            "assessment_id",
+            "position"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_question_assessment",
+          "columns": [
+            "assessment_id"
+          ],
+          "referencedTable": "assessments",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_question_points",
+          "expression": "points BETWEEN 1 AND 100"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "assessment_options",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "question_id",
+          "apiName": "questionId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "label",
+          "apiName": "label",
+          "type": "VARCHAR(2000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "is_correct",
+          "apiName": "isCorrect",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_option_question",
+          "columns": [
+            "question_id"
+          ],
+          "referencedTable": "assessment_questions",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [],
+      "indexes": [
+        {
+          "name": "ix_option_question",
+          "columns": [
+            "question_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "assessment_attempts",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "assessment_id",
+          "apiName": "assessmentId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_id",
+          "apiName": "userId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'IN_PROGRESS'",
+          "enum": [
+            "IN_PROGRESS",
+            "SUBMITTED",
+            "EXPIRED"
+          ]
+        },
+        {
+          "name": "started_at",
+          "apiName": "startedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "submitted_at",
+          "apiName": "submittedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "score",
+          "apiName": "score",
+          "type": "INT",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_attempt",
+          "columns": [
+            "assessment_id",
+            "user_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_attempt_assessment",
+          "columns": [
+            "assessment_id"
+          ],
+          "referencedTable": "assessments",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_attempt_user",
+          "columns": [
+            "user_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_attempt_status",
+          "expression": "status IN ('IN_PROGRESS','SUBMITTED','EXPIRED')"
+        },
+        {
+          "name": "ck_attempt_score",
+          "expression": "score IS NULL OR score BETWEEN 0 AND 100"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "assessment_answers",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "attempt_id",
+          "apiName": "attemptId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "question_id",
+          "apiName": "questionId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "option_id",
+          "apiName": "optionId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "is_correct",
+          "apiName": "isCorrect",
+          "type": "BOOLEAN",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "earned_points",
+          "apiName": "earnedPoints",
+          "type": "INT",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_answer",
+          "columns": [
+            "attempt_id",
+            "question_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_answer_attempt",
+          "columns": [
+            "attempt_id"
+          ],
+          "referencedTable": "assessment_attempts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_answer_question",
+          "columns": [
+            "question_id"
+          ],
+          "referencedTable": "assessment_questions",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_answer_option",
+          "columns": [
+            "option_id"
+          ],
+          "referencedTable": "assessment_options",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [],
+      "indexes": []
+    },
+    {
+      "name": "study_groups",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "owner_id",
+          "apiName": "ownerId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "name",
+          "apiName": "name",
+          "type": "VARCHAR(120)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "description",
+          "apiName": "description",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "capacity",
+          "apiName": "capacity",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'OPEN'",
+          "enum": [
+            "OPEN",
+            "CLOSED"
+          ]
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_group_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_group_owner",
+          "columns": [
+            "owner_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_group_capacity",
+          "expression": "capacity BETWEEN 2 AND 30"
+        },
+        {
+          "name": "ck_group_status",
+          "expression": "status IN ('OPEN','CLOSED')"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_group_cohort",
+          "columns": [
+            "cohort_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "study_group_members",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "group_id",
+          "apiName": "groupId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "user_id",
+          "apiName": "userId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "joined_at",
+          "apiName": "joinedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_group_member",
+          "columns": [
+            "group_id",
+            "user_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_member_group",
+          "columns": [
+            "group_id"
+          ],
+          "referencedTable": "study_groups",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_member_user",
+          "columns": [
+            "user_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [],
+      "indexes": []
+    },
+    {
+      "name": "notifications",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "apiName": "userId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "type",
+          "apiName": "type",
+          "type": "VARCHAR(40)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "body",
+          "apiName": "body",
+          "type": "VARCHAR(2000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "resource_type",
+          "apiName": "resourceType",
+          "type": "VARCHAR(40)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "resource_id",
+          "apiName": "resourceId",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "read_at",
+          "apiName": "readAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_notification_user",
+          "columns": [
+            "user_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_notification_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [],
+      "indexes": [
+        {
+          "name": "ix_notification_user",
+          "columns": [
+            "user_id",
+            "read_at",
+            "created_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "files",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "uploader_id",
+          "apiName": "uploaderId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "post_id",
+          "apiName": "postId",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "assignment_id",
+          "apiName": "assignmentId",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "submission_id",
+          "apiName": "submissionId",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "original_name",
+          "apiName": "originalName",
+          "type": "VARCHAR(255)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "stored_name",
+          "apiName": "storedName",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "content_type",
+          "apiName": "contentType",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "size_bytes",
+          "apiName": "sizeBytes",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "apiName": "deletedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": null,
+          "columns": [
+            "stored_name"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_file_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_file_uploader",
+          "columns": [
+            "uploader_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_file_post",
+          "columns": [
+            "post_id"
+          ],
+          "referencedTable": "posts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_file_assignment",
+          "columns": [
+            "assignment_id"
+          ],
+          "referencedTable": "assignments",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_file_submission",
+          "columns": [
+            "submission_id"
+          ],
+          "referencedTable": "submissions",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_file_size",
+          "expression": "size_bytes > 0"
+        },
+        {
+          "name": "ck_file_parent",
+          "expression": "(CASE WHEN post_id IS NOT NULL THEN 1 ELSE 0 END + CASE WHEN assignment_id IS NOT NULL THEN 1 ELSE 0 END + CASE WHEN submission_id IS NOT NULL THEN 1 ELSE 0 END) = 1"
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}

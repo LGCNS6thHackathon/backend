@@ -41,4 +41,8 @@ out/
 .env.*
 !.env.example
 src/main/resources/application-local.*
+!src/main/resources/application-local.yml
 logs/
+.data/
+.storage/
+*.log
