@@ -5,6 +5,7 @@ No database, credentials, or external service is contacted.
 """
 from pathlib import Path
 from datetime import datetime, timezone
+import copy
 import hashlib
 import json
 import re
@@ -309,12 +310,19 @@ def learning_endpoints():
 
 
 def community_endpoints():
-    post=dict(category=enum("COURSE","SYSTEM","QUESTION","FAQ"),title=string(2,160),body=string(2,20000),pinned=dict(type="boolean",default=False))
+    post=dict(category=enum("COURSE","SYSTEM","QUESTION","FAQ"),title=string(1,160),body=string(1,20000),pinned=dict(type="boolean",default=False))
     endpoint("get","/api/cohorts/{cohortId}/posts","게시글 목록",paged("PostListItem"),tag="게시판",access=MEMBER,params=page_params()+[query("category",enum("","COURSE","SYSTEM","QUESTION","FAQ",default=""),"빈 값은 전체"),query("q",string(maximum=100,default=""),"제목·본문 검색")])
-    endpoint("post","/api/cohorts/{cohortId}/posts","게시글 작성","Post",post,["category","title","body"],status=201,tag="게시판",access=MEMBER,description="학생은 QUESTION만 작성 가능. 나머지 분류와 pinned=true는 스태프만 가능. 공지 작성 시 다른 기수 회원에게 알림 생성.")
+    endpoint("post","/api/cohorts/{cohortId}/posts","게시글 작성","Post",post,["category","title","body"],status=201,tag="게시판",access=ADMIN,description="관리자만 작성 가능. 공지 작성 시 기수 회원에게 알림 생성.")
     endpoint("get","/api/posts/{postId}","게시글 상세","PostDetail",tag="게시판",access=MEMBER,description="조회 시 views가 증가합니다.")
-    endpoint("patch","/api/posts/{postId}","게시글 수정","Post",post,tag="게시판",access="작성자 또는 기수 스태프",description="QUESTION 이외 분류로 변경하거나 공지를 수정하거나 고정하려면 스태프 권한이 필요합니다.")
-    endpoint("delete","/api/posts/{postId}","게시글 삭제",status=204,tag="게시판",access="작성자 또는 기수 스태프",description="논리 삭제합니다.")
+    endpoint("patch","/api/posts/{postId}","게시글 수정","Post",post,tag="게시판",access=ADMIN,description="생략한 필드는 유지하고 빈 값은 거부합니다.")
+    endpoint("delete","/api/posts/{postId}","게시글 삭제",status=204,tag="게시판",access=ADMIN,description="논리 삭제합니다.")
+    for path in ("/api/cohorts/{cohortId}/posts", "/api/posts/{postId}"):
+        admin_path=path.replace("/api/", "/api/admin/", 1)
+        PATHS[admin_path]=copy.deepcopy(PATHS[path])
+        for operation in PATHS[admin_path].values():
+            operation["summary"]="관리자 " + operation["summary"]
+            operation["description"]="권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다."
+            operation["operationId"]="admin_" + operation["operationId"]
     endpoint("get","/api/posts/{postId}/comments","댓글 목록",paged("Comment"),tag="게시판",access=MEMBER,params=page_params())
     endpoint("post","/api/posts/{postId}/comments","댓글 작성","Comment",dict(body=string(1,5000)),["body"],status=201,tag="게시판",access=MEMBER,description="게시글 작성자에게 알림. 본인 댓글은 알림 생략.")
     endpoint("patch","/api/comments/{commentId}","댓글 수정","Comment",dict(body=string(1,5000)),["body"],tag="게시판",access="댓글 작성자 또는 기수 스태프")
@@ -338,6 +346,13 @@ def community_endpoints():
     endpoint("get","/api/files/{fileId}/download","첨부파일 다운로드",tag="첨부파일",access="기수 회원; 제출물 첨부는 제출자 또는 기수 스태프")
     PATHS["/api/files/{fileId}/download"]["get"]["responses"]["200"] = dict(description="원본 파일; Content-Disposition: attachment; X-Content-Type-Options: nosniff",headers={"Content-Disposition":dict(description="UTF-8 파일 이름을 포함한 attachment",schema=string()),"Content-Length":dict(schema=integer(1))},content={"application/octet-stream":dict(schema=dict(type="string",format="binary"))})
     endpoint("delete","/api/files/{fileId}","첨부파일 삭제",status=204,tag="첨부파일",access="부모 리소스 수정 권한 및 업로더/스태프 권한",description="논리 삭제. 제출물 첨부는 기한 전·검토 전만 변경할 수 있습니다. 물리 파일 정리는 별도 운영 정책이 필요합니다.")
+
+
+def discord_endpoints():
+    model("DiscordDeliveryView",dict(id=ID,postId=ID,status=enum("PENDING","SENT","FAILED"),externalMessageId=nullable(string()),errorCode=nullable(string())),["id","postId","status","externalMessageId","errorCode"])
+    endpoint("post","/api/posts/{postId}/discord-delivery","Discord 공지 전송","DiscordDeliveryView",tag="Discord",access=ADMIN,description="관리자가 전송 버튼을 누를 때만 전송합니다.")
+    endpoint("get","/api/posts/{postId}/discord-delivery","Discord 전송 결과","DiscordDeliveryView",tag="Discord",access=ADMIN)
+    endpoint("get","/api/cohorts/{cohortId}/discord-deliveries","기수 Discord 전송 상태",dict(type="object",additionalProperties=string()),tag="Discord",access=ADMIN,description="게시글 ID별 상태. 결과 불확실 상태는 UNKNOWN으로 표시합니다.")
 
 
 def source_routes():
@@ -378,8 +393,8 @@ def verify_openapi(spec):
 
 
 def api_docs():
-    setup_models(); auth_catalog_endpoints(); learning_endpoints(); community_endpoints()
-    tags = ["인증","회원","과정·기수","일정·로드맵","출결","게시판","과제","평가","스터디","알림","첨부파일","상태"]
+    setup_models(); auth_catalog_endpoints(); learning_endpoints(); community_endpoints(); discord_endpoints()
+    tags = ["Discord","인증","회원","과정·기수","일정·로드맵","출결","게시판","과제","평가","스터디","알림","첨부파일","상태"]
     spec = dict(openapi="3.1.0",info=dict(title="WSTS LMS Backend API",version="1.0.0",description="Spring Boot LMS의 실제 컨트롤러·입력 검증·DB 스키마를 기준으로 작성했습니다. 날짜는 한국 달력, 시각은 ISO8601 오프셋 필수이며 UTC로 저장/반환합니다. 응답은 data 래퍼 없이 직접 반환합니다. 전역 역할과 기수별 역할을 구분합니다."),servers=[dict(url="http://localhost:8080",description="로컬 실행")],tags=[dict(name=t) for t in tags],security=[dict(bearerAuth=[])],paths=PATHS,components=dict(securitySchemes=dict(bearerAuth=dict(type="http",scheme="bearer",bearerFormat="JWT")),schemas=SCHEMAS))
     count = verify_openapi(spec)
     write_json(DOCS / "openapi.json",spec)

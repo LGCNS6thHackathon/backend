@@ -61,30 +61,56 @@ class CommunityIntegrationTests {
         var c=context();String base="/api/cohorts/"+c.cohort+"/posts";
         send(get(base),c.outsider,null,403);
         send(post(base),c.student,Map.of("category","COURSE","title","권한 검증","body","작성 불가"),403);
-        long post=id(send(post(base),c.student,Map.of("category","QUESTION","title","질문을 나눕니다","body","도움이 필요한 학습 내용입니다."),201));
+        long post=id(send(post(base),c.admin,Map.of("category","QUESTION","title","질문을 나눕니다","body","도움이 필요한 학습 내용입니다."),201));
         send(patch("/api/posts/"+post),c.other,Map.of("title","침범 수정"),403);
-        send(patch("/api/posts/"+post),c.student,Map.of("title","질문을 수정합니다"),200);
+        send(patch("/api/posts/"+post),c.admin,Map.of("title","질문을 수정합니다"),200);
         String detail=send(get("/api/posts/"+post),c.other,null,200);
         assertEquals("질문을 수정합니다",JsonPath.read(detail,"$.title"));
         long comment=id(send(post("/api/posts/"+post+"/comments"),c.other,Map.of("body","동료의 답변"),201));
         send(patch("/api/comments/"+comment),c.student,Map.of("body","다른 사람 댓글 변경"),403);
         send(delete("/api/comments/"+comment),c.other,null,204);
-        String notifications=send(get("/api/notifications"),c.student,null,200);
+        String notifications=send(get("/api/notifications"),c.admin,null,200);
         assertTrue(((Number)JsonPath.read(notifications,"$.total")).intValue()>0);
-        send(post("/api/notifications/read-all"),c.student,null,200);
-        assertEquals(0L,db.count("SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL",c.student.id));
-        send(delete("/api/posts/"+post),c.student,null,204);
+        send(post("/api/notifications/read-all"),c.admin,null,200);
+        assertEquals(0L,db.count("SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL",c.admin.id));
+        send(delete("/api/posts/"+post),c.admin,null,204);
         send(get("/api/posts/"+post),c.other,null,404);
     }
+    @Test void adminBoardChangesAreVisibleToStudents()throws Exception{
+        var c=context();String base="/api/admin/cohorts/"+c.cohort+"/posts";
+        send(get(base),null,null,401);
+        send(get(base),c.student,null,403);
+        send(post("/api/cohorts/"+c.cohort+"/posts"),c.student,Map.of("category","QUESTION","title","질문","body","내용"),403);
+        for(String category:List.of("COURSE","SYSTEM","FAQ","QUESTION")) {
+            send(post(base),c.admin,Map.of("category",category,"body","내용"),400);
+            send(post(base),c.admin,Map.of("category",category,"title"," ","body","내용"),400);
+            send(post(base),c.admin,Map.of("category",category,"title","제목","body"," "),400);
+            long post=id(send(post(base),c.admin,Map.of("category",category,"title","문","body","답"),201));
+            String path="/api/admin/posts/"+post;
+            send(get(path),c.student,null,403);
+            send(patch(path),c.student,Map.of("title","수정"),403);
+            send(delete(path),c.student,null,403);
+            send(patch("/api/posts/"+post),c.student,Map.of("title","수정"),403);
+            send(delete("/api/posts/"+post),c.student,null,403);
+            send(patch(path),c.admin,Map.of("body"," "),400);
+            send(patch(path),c.admin,Map.of("title","수정 제목","body","수정 내용"),200);
+            assertEquals("수정 내용",JsonPath.read(send(get("/api/posts/"+post),c.student,null,200),"$.body"));
+            assertTrue(send(get("/api/cohorts/"+c.cohort+"/posts").param("category",category),c.student,null,200).contains("수정 제목"));
+            send(delete(path),c.admin,null,204);
+            send(get(path),c.admin,null,404);
+            send(get("/api/posts/"+post),c.student,null,404);
+            assertEquals(0,((Number)JsonPath.read(send(get("/api/cohorts/"+c.cohort+"/posts").param("category",category),c.student,null,200),"$.total")).intValue());
+        }
+    }
     @Test void attachmentRoundTripUsesSafeFilenameAndChecksMembership()throws Exception{
-        var c=context();long post=id(send(post("/api/cohorts/"+c.cohort+"/posts"),c.student,Map.of("category","QUESTION","title","첨부파일 테스트","body","파일 권한을 확인합니다."),201));
+        var c=context();long post=id(send(post("/api/cohorts/"+c.cohort+"/posts"),c.admin,Map.of("category","QUESTION","title","첨부파일 테스트","body","파일 권한을 확인합니다."),201));
         byte[] contents="샘플 학습 자료".getBytes(StandardCharsets.UTF_8);
-        String uploaded=mvc.perform(multipart("/api/posts/"+post+"/files").file(new MockMultipartFile("file","../../guide.txt","text/plain",contents)).header("Authorization","Bearer "+c.student.token)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String uploaded=mvc.perform(multipart("/api/posts/"+post+"/files").file(new MockMultipartFile("file","../../guide.txt","text/plain",contents)).header("Authorization","Bearer "+c.admin.token)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         long file=id(uploaded);assertEquals("guide.txt",JsonPath.read(uploaded,"$.originalName"));assertFalse(uploaded.contains("storedName"));
         send(get("/api/files/"+file+"/download"),c.outsider,null,403);
         byte[] downloaded=mvc.perform(get("/api/files/"+file+"/download").header("Authorization","Bearer "+c.other.token)).andExpect(status().isOk()).andExpect(header().string("X-Content-Type-Options","nosniff")).andReturn().getResponse().getContentAsByteArray();
         assertArrayEquals(contents,downloaded);
-        send(delete("/api/files/"+file),c.student,null,204);
+        send(delete("/api/files/"+file),c.admin,null,204);
         send(get("/api/files/"+file+"/download"),c.student,null,404);
     }
     @Test void concurrentJoiningCannotOverfillGroup()throws Exception{

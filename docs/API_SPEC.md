@@ -1,6 +1,6 @@
 # LMS API 명세
 
-87개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
+95개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
 
 ## 공통 규칙
 
@@ -37,6 +37,14 @@
 ## 엔드포인트
 
 상세한 필수값·길이·범위·enum·응답 필드는 OpenAPI의 각 `requestBody`, `parameters`, `responses`를 기준으로 연결하세요.
+
+### Discord
+
+| 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
+|---|---|---|---|---|
+| POST | `/api/posts/{postId}/discord-delivery` | Discord 공지 전송 | 200 | 권한: 전역 ADMIN. 관리자가 전송 버튼을 누를 때만 전송합니다. |
+| GET | `/api/posts/{postId}/discord-delivery` | Discord 전송 결과 | 200 | 권한: 전역 ADMIN. |
+| GET | `/api/cohorts/{cohortId}/discord-deliveries` | 기수 Discord 전송 상태 | 200 | 권한: 전역 ADMIN. 게시글 ID별 상태. 결과 불확실 상태는 UNKNOWN으로 표시합니다. |
 
 ### 인증
 
@@ -106,10 +114,15 @@
 | 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
 |---|---|---|---|---|
 | GET | `/api/cohorts/{cohortId}/posts` | 게시글 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
-| POST | `/api/cohorts/{cohortId}/posts` | 게시글 작성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생은 QUESTION만 작성 가능. 나머지 분류와 pinned=true는 스태프만 가능. 공지 작성 시 다른 기수 회원에게 알림 생성. |
+| POST | `/api/cohorts/{cohortId}/posts` | 게시글 작성 | 201 | 권한: 전역 ADMIN. 관리자만 작성 가능. 공지 작성 시 기수 회원에게 알림 생성. |
 | GET | `/api/posts/{postId}` | 게시글 상세 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 조회 시 views가 증가합니다. |
-| PATCH | `/api/posts/{postId}` | 게시글 수정 | 200 | 권한: 작성자 또는 기수 스태프. QUESTION 이외 분류로 변경하거나 공지를 수정하거나 고정하려면 스태프 권한이 필요합니다. |
-| DELETE | `/api/posts/{postId}` | 게시글 삭제 | 204 | 권한: 작성자 또는 기수 스태프. 논리 삭제합니다. |
+| PATCH | `/api/posts/{postId}` | 게시글 수정 | 200 | 권한: 전역 ADMIN. 생략한 필드는 유지하고 빈 값은 거부합니다. |
+| DELETE | `/api/posts/{postId}` | 게시글 삭제 | 204 | 권한: 전역 ADMIN. 논리 삭제합니다. |
+| GET | `/api/admin/cohorts/{cohortId}/posts` | 관리자 게시글 목록 | 200 | 권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다. |
+| POST | `/api/admin/cohorts/{cohortId}/posts` | 관리자 게시글 작성 | 201 | 권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다. |
+| GET | `/api/admin/posts/{postId}` | 관리자 게시글 상세 | 200 | 권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다. |
+| PATCH | `/api/admin/posts/{postId}` | 관리자 게시글 수정 | 200 | 권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다. |
+| DELETE | `/api/admin/posts/{postId}` | 관리자 게시글 삭제 | 204 | 권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다. |
 | GET | `/api/posts/{postId}/comments` | 댓글 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
 | POST | `/api/posts/{postId}/comments` | 댓글 작성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 게시글 작성자에게 알림. 본인 댓글은 알림 생략. |
 | PATCH | `/api/comments/{commentId}` | 댓글 수정 | 200 | 권한: 댓글 작성자 또는 기수 스태프. |
