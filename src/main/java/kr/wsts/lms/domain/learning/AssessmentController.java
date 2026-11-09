@@ -17,7 +17,8 @@ public class AssessmentController {
     private final Db db;
     private final Actor actor;
     private final LearningSupport support;
-    public AssessmentController(Db db,Actor actor,LearningSupport support) {this.db=db;this.actor=actor;this.support=support;}
+    private final kr.wsts.lms.domain.integration.QuestionLinks links;
+    public AssessmentController(Db db,Actor actor,LearningSupport support,kr.wsts.lms.domain.integration.QuestionLinks links) {this.db=db;this.actor=actor;this.support=support;this.links=links;}
 
     @GetMapping("/cohorts/{cohortId}/assessments")
     public Map<String,Object> assessments(@PathVariable long cohortId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
@@ -74,7 +75,7 @@ public class AssessmentController {
     @Transactional
     public ResponseEntity<Void> delete(@PathVariable long id) {
         Map<String,Object> assessment=editable(id);
-        for(Map<String,Object> question:db.list("SELECT id FROM assessment_questions WHERE assessment_id=?",id)) db.update("DELETE FROM assessment_options WHERE question_id=?",Db.id(question,"id"));
+        for(Map<String,Object> question:db.list("SELECT id FROM assessment_questions WHERE assessment_id=?",id)){links.clear(Db.id(question,"id"));db.update("DELETE FROM assessment_options WHERE question_id=?",Db.id(question,"id"));}
         db.update("DELETE FROM assessment_questions WHERE assessment_id=?",id);
         db.update("DELETE FROM assessments WHERE id=?",Db.id(assessment,"id"));
         return ResponseEntity.noContent().build();
@@ -88,6 +89,7 @@ public class AssessmentController {
         long id=db.insert("INSERT INTO assessment_questions(assessment_id,prompt,position,points,explanation) VALUES(?,?,?,?,?)",assessmentId,
                 Input.str(body,"prompt",2,10000),Input.integer(body,"position",1,1,1000),Input.integer(body,"points",1,1,100),Input.optional(body,"explanation","",10000));
         insertOptions(id,options);
+        links.save(id,body);
         return question(id,true);
     }
 
@@ -99,6 +101,7 @@ public class AssessmentController {
         if(body.containsKey("options")) {List<Map<String,Object>> options=validatedOptions(body);db.update("DELETE FROM assessment_options WHERE question_id=?",id);insertOptions(id,options);}
         db.update("UPDATE assessment_questions SET prompt=?,position=?,points=?,explanation=? WHERE id=?",Input.str(merged,"prompt",2,10000),
                 Input.integer(merged,"position",1,1,1000),Input.integer(merged,"points",1,1,100),Input.optional(merged,"explanation","",10000),id);
+        links.save(id,body);
         return question(id,true);
     }
 
@@ -106,7 +109,7 @@ public class AssessmentController {
     @Transactional
     public ResponseEntity<Void> deleteQuestion(@PathVariable long id) {
         Map<String,Object> old=db.one("SELECT * FROM assessment_questions WHERE id=?",id);editable(Db.id(old,"assessmentId"));
-        db.update("DELETE FROM assessment_options WHERE question_id=?",id);db.update("DELETE FROM assessment_questions WHERE id=?",id);
+        links.clear(id);db.update("DELETE FROM assessment_options WHERE question_id=?",id);db.update("DELETE FROM assessment_questions WHERE id=?",id);
         return ResponseEntity.noContent().build();
     }
 
@@ -154,7 +157,7 @@ public class AssessmentController {
         Map<String,Object> question=new LinkedHashMap<>(db.one("SELECT * FROM assessment_questions WHERE id=?",questionId));
         List<Map<String,Object>> options=db.list("SELECT * FROM assessment_options WHERE question_id=? ORDER BY id",questionId);
         if(!reveal) {question.remove("explanation");for(Map<String,Object> option:options)option.remove("isCorrect");}
-        question.put("options",options);return question;
+        question.put("options",options);links.decorate(question,reveal);return question;
     }
 
     @PostMapping("/assessments/{assessmentId}/attempts")
@@ -234,6 +237,12 @@ public class AssessmentController {
         List<Map<String,Object>> results=db.list("SELECT a.id,a.title,a.domain,a.start_at,t.id AS attempt_id,t.status,t.score,t.submitted_at,(SELECT AVG(other.score) FROM assessment_attempts other WHERE other.assessment_id=a.id AND other.status IN ('SUBMITTED','EXPIRED')) AS cohort_average FROM assessments a JOIN assessment_attempts t ON t.assessment_id=a.id WHERE a.cohort_id=? AND t.user_id=? AND t.status IN ('SUBMITTED','EXPIRED') ORDER BY a.start_at,a.id",cohortId,target);
         List<Map<String,Object>> domains=db.list("SELECT a.domain,AVG(t.score) AS average_score,COUNT(*) AS completed_count FROM assessments a JOIN assessment_attempts t ON t.assessment_id=a.id WHERE a.cohort_id=? AND t.user_id=? AND t.status IN ('SUBMITTED','EXPIRED') GROUP BY a.domain ORDER BY a.domain",cohortId,target);
         return Map.of("userId",target,"cohortId",cohortId,"results",results,"domains",domains);
+    }
+
+    @GetMapping("/cohorts/{cohortId}/assessment-summary")
+    public List<Map<String,Object>> summary(@PathVariable long cohortId){
+        actor.staff(cohortId);
+        return db.list("SELECT a.id,a.title,COUNT(t.id) AS completed_count,AVG(t.score) AS average,MAX(t.score) AS highest_score FROM assessments a LEFT JOIN assessment_attempts t ON t.assessment_id=a.id AND t.status IN ('SUBMITTED','EXPIRED') WHERE a.cohort_id=? GROUP BY a.id,a.title ORDER BY a.id",cohortId);
     }
 
     private void permitAttempt(Map<String,Object> attempt,Map<String,Object> assessment,boolean write) {

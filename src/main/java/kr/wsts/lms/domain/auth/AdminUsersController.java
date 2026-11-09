@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/users")
 public class AdminUsersController {
-    private static final String COLUMNS = "id,email,name,phone,role,status,created_at,updated_at";
+    private static final String COLUMNS = "id,email,name,phone,role,status,created_at,updated_at,provisioned_by,provisioned_at";
     private final Db db;
     private final Actor actor;
     private final AuthService auth;

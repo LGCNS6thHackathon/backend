@@ -159,6 +159,7 @@ def setup_models():
         "Submission":dict(userName=string(), score=nullable(integer()), feedback=nullable(string()), reviewerId=nullable(ID), reviewerName=nullable(string()), repoUrl=nullable(string(maximum=2000)), deployUrl=nullable(string(maximum=2000)), submitMemo=string(maximum=20000), files=array("SubmissionFile"), fileName=nullable(string()), status=enum("SUBMITTED","REVIEWED")),
         "SubmissionReview":dict(reviewerName=string()),
     }.items(): SCHEMAS[name]["properties"].update(props)
+    SCHEMAS["User"]["properties"].update(provisionedBy=nullable(ID),provisionedAt=nullable(TIME))
     # Projection endpoints may omit base-row fields. Distinct detailed schemas document nesting.
     model("FileSummary", {k:SCHEMAS["File"]["properties"][k] for k in ("id","originalName","contentType","sizeBytes","createdAt")}, ["id","originalName","contentType","sizeBytes","createdAt"])
     model("SubmissionFile", dict(**SCHEMAS["FileSummary"]["properties"], downloadUrl=string(description="Bearer 인증이 필요한 다운로드 API의 상대 경로")), SCHEMAS["FileSummary"]["required"] + ["downloadUrl"])
@@ -200,7 +201,7 @@ def paged(name):
 
 
 def endpoint(method, path, summary, response=None, body=None, required=(), status=200, tag="", access="인증 필요", description="", params=(), public=False, multipart=False):
-    parameters = [dict(name=name, **{"in":"path"},required=True,schema=ID) for name in re.findall(r"\{(\w+)\}",path)] + list(params)
+    parameters = [dict(name=name, **{"in":"path"},required=True,schema=string() if name=="slug" else ID) for name in re.findall(r"\{(\w+)\}",path)] + list(params)
     operation = dict(summary=summary, description="권한: " + access + (". " + description if description else "."), operationId=method + "_" + re.sub(r"[^a-zA-Z0-9]+","_",path).strip("_"), tags=[tag], responses={str(status):dict(description="성공" if status != 204 else "성공, 응답 본문 없음")})
     if response is not None:
         operation["responses"][str(status)]["content"]={"application/json":dict(schema=ref(response) if isinstance(response,str) else response)}
@@ -291,7 +292,7 @@ def learning_endpoints():
     endpoint("get","/api/assessments/{id}","평가 상세","AssessmentDetail",tag="평가",access=MEMBER,description="학생에게 DRAFT는404. questions는 스태프 또는 본인 응시 시작 후 제공됩니다.")
     endpoint("patch","/api/assessments/{id}","평가 수정·게시·종료","Assessment",dict(**assessment,status=enum("DRAFT","PUBLISHED","CLOSED")),tag="평가",access=STAFF,description="게시에는 유효한 문항이 필요합니다. 응시 후 일정·시간·영역 변경과 DRAFT 전환 불가. CLOSED 재개 불가.")
     endpoint("delete","/api/assessments/{id}","평가 초안 삭제",status=204,tag="평가",access=STAFF,description="응시 기록이 없는 DRAFT만 가능합니다.")
-    question=dict(prompt=string(2,10000),position=integer(1,1000,default=1),points=integer(1,100,default=1),explanation=string(maximum=10000,default=""),options=array(obj(dict(label=string(1,2000),isCorrect=dict(type="boolean",default=False)),["label"]),minItems=2,maxItems=10))
+    question=dict(topicId=nullable(ID),chapterId=nullable(ID),prompt=string(2,10000),position=integer(1,1000,default=1),points=integer(1,100,default=1),explanation=string(maximum=10000,default=""),options=array(obj(dict(label=string(1,2000),isCorrect=dict(type="boolean",default=False)),["label"]),minItems=2,maxItems=10))
     endpoint("post","/api/assessments/{assessmentId}/questions","객관식 문항 생성","Question",question,["prompt","options"],status=201,tag="평가",access=STAFF,description="응시 없는 DRAFT만. 선택지2~10개, 정확히 하나의 정답.")
     endpoint("patch","/api/assessment-questions/{id}","객관식 문항 수정","Question",question,tag="평가",access=STAFF,description="응시 없는 DRAFT만. options 제공 시 선택지를 모두 교체합니다.")
     endpoint("delete","/api/assessment-questions/{id}","객관식 문항 삭제",status=204,tag="평가",access=STAFF,description="응시 없는 DRAFT만.")
@@ -303,7 +304,7 @@ def learning_endpoints():
 
 
 def community_endpoints():
-    post=dict(category=enum("COURSE","SYSTEM","QUESTION","FAQ"),title=string(2,160),body=string(2,20000),pinned=dict(type="boolean",default=False))
+    post=dict(category=enum("COURSE","SYSTEM","QUESTION","FAQ"),title=string(2,160),body=string(2,20000),pinned=dict(type="boolean",default=False),visibility=enum("COHORT","PUBLIC"),publicSlug=nullable(string(maximum=160)))
     endpoint("get","/api/cohorts/{cohortId}/posts","게시글 목록",paged("PostListItem"),tag="게시판",access=MEMBER,params=page_params()+[query("category",enum("","COURSE","SYSTEM","QUESTION","FAQ",default=""),"빈 값은 전체"),query("q",string(maximum=100,default=""),"제목·본문 검색")])
     endpoint("post","/api/cohorts/{cohortId}/posts","게시글 작성","Post",post,["category","title","body"],status=201,tag="게시판",access=MEMBER,description="학생은 QUESTION만 작성 가능. 나머지 분류와 pinned=true는 스태프만 가능. 공지 작성 시 다른 기수 회원에게 알림 생성.")
     endpoint("get","/api/posts/{postId}","게시글 상세","PostDetail",tag="게시판",access=MEMBER,description="조회 시 views가 증가합니다.")
@@ -327,6 +328,36 @@ def community_endpoints():
     endpoint("delete","/api/files/{fileId}","첨부파일 삭제",status=204,tag="첨부파일",access="부모 리소스 수정 권한 및 업로더/스태프 권한",description="논리 삭제. 제출물 첨부는 기한 전·검토 전만 변경할 수 있습니다. 물리 파일 정리는 별도 운영 정책이 필요합니다.")
 
 
+def integration_endpoints():
+    for kind, table in [("subjects","learning_subjects"),("units","learning_units"),("topics","learning_topics"),("videos","lecture_videos"),("chapters","lecture_chapters")]:
+        name = "Asset" + kind.title()
+        props={c["apiName"]:sql_schema(c) for c in next(t for t in TABLES if t["name"]==table)["columns"]}
+        model(name,dict(**props,**({} if "cohortId" in props else dict(cohortId=ID))))
+        body=dict(title=string(1,160)); required=["title"]
+        if kind=="units": body["subjectId"]=ID; required += ["subjectId"]
+        if kind=="topics": body.update(unitId=ID,description=string(maximum=10000)); required += ["unitId"]
+        if kind=="videos": body.update(youtubeUrl=string(format="uri"),lectureDate=DATE,periodNo=integer(1,100),visibility=enum("PUBLIC","PRIVATE")); required += ["youtubeUrl","lectureDate","visibility"]
+        if kind=="chapters": body.update(videoId=ID,topicId=nullable(ID),startSeconds=integer(0)); required += ["videoId"]
+        endpoint("get",f"/api/cohorts/{{cohortId}}/{kind}",f"{kind} 목록",paged(name),tag="학습 자료",access=MEMBER,params=page_params()+([query("videoId",ID,"영상별 소단원 필터")] if kind=="chapters" else []),description="학생에게는 공개 영상과 해당 소단원만 제공하며 다른 기수 접근은 차단합니다.")
+        endpoint("post",f"/api/cohorts/{{cohortId}}/{kind}",f"{kind} 등록",name,body,required,status=201,tag="학습 자료",access=STAFF)
+        endpoint("patch",f"/api/{kind}/{{id}}",f"{kind} 수정",name,body,tag="학습 자료",access=STAFF)
+        endpoint("delete",f"/api/{kind}/{{id}}",f"{kind} 삭제",status=204,tag="학습 자료",access=STAFF,description="하위 커리큘럼이 남아 있으면 409입니다. 소단원 삭제 시 문항 연결도 제거합니다.")
+    endpoint("get","/api/cohorts/{cohortId}/assessment-summary","기수 평가 성적 요약",array(obj(dict(id=ID,title=string(),completedCount=integer(0),average=nullable(dict(type="number")),highestScore=nullable(integer())))),tag="평가",access=STAFF)
+    generic=obj({},additionalProperties=True)
+    endpoint("get","/api/public/notices/{slug}","공개 공지 조회",obj(dict(title=string(),body=string(),createdAt=TIME)),tag="Discord",public=True,access="공개",description="PUBLIC 범위의 삭제되지 않은 과정·시스템 공지만 조회합니다.")
+    endpoint("post","/api/posts/{id}/discord","Discord 전송 및 실패 재시도",obj(dict(id=ID,postId=ID,status=enum("PENDING","SENT","FAILED"),attemptCount=integer(0),errorCode=nullable(string()),sentAt=nullable(TIME))),tag="Discord",access=STAFF,description="공개 링크가 있는 공지만 전송합니다. 게시글 잠금과 전송 상태로 중복 요청을 차단합니다. Webhook 미설정은 FAILED/DISCORD_NOT_CONFIGURED로 저장합니다.")
+    endpoint("post","/api/cohorts/{cohortId}/review-sessions","복습 세션 생성",generic,dict(topicId=ID,mode=enum("BLANK","QUIZ")),["topicId","mode"],status=201,tag="AI 복습",access=MEMBER)
+    endpoint("get","/api/review-sessions/{id}","본인 복습 조회",generic,tag="AI 복습",access="본인 및 소속 기수 회원",description="퀴즈 정답·해설은 해당 문제 답안 제출 이후에만 제공합니다.")
+    endpoint("patch","/api/review-sessions/{id}","본인 복습 종료",generic,tag="AI 복습",access="본인")
+    endpoint("put","/api/review-sessions/{id}/blank","백지 복습 AI 피드백 및 재시도",generic,dict(content=string(1,20000)),["content"],tag="AI 복습",access="본인",description="실패 시 FAILED 상태를 보존하고 503을 반환합니다. 서버에 OPENAI_API_KEY 및 OPENAI_MODEL 설정이 필요합니다.")
+    endpoint("post","/api/review-sessions/{id}/questions","다음 객관식 문제 생성",generic,tag="AI 복습",access="본인",description="미응답 문항이 있으면 새 생성 없이 기존 문항을 반환합니다. 정답은 응답 전에 숨깁니다.")
+    endpoint("post","/api/review-questions/{id}/answer","객관식 복습 답안 제출",generic,dict(selectedChoice=integer(1,4)),["selectedChoice"],tag="AI 복습",access="본인",description="단일 선택 답안을 저장하고 정답·해설을 반환합니다. 재답변은409입니다.")
+    for path in ["/api/review-sessions/{id}/blank","/api/review-sessions/{id}/questions"]:
+        for op in PATHS[path].values():op["responses"]["503"]=dict(description="AI 설정 없음 또는 외부 생성 실패",content={"application/json":dict(schema=ref("Error"))})
+    SCHEMAS["PostListItem"]["properties"].update(deliveryStatus=nullable(enum("PENDING","SENT","FAILED")))
+    SCHEMAS["Question"]["properties"].update(chapterId=nullable(ID),reviewLinks=array(obj(dict(id=ID,chapterId=ID,title=string(),startSeconds=integer(0),lectureDate=DATE,periodNo=integer(1),youtubeUrl=string(format="uri")))))
+
+
 def source_routes():
     routes = set()
     for source in (ROOT / "src/main/java").rglob("*Controller.java"):
@@ -337,7 +368,10 @@ def source_routes():
         for match in re.finditer(r'@(Get|Post|Put|Patch|Delete)Mapping(?:\(([^\n]*?)\))?',text):
             path_match = re.search(r'"([^"]*)"',match[2] or "")
             path = prefix + (path_match[1] if path_match else "")
-            if path.startswith("/api/"): routes.add((match[1].lower(),path))
+            if path.startswith("/api/"):
+                pattern = re.search(r"\{kind:([^}]+)\}", path)
+                paths = [path.replace(pattern[0], kind) for kind in pattern[1].split("|")] if pattern else [path]
+                for expanded in paths: routes.add((match[1].lower(),expanded))
     return routes
 
 
@@ -365,8 +399,8 @@ def verify_openapi(spec):
 
 
 def api_docs():
-    setup_models(); auth_catalog_endpoints(); learning_endpoints(); community_endpoints()
-    tags = ["인증","회원","과정·기수","일정","출결","게시판","과제","평가","알림","첨부파일","상태"]
+    setup_models(); auth_catalog_endpoints(); learning_endpoints(); community_endpoints(); integration_endpoints()
+    tags = ["인증","회원","과정·기수","일정","출결","게시판","과제","평가","알림","첨부파일","상태","학습 자료","Discord","AI 복습"]
     spec = dict(openapi="3.1.0",info=dict(title="WSTS LMS Backend API",version="1.0.0",description="Spring Boot LMS의 실제 컨트롤러·입력 검증·DB 스키마를 기준으로 작성했습니다. 날짜는 한국 달력, 시각은 ISO8601 오프셋 필수이며 UTC로 저장/반환합니다. 응답은 data 래퍼 없이 직접 반환합니다. 전역 역할과 기수별 역할을 구분합니다."),servers=[dict(url="http://localhost:8080",description="로컬 실행")],tags=[dict(name=t) for t in tags],security=[dict(bearerAuth=[])],paths=PATHS,components=dict(securitySchemes=dict(bearerAuth=dict(type="http",scheme="bearer",bearerFormat="JWT")),schemas=SCHEMAS))
     count = verify_openapi(spec)
     write_json(DOCS / "openapi.json",spec)

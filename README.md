@@ -1,3 +1,7 @@
+# 프론트 전체 API 연결 업데이트
+
+`codex/api-integration` 브랜치에서는 영상·커리큘럼·평가 복습 매핑·AI·Discord 서비스도 구현되었습니다. 아래의 과거 기반 설명보다 [프론트 통합 안내](docs/FRONTEND_INTEGRATION.md)와 최신 [API 명세](docs/API_SPEC.md)를 우선 확인하세요.
+
 # NewLearn LMS Backend
 
 Java 17 · Spring Boot 4.1.2 · Spring Security · JDBC · MariaDB 11.8 · Flyway 기반 LMS 백엔드입니다. 프론트 코드는 포함하지 않습니다.
