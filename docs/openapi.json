@@ -8269,7 +8269,8 @@
               "LATE",
               "EARLY",
               "ABSENT",
-              "EXCUSED"
+              "EXCUSED",
+              "LEAVE"
             ]
           },
           "checkIn": {
@@ -8312,6 +8313,30 @@
             "format": "date-time",
             "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
           },
+          "unitType": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "sessionNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "userId": {
             "type": "integer",
             "format": "int64",
@@ -8329,7 +8354,10 @@
           "checkIn",
           "checkOut",
           "note",
-          "updatedAt"
+          "updatedAt",
+          "unitType",
+          "sessionNo",
+          "version"
         ]
       },
       "AttendanceCorrection": {
@@ -8368,7 +8396,8 @@
             "enum": [
               "PENDING",
               "APPROVED",
-              "REJECTED"
+              "REJECTED",
+              "INVALIDATED"
             ]
           },
           "reviewedBy": {
@@ -8410,6 +8439,28 @@
               }
             ]
           },
+          "originalStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "originalVersion": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "userId": {
             "type": "integer",
             "format": "int64",
@@ -8433,7 +8484,9 @@
           "reviewedBy",
           "reviewNote",
           "createdAt",
-          "reviewedAt"
+          "reviewedAt",
+          "originalStatus",
+          "originalVersion"
         ]
       },
       "Post": {
@@ -8457,6 +8510,7 @@
             "enum": [
               "COURSE",
               "SYSTEM",
+              "ATTENDANCE",
               "QUESTION",
               "FAQ"
             ]
@@ -8497,6 +8551,25 @@
               }
             ]
           },
+          "visibility": {
+            "type": "string",
+            "maxLength": 20,
+            "enum": [
+              "COHORT",
+              "PUBLIC"
+            ]
+          },
+          "publicSlug": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "authorName": {
             "type": "string"
           },
@@ -8515,7 +8588,9 @@
           "pinned",
           "views",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "visibility",
+          "publicSlug"
         ]
       },
       "Comment": {
@@ -8611,6 +8686,40 @@
             "type": "string",
             "format": "date-time",
             "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "instructorId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instructorName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deletedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -8622,7 +8731,9 @@
           "dueAt",
           "maxScore",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "instructorId",
+          "instructorName"
         ]
       },
       "Submission": {
@@ -8847,6 +8958,17 @@
           "explanation": {
             "type": "string"
           },
+          "topicId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "options": {
             "type": "array",
             "items": {
@@ -8860,6 +8982,7 @@
           "prompt",
           "position",
           "points",
+          "topicId",
           "options"
         ],
         "description": "수강생은 응시 시작 후 문항을 조회합니다. 해설과 선택지 isCorrect는 본인 응시 종료와 평가 전체 종료(또는 CLOSED)가 모두 충족된 뒤 공개합니다. 스태프는 항상 조회 가능합니다."
@@ -9359,6 +9482,7 @@
             "enum": [
               "COURSE",
               "SYSTEM",
+              "ATTENDANCE",
               "QUESTION",
               "FAQ"
             ]
@@ -9383,6 +9507,25 @@
             "type": "string",
             "format": "date-time",
             "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "visibility": {
+            "type": "string",
+            "maxLength": 20,
+            "enum": [
+              "COHORT",
+              "PUBLIC"
+            ]
+          },
+          "publicSlug": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "authorName": {
             "type": "string"
@@ -9422,6 +9565,7 @@
             "enum": [
               "COURSE",
               "SYSTEM",
+              "ATTENDANCE",
               "QUESTION",
               "FAQ"
             ]
@@ -9462,6 +9606,25 @@
               }
             ]
           },
+          "visibility": {
+            "type": "string",
+            "maxLength": 20,
+            "enum": [
+              "COHORT",
+              "PUBLIC"
+            ]
+          },
+          "publicSlug": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "authorName": {
             "type": "string"
           },
@@ -9487,6 +9650,8 @@
           "views",
           "createdAt",
           "updatedAt",
+          "visibility",
+          "publicSlug",
           "files"
         ]
       },
@@ -9560,6 +9725,40 @@
             "format": "date-time",
             "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
           },
+          "instructorId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instructorName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deletedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "mySubmission": {
             "anyOf": [
               {
@@ -9596,7 +9795,9 @@
           "dueAt",
           "maxScore",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "instructorId",
+          "instructorName"
         ]
       },
       "AssessmentDetail": {

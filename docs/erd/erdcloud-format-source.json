@@ -1,27 +1,30 @@
 {
   "service": "ERD Cloud",
   "verifiedOn": "2026-11-09",
-  "officialSource": "https://www.erdcloud.com/5047fbca2ec9ce8539d8b7739ab250f2f1850d14.js?meteor_js_resource=true",
-  "downloadedBundleSha256": "8463e6fdb22028aa85893b88f2bc58fe39b4cfa92a7e825c8e9df75ecd38ee46",
+  "officialSource": "https://www.erdcloud.com/362fd7b87ef4582c2b50d92b6825046e74d62296.js?meteor_js_resource=true",
+  "downloadedBundleSha256": "3b8ca5420469256b4f27380871de657302bcb2d63c506d6f4171b2378c1370e2",
   "modules": [
     "lp_erd_export.ts",
     "lp_erd_import.ts",
     "DDLParser.ts",
     "ERDCardinality.ts",
-    "EntityCollection.ts"
+    "EntityCollection.ts",
+    "entityColorPalette.ts"
   ],
   "observations": [
     "Export uses entityData, memoData, domainData, createdAt, creatorName, creatorThumb.",
     "Upload Snapshot normalizes entity position/name/pName/keys/fields/color, remaps entity IDs and rebinds relationships.",
     "Only identifying FK columns belong in keys.fks; ordinary FKs remain in fields.",
-    "Relationship types ZERO_OR_ONE and ZERO_OR_MANY are official enum values."
+    "Relationship types ZERO_OR_ONE and ZERO_OR_MANY are official enum values.",
+    "Entity color must be an exact palette key; arbitrary CSS colors fail after entities have already been persisted.",
+    "Import skips entities with existing pName. Updated definitions must be imported into a new blank diagram."
   ],
   "validation": {
-    "tables": 24,
-    "columns": 192,
-    "foreignKeys": 42,
+    "tables": 35,
+    "columns": 298,
+    "foreignKeys": 60,
     "allRelationshipReferencesResolved": true,
-    "officialImportNormalizer": "passed in isolated local Node VM using functions extracted from the official public bundle",
+    "officialImportNormalizer": "verified locally using the official handler and color palette; no live upload of the foundation schema",
     "liveUploadPerformed": false
   }
 }

@@ -1,4 +1,4 @@
-"""Regenerate repository API/DB artifacts from V1 migration and reviewed contracts.
+"""Regenerate API/ERD artifacts from the consolidated schema and API contracts.
 
 Run from the backend root: python scripts/generate-docs.py
 No database, credentials, or external service is contacted.
@@ -11,7 +11,8 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
-DDL_PATH = ROOT / "src/main/resources/db/migration/V1__lms_schema.sql"
+DDL_PATH = DOCS / "erd/lms-mariadb.sql"
+MIGRATION_PATHS = sorted((ROOT / "src/main/resources/db/migration").glob("V*__*.sql"))
 DDL = DDL_PATH.read_text(encoding="utf-8")
 
 
@@ -63,7 +64,7 @@ def read_tables():
             if enum:
                 next(col for col in table["columns"] if col["name"] == enum[1])["enum"] = re.findall(r"'([^']*)'", enum[2])
         tables.append(table)
-    assert len(tables) == 24, f"Unexpected table count: {len(tables)}"
+    assert len(tables) == 35, f"Unexpected foundation table count: {len(tables)}"
     by_name = {table["name"]: table for table in tables}
     for table in tables:
         for fk in table["foreignKeys"]:
@@ -395,8 +396,8 @@ def write_json(path, obj):
     path.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-ERD_BUNDLE_URL = "https://www.erdcloud.com/5047fbca2ec9ce8539d8b7739ab250f2f1850d14.js?meteor_js_resource=true"
-ERD_BUNDLE_SHA256 = "8463e6fdb22028aa85893b88f2bc58fe39b4cfa92a7e825c8e9df75ecd38ee46"
+ERD_BUNDLE_URL = "https://www.erdcloud.com/362fd7b87ef4582c2b50d92b6825046e74d62296.js?meteor_js_resource=true"
+ERD_BUNDLE_SHA256 = "3b8ca5420469256b4f27380871de657302bcb2d63c506d6f4171b2378c1370e2"
 # ERD Cloud resolves entity colors through a fixed palette keyed by these exact
 # strings. Arbitrary CSS colors parse as JSON but crash its canvas renderer.
 ERD_ENTITY_COLOR = "rgba(178, 69, 0, 0.5)"
@@ -417,6 +418,9 @@ def erdcloud_snapshot():
         "posts":(80,1880), "comments":(880,1880), "assignments":(1680,1880), "submissions":(2480,1880), "submission_reviews":(3280,1880),
         "assessments":(80,2780), "assessment_questions":(880,2780), "assessment_options":(1680,2780), "assessment_attempts":(2480,2780), "assessment_answers":(3280,2780),
         "study_groups":(80,3680), "study_group_members":(880,3680), "notifications":(1680,3680), "files":(2480,3680),
+        "notice_deliveries":(3280,3680), "assessment_question_review_links":(4080,2780),
+        "learning_subjects":(80,4580), "learning_units":(880,4580), "learning_topics":(1680,4580), "lecture_videos":(2480,4580), "lecture_chapters":(3280,4580),
+        "review_sessions":(80,5480), "blank_reviews":(880,5480), "review_quizzes":(1680,5480), "review_quiz_questions":(2480,5480),
     }
     for table in TABLES:
         x,y = positions[table["name"]]
@@ -442,10 +446,11 @@ def erdcloud_snapshot():
                 row = field_maps[table["name"]][column]
                 row.update(relEntity=by_name[fk["referencedTable"]]["_id"],relFieldId=field_maps[fk["referencedTable"]][target]["_id"],relType="ZERO_OR_ONE" if unique else "ZERO_OR_MANY",relGroupId=stable_id("fk:"+fk["name"]))
                 relationships += 1
-    snapshot = dict(entityData=entities,memoData=[],domainData=[],createdAt=datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),creatorName="",creatorThumb="")
-    assert len(snapshot["entityData"])==24 and relationships==42
+    snapshot = dict(entityData=entities,memoData=[],domainData=[],createdAt=datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00","Z"),creatorName="",creatorThumb="")
+    assert len(snapshot["entityData"]) == len(TABLES)
+    assert relationships == sum(len(fk["columns"]) for t in TABLES for fk in t["foreignKeys"])
     entity_ids = {e["_id"] for e in entities}
-    assert len(entity_ids)==24
+    assert len(entity_ids) == len(TABLES)
     for entity in entities:
         assert isinstance(entity["name"],str) and isinstance(entity["pName"],str)
         assert entity["color"] == ERD_ENTITY_COLOR
@@ -457,22 +462,23 @@ def erdcloud_snapshot():
                 target = next(e for e in entities if e["_id"]==row["relEntity"])
                 assert row["relFieldId"] in {r["_id"] for r in target["keys"]["pks"]+target["keys"]["fks"]+target["fields"]}
     write_json(DOCS / "erd/lms.erdcloud.json",snapshot)
-    write_json(DOCS / "erd/erdcloud-format-source.json",dict(service="ERD Cloud",verifiedOn="2026-11-09",officialSource=ERD_BUNDLE_URL,downloadedBundleSha256=ERD_BUNDLE_SHA256,modules=["lp_erd_export.ts","lp_erd_import.ts","DDLParser.ts","ERDCardinality.ts","EntityCollection.ts"],observations=["Export uses entityData, memoData, domainData, createdAt, creatorName, creatorThumb.","Upload Snapshot normalizes entity position/name/pName/keys/fields/color, remaps entity IDs and rebinds relationships.","Only identifying FK columns belong in keys.fks; ordinary FKs remain in fields.","Relationship types ZERO_OR_ONE and ZERO_OR_MANY are official enum values."],validation=dict(tables=24,columns=192,foreignKeys=42,allRelationshipReferencesResolved=True,officialImportNormalizer="passed in isolated local Node VM using functions extracted from the official public bundle",liveUploadPerformed=False)))
+    write_json(DOCS / "erd/erdcloud-format-source.json",dict(service="ERD Cloud",verifiedOn="2026-11-09",officialSource=ERD_BUNDLE_URL,downloadedBundleSha256=ERD_BUNDLE_SHA256,modules=["lp_erd_export.ts","lp_erd_import.ts","DDLParser.ts","ERDCardinality.ts","EntityCollection.ts","entityColorPalette.ts"],observations=["Export uses entityData, memoData, domainData, createdAt, creatorName, creatorThumb.","Upload Snapshot normalizes entity position/name/pName/keys/fields/color, remaps entity IDs and rebinds relationships.","Only identifying FK columns belong in keys.fks; ordinary FKs remain in fields.","Relationship types ZERO_OR_ONE and ZERO_OR_MANY are official enum values.","Entity color must be an exact palette key; arbitrary CSS colors fail after entities have already been persisted.","Import skips entities with existing pName. Updated definitions must be imported into a new blank diagram."],validation=dict(tables=len(TABLES),columns=sum(len(t["columns"]) for t in TABLES),foreignKeys=sum(len(t["foreignKeys"]) for t in TABLES),allRelationshipReferencesResolved=True,officialImportNormalizer="verified locally using the official handler and color palette; no live upload of the foundation schema",liveUploadPerformed=False)))
 
 
 def database_docs():
     count = sum(len(t["foreignKeys"]) for t in TABLES)
-    schema = dict(format="wsts-lms-relational-schema", formatVersion="1.0.0", database=dict(engine="MariaDB", charset="utf8mb4", timeStorage="UTC", dateCalendar="Asia/Seoul"), source=dict(path=str(DDL_PATH.relative_to(ROOT)).replace("\\", "/"), sha256=hashlib.sha256(DDL.encode()).hexdigest()), erdCloud=dict(nativeSnapshot=False, nativeSnapshotFile="lms.erdcloud.json", sqlImportFile="lms-mariadb.sql", instructions="이 파일은 자체 스키마 교환 형식입니다. ERD Cloud Upload Snapshot에는 lms.erdcloud.json을 사용하세요."), tables=TABLES)
+    schema = dict(format="wsts-lms-relational-schema", formatVersion="1.1.0", database=dict(engine="MariaDB", charset="utf8mb4", timeStorage="UTC", dateCalendar="Asia/Seoul"), source=dict(path=str(DDL_PATH.relative_to(ROOT)).replace("\\", "/"), sha256=hashlib.sha256(DDL.encode()).hexdigest(),migrations=[dict(path=str(p.relative_to(ROOT)).replace("\\", "/"),sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in MIGRATION_PATHS]), erdCloud=dict(nativeSnapshot=False, nativeSnapshotFile="lms.erdcloud.json", sqlImportFile="lms-mariadb.sql", instructions="이 파일은 자체 스키마 교환 형식입니다. ERD Cloud Upload Snapshot에는 lms.erdcloud.json을 사용하세요."), tables=TABLES)
     write_json(DOCS / "erd/lms-schema.json", schema)
-    (DOCS / "erd/lms-mariadb.sql").write_text(DDL, encoding="utf-8")
     purposes = {
         "users":"회원·전역 역할·계정 상태", "refresh_tokens":"해시된 갱신 토큰·회전 이력", "courses":"교육 과정", "cohorts":"과정별 기수·교육 기간·교육 링크", "enrollments":"사용자별 기수 역할·수강 상태", "schedule_events":"강의·프로젝트·특강·휴일 일정", "roadmap_phases":"로드맵 단계", "roadmap_modules":"단계 내 교육 모듈", "attendance_records":"수강 등록별 일자 출결", "attendance_corrections":"출결 정정 요청·검토", "posts":"기수 게시글·공지", "comments":"게시글 댓글", "assignments":"과제·기한·배점", "submissions":"회원별 과제 제출", "submission_reviews":"제출물 점수·피드백", "assessments":"객관식 평가·응시 기간", "assessment_questions":"평가 문항·순서·배점", "assessment_options":"문항 선택지·정답", "assessment_attempts":"평가 응시·점수", "assessment_answers":"응시별 선택 답안·채점 결과", "study_groups":"기수 내 스터디", "study_group_members":"스터디 참여 회원", "notifications":"개인 알림·읽음 상태", "files":"첨부파일 메타데이터·소속 리소스"}
+    purposes.update({"learning_subjects":"기수별 과목", "learning_units":"과목별 단원", "learning_topics":"단원별 핵심 개념·복습 주제", "lecture_videos":"날짜·교시별 YouTube 강의", "lecture_chapters":"강의 소단원·시작 시각", "assessment_question_review_links":"평가 문항과 복습 구간 연결", "review_sessions":"개인 AI 복습의 공통 부모", "blank_reviews":"백지 복습 내용·세 부분 피드백", "review_quizzes":"객관식 복습 세션·순차 문제 번호", "review_quiz_questions":"4개 보기·단일 선택·채점 결과", "notice_deliveries":"Discord 공지 전송 스냅샷·처리 이력"})
     lines = [
         "# MariaDB 데이터베이스와 ERD", "",
-        f"구현 기준은 `{schema['source']['path']}`입니다. {len(TABLES)}개 테이블과 {count}개 외래 키가 있으며 실제 마이그레이션 SQL과 ERD Cloud 스냅샷 JSON을 함께 제공합니다.", "",
+        f"실행 기준은 `src/main/resources/db/migration`의 V1 + V2입니다. `{schema['source']['path']}`는 두 마이그레이션 적용 후의 전체 스키마입니다. {len(TABLES)}개 테이블과 {count}개 외래 키를 ERD Cloud 스냅샷 JSON으로 제공합니다.", "",
+        "V2는 명세서의 추가 기능을 위한 DB 기반입니다. 신규 Java 모델·저장소 인터페이스를 제공하며 서비스·컨트롤러·AI/Discord 호출 구현은 담당자 작업 범위입니다. [설계 범위](foundation/DOMAIN_PLAN.md)와 [팀 인수인계](foundation/TEAM_HANDOFF.md)를 먼저 확인하세요.", "",
         "## 제공 파일", "", "| 파일 | 용도 |", "|---|---|",
-        "| [erd/lms.erdcloud.json](erd/lms.erdcloud.json) | **ERD Cloud Upload Snapshot용**. 24개 엔티티·42개 관계·화면 배치 포함 |",
-        "| [erd/lms-mariadb.sql](erd/lms-mariadb.sql) | 실제 V1 스키마. MariaDB 생성·ERD Cloud SQL Import 입력 자료 |",
+        f"| [erd/lms.erdcloud.json](erd/lms.erdcloud.json) | **ERD Cloud Upload Snapshot용**. {len(TABLES)}개 엔티티·{count}개 관계·화면 배치 포함 |",
+        "| [erd/lms-mariadb.sql](erd/lms-mariadb.sql) | V1+V2 통합 스키마. 새 DB 생성·ERD Cloud SQL Import용. 기존 DB에는 Flyway V2 적용 |",
         "| [erd/lms-schema.json](erd/lms-schema.json) | 컬럼·타입·널 허용·PK·FK·유니크·CHECK·인덱스를 담은 자체 JSON |",
         "| [erd/erdcloud-format-source.json](erd/erdcloud-format-source.json) | 공식 형식의 출처·검증 범위 |", "",
         "## ERD Cloud JSON 가져오기", "",
@@ -480,7 +486,7 @@ def database_docs():
         "2. 하단 **Import → Upload Snapshot**을 누릅니다.",
         "3. `lms.erdcloud.json` 파일을 선택합니다.",
         "4. 가져온 엔티티와 연결선을 확인하고 **Zoom fit** 또는 **Auto Layout**으로 배치를 조정합니다.", "",
-        "기존 다이어그램에 가져오면 ERD Cloud는 물리 이름이 같은 테이블을 건너뛰고 관계의 ID를 기존 테이블에 연결합니다. 새 빈 다이어그램으로 가져오면 전체 구조를 확인하기 쉽습니다. 이 작업에서는 사용자의 기존 다이어그램을 변경하거나 파일을 업로드하지 않았습니다.", "",
+        "**이전 24개 테이블 다이어그램에 재업로드하지 말고 반드시 새 빈 다이어그램에서 가져오세요.** ERD Cloud는 물리 이름이 같은 기존 테이블을 건너뛰므로 변경된 컬럼·색상·제약이 갱신되지 않습니다. 잘못된 색상으로 가져오기에 실패했어도 테이블이 이미 저장될 수 있습니다. 이번 35개 테이블 기반 파일은 사이트에 직접 업로드하지 않았습니다.", "",
         "JSON은 [ERD Cloud 공식 공개 프런트엔드 코드](" + ERD_BUNDLE_URL + ")의 실제 스냅샷 내보내기·가져오기 데이터 구조를 확인해 생성했습니다. `entityData`, `memoData`, `domainData`, 엔티티·컬럼·관계 ID와 허용된 관계 타입을 사용하며 공식 가져오기 정규화 로직과 참조 무결성을 로컬에서 검증했습니다. 실제 서비스 업로드·렌더링 검증은 수행하지 않았습니다. ERD 그림은 타입·NULL·PK·FK·기본값을 표현하고, 유니크·CHECK·인덱스·AUTO_INCREMENT의 실행 기준은 SQL 및 `lms-schema.json`입니다.", "",
         "## SQL로 가져오기", "",
         "하단 **Import**의 SQL 창에 `lms-mariadb.sql` 전체 내용을 붙여 넣고 **Import**를 누르는 방법도 사용할 수 있습니다. SQL Import에서 CHECK·인덱스 등 일부 세부 제약의 그림 표현은 도구의 파서 지원 범위에 따릅니다.", "",
@@ -495,7 +501,7 @@ def database_docs():
             parent = "|o" if optional else "||"
             child = "o|" if unique else "o{"
             lines.append(f'    {fk["referencedTable"]} {parent}--{child} {table["name"]} : "{",".join(fk["columns"])}"')
-    lines += ["```", "", "## 주요 제약과 저장 규칙", "", "- 사용자와 기수는 `enrollments`로 연결합니다. 전역 `users.role`과 기수별 `enrollments.role`을 구분합니다.", "- 회원·기수, 수강 등록·출결 날짜, 과제·회원, 평가·회원, 응시·문항, 스터디·회원은 각각 유니크입니다.", "- 제출물당 피드백은 하나이며 수정 시 같은 행을 갱신합니다. 평가 답안의 선택지는 문항에 속해야 하고 이는 서비스에서 검증합니다.", "- 파일은 게시글·과제·제출물 중 정확히 하나에 속하도록 CHECK로 제한합니다. 디스크 파일과 `files` 메타데이터를 함께 사용합니다.", "- 게시글·댓글·파일은 `deleted_at`으로 논리 삭제합니다. 그 외 FK는 기본 RESTRICT이며 일괄 연쇄 삭제를 하지 않습니다.", "- 비밀번호는 BCrypt, 갱신 토큰은 SHA-256 해시로 저장합니다. 토큰 원문은 JSON 스키마/ERD/문서에 포함하지 않습니다.", "- `DATETIME(6)`은 UTC 기준으로 저장하고 API는 오프셋이 포함된 ISO 8601 문자열을 반환합니다. 교육 날짜와 월별 필터는 한국 시간 기준입니다.", "- 평가 점수는 0~100으로 정규화하며, 과제 점수는 과제의 `max_score` 범위 안에서 검증합니다.", "", "## 재생성", "", "```powershell", "python scripts/generate-docs.py", "```", "", "테이블 구조는 V1 SQL을 읽어 재생성하고, API 계약은 컨트롤러 경로와 대조합니다. 마이그레이션을 추가할 때 생성기도 함께 갱신하세요.", ""]
+    lines += ["```", "", "## 주요 제약과 저장 규칙", "", "- 사용자와 기수는 `enrollments`로 연결합니다. 전역 `users.role`과 기수별 `enrollments.role`을 구분합니다.", "- 회원·기수, 수강 등록·출결 날짜·회차 번호, 과제·회원, 평가·회원, 응시·문항, 스터디·회원은 각각 유니크입니다.", "- DATE 출결은 session_no=0, SESSION 출결은 양수입니다. 기존 API는 날짜 기준이므로 회차 사용 전에 담당자의 조회/수정 SQL 변경이 필요합니다.", "- 출결 정정은 요청 당시 상태·version 스냅샷과 INVALIDATED 상태를 담습니다. 허용 전 스냅샷 검사·삭제 시 무효화는 담당자가 구현합니다. 소명자료 파일 저장용 테이블은 추가하지 않습니다.", "- 제출물당 피드백은 하나입니다. submitted_at을 마지막 파일 업로드 시각으로 갱신하고 본인만 조회하는 연결 작업은 과제 담당자의 범위입니다.", "- AI 복습은 review_sessions와 blank_reviews/review_quizzes의 공유 PK·FK로 IS-A를 표현합니다. 부모 mode와 자식 종류 일치·배타성은 서비스 트랜잭션에서 보장해야 합니다.", "- AI 퀴즈 한 문제는 필수 보기4개와 단일 선택 번호(1~4)를 가집니다. 동일 세션·문제 순번은 유니크입니다. 정답 공개 시점·다음 문제 동의·본인 접근은 담당자 구현 범위입니다.", "- 과목→단원→핵심 개념이 복습 주제입니다. 영상은 날짜·교시, 소단원은 시작 초를 저장하며 평가 문항에서 연결합니다. 같은 기수인지와 해설 공개 여부는 서비스에서 확인해야 합니다.", "- 파일은 게시글·과제·제출물 중 정확히 하나에 속하도록 CHECK로 제한합니다. 디스크 파일과 files 메타데이터를 함께 사용합니다.", "- V2의 deleted_at 컬럼은 논리 삭제를 위한 기반입니다. 기존 API 전체에 자동 적용되지는 않습니다. FK는 기본 RESTRICT이며 일괄 연쇄 삭제를 하지 않습니다.", "- Discord 전송 이력은 notice_deliveries에 저장하며 Webhook URL과 AI 키는 서버 비밀 설정에서만 관리합니다.", "- 비밀번호는 BCrypt, 갱신 토큰은 SHA-256 해시로 저장합니다. 토큰 원문은 JSON 스키마/ERD/문서에 포함하지 않습니다.", "- DATETIME(6)은 UTC 기준으로 저장하고 API는 오프셋이 포함된 ISO 8601 문자열을 반환합니다. 교육 날짜와 월별 필터는 한국 시간 기준입니다.", "", "## 재생성", "", "```powershell", "python scripts/generate-docs.py", "```", "", "테이블 구조는 V1+V2 통합 SQL을 읽어 재생성하고, API 계약은 실제 컨트롤러 경로와 대조합니다. 스키마 변경 시 마이그레이션·통합 SQL·도메인 모델을 함께 맞추고 마이그레이션 테스트로 일치 여부를 확인하세요.", ""]
     (DOCS / "DATABASE.md").write_text("\n".join(lines), encoding="utf-8")
     erdcloud_snapshot()
 
