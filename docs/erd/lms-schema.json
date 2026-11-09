@@ -1,6 +1,6 @@
 {
   "format": "wsts-lms-relational-schema",
-  "formatVersion": "1.0.0",
+  "formatVersion": "1.1.0",
   "database": {
     "engine": "MariaDB",
     "charset": "utf8mb4",
@@ -8,8 +8,18 @@
     "dateCalendar": "Asia/Seoul"
   },
   "source": {
-    "path": "src/main/resources/db/migration/V1__lms_schema.sql",
-    "sha256": "ca0e3d233dfbb9c52dc5f9edfae9ea9a607419a7f3eea745df2c5c853380e96e"
+    "path": "docs/erd/lms-mariadb.sql",
+    "sha256": "1e5623b73ec9c3793436f8a7f78387fad94f0c34244cefcd7162b84e5af8335f",
+    "migrations": [
+      {
+        "path": "src/main/resources/db/migration/V1__lms_schema.sql",
+        "sha256": "ca0e3d233dfbb9c52dc5f9edfae9ea9a607419a7f3eea745df2c5c853380e96e"
+      },
+      {
+        "path": "src/main/resources/db/migration/V2__spec_domain_foundation.sql",
+        "sha256": "9c555db1d56fc4b932738790e6107304a1eccaa6a7d31d7339036e73b00848c5"
+      }
+    ]
   },
   "erdCloud": {
     "nativeSnapshot": false,
@@ -852,7 +862,8 @@
             "LATE",
             "EARLY",
             "ABSENT",
-            "EXCUSED"
+            "EXCUSED",
+            "LEAVE"
           ]
         },
         {
@@ -882,6 +893,37 @@
           "type": "DATETIME(6)",
           "nullable": false,
           "autoIncrement": false
+        },
+        {
+          "name": "unit_type",
+          "apiName": "unitType",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'DATE'"
+        },
+        {
+          "name": "session_no",
+          "apiName": "sessionNo",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "0"
+        },
+        {
+          "name": "version",
+          "apiName": "version",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "0"
+        },
+        {
+          "name": "deleted_at",
+          "apiName": "deletedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
         }
       ],
       "primaryKey": [
@@ -889,10 +931,11 @@
       ],
       "uniqueKeys": [
         {
-          "name": "uq_attendance",
+          "name": "uq_attendance_unit",
           "columns": [
             "enrollment_id",
-            "attendance_date"
+            "attendance_date",
+            "session_no"
           ]
         }
       ],
@@ -913,7 +956,15 @@
       "checks": [
         {
           "name": "ck_attendance_status",
-          "expression": "status IN ('PRESENT','LATE','EARLY','ABSENT','EXCUSED')"
+          "expression": "status IN ('PRESENT','LATE','EARLY','ABSENT','EXCUSED','LEAVE')"
+        },
+        {
+          "name": "ck_attendance_unit",
+          "expression": "(unit_type='DATE' AND session_no=0) OR (unit_type='SESSION' AND session_no>0)"
+        },
+        {
+          "name": "ck_attendance_version",
+          "expression": "version >= 0"
         },
         {
           "name": "ck_attendance_time",
@@ -977,7 +1028,8 @@
           "enum": [
             "PENDING",
             "APPROVED",
-            "REJECTED"
+            "REJECTED",
+            "INVALIDATED"
           ]
         },
         {
@@ -1005,6 +1057,20 @@
           "name": "reviewed_at",
           "apiName": "reviewedAt",
           "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "original_status",
+          "apiName": "originalStatus",
+          "type": "VARCHAR(20)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "original_version",
+          "apiName": "originalVersion",
+          "type": "INT",
           "nullable": true,
           "autoIncrement": false
         }
@@ -1054,7 +1120,15 @@
       "checks": [
         {
           "name": "ck_correction_status",
-          "expression": "status IN ('PENDING','APPROVED','REJECTED')"
+          "expression": "status IN ('PENDING','APPROVED','REJECTED','INVALIDATED')"
+        },
+        {
+          "name": "ck_correction_original_status",
+          "expression": "original_status IS NULL OR original_status IN ('PRESENT','LATE','EARLY','ABSENT','EXCUSED','LEAVE')"
+        },
+        {
+          "name": "ck_correction_original_version",
+          "expression": "original_version IS NULL OR original_version >= 0"
         },
         {
           "name": "ck_correction_requested",
@@ -1104,6 +1178,7 @@
           "enum": [
             "COURSE",
             "SYSTEM",
+            "ATTENDANCE",
             "QUESTION",
             "FAQ"
           ]
@@ -1158,12 +1233,38 @@
           "type": "DATETIME(6)",
           "nullable": true,
           "autoIncrement": false
+        },
+        {
+          "name": "visibility",
+          "apiName": "visibility",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'COHORT'",
+          "enum": [
+            "COHORT",
+            "PUBLIC"
+          ]
+        },
+        {
+          "name": "public_slug",
+          "apiName": "publicSlug",
+          "type": "VARCHAR(160)",
+          "nullable": true,
+          "autoIncrement": false
         }
       ],
       "primaryKey": [
         "id"
       ],
-      "uniqueKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "uq_post_public_slug",
+          "columns": [
+            "public_slug"
+          ]
+        }
+      ],
       "foreignKeys": [
         {
           "name": "fk_post_cohort",
@@ -1193,7 +1294,11 @@
       "checks": [
         {
           "name": "ck_post_category",
-          "expression": "category IN ('COURSE','SYSTEM','QUESTION','FAQ')"
+          "expression": "category IN ('COURSE','SYSTEM','ATTENDANCE','QUESTION','FAQ')"
+        },
+        {
+          "name": "ck_post_visibility",
+          "expression": "visibility IN ('COHORT','PUBLIC')"
         }
       ],
       "indexes": [
@@ -1367,6 +1472,27 @@
           "type": "DATETIME(6)",
           "nullable": false,
           "autoIncrement": false
+        },
+        {
+          "name": "instructor_id",
+          "apiName": "instructorId",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "instructor_name",
+          "apiName": "instructorName",
+          "type": "VARCHAR(80)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "apiName": "deletedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
         }
       ],
       "primaryKey": [
@@ -1390,6 +1516,18 @@
           "name": "fk_assignment_author",
           "columns": [
             "author_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_assignment_instructor",
+          "columns": [
+            "instructor_id"
           ],
           "referencedTable": "users",
           "referencedColumns": [
@@ -1608,6 +1746,274 @@
       "indexes": []
     },
     {
+      "name": "learning_subjects",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "apiName": "position",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "apiName": "deletedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_subject_position",
+          "columns": [
+            "cohort_id",
+            "position"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_subject_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_subject_position",
+          "expression": "position > 0"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "learning_units",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "subject_id",
+          "apiName": "subjectId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "apiName": "position",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "apiName": "deletedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_unit_position",
+          "columns": [
+            "subject_id",
+            "position"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_unit_subject",
+          "columns": [
+            "subject_id"
+          ],
+          "referencedTable": "learning_subjects",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_unit_position",
+          "expression": "position > 0"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "learning_topics",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "unit_id",
+          "apiName": "unitId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "description",
+          "apiName": "description",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "apiName": "position",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "apiName": "deletedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_topic_position",
+          "columns": [
+            "unit_id",
+            "position"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_topic_unit",
+          "columns": [
+            "unit_id"
+          ],
+          "referencedTable": "learning_units",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_topic_position",
+          "expression": "position > 0"
+        }
+      ],
+      "indexes": []
+    },
+    {
       "name": "assessments",
       "columns": [
         {
@@ -1785,6 +2191,13 @@
           "type": "TEXT",
           "nullable": false,
           "autoIncrement": false
+        },
+        {
+          "name": "topic_id",
+          "apiName": "topicId",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
         }
       ],
       "primaryKey": [
@@ -1806,6 +2219,18 @@
             "assessment_id"
           ],
           "referencedTable": "assessments",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_question_topic",
+          "columns": [
+            "topic_id"
+          ],
+          "referencedTable": "learning_topics",
           "referencedColumns": [
             "id"
           ],
@@ -2571,6 +2996,940 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "lecture_videos",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "cohort_id",
+          "apiName": "cohortId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_by",
+          "apiName": "createdBy",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "youtube_url",
+          "apiName": "youtubeUrl",
+          "type": "VARCHAR(2000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "youtube_video_id",
+          "apiName": "youtubeVideoId",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "lecture_date",
+          "apiName": "lectureDate",
+          "type": "DATE",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "period_no",
+          "apiName": "periodNo",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "duration_seconds",
+          "apiName": "durationSeconds",
+          "type": "INT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "visibility",
+          "apiName": "visibility",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'PRIVATE'",
+          "enum": [
+            "PUBLIC",
+            "PRIVATE"
+          ]
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "deleted_at",
+          "apiName": "deletedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_video_period",
+          "columns": [
+            "cohort_id",
+            "lecture_date",
+            "period_no"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_video_cohort",
+          "columns": [
+            "cohort_id"
+          ],
+          "referencedTable": "cohorts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_video_author",
+          "columns": [
+            "created_by"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_video_period",
+          "expression": "period_no > 0"
+        },
+        {
+          "name": "ck_video_duration",
+          "expression": "duration_seconds IS NULL OR duration_seconds > 0"
+        },
+        {
+          "name": "ck_video_visibility",
+          "expression": "visibility IN ('PUBLIC','PRIVATE')"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "lecture_chapters",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "video_id",
+          "apiName": "videoId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "topic_id",
+          "apiName": "topicId",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "title",
+          "apiName": "title",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "start_seconds",
+          "apiName": "startSeconds",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "0"
+        },
+        {
+          "name": "position",
+          "apiName": "position",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_chapter_position",
+          "columns": [
+            "video_id",
+            "position"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_chapter_video",
+          "columns": [
+            "video_id"
+          ],
+          "referencedTable": "lecture_videos",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_chapter_topic",
+          "columns": [
+            "topic_id"
+          ],
+          "referencedTable": "learning_topics",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_chapter_start",
+          "expression": "start_seconds >= 0"
+        },
+        {
+          "name": "ck_chapter_position",
+          "expression": "position > 0"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "assessment_question_review_links",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "question_id",
+          "apiName": "questionId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "chapter_id",
+          "apiName": "chapterId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "position",
+          "apiName": "position",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_question_chapter",
+          "columns": [
+            "question_id",
+            "chapter_id"
+          ]
+        },
+        {
+          "name": "uq_question_review_position",
+          "columns": [
+            "question_id",
+            "position"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_question_review_question",
+          "columns": [
+            "question_id"
+          ],
+          "referencedTable": "assessment_questions",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_question_review_chapter",
+          "columns": [
+            "chapter_id"
+          ],
+          "referencedTable": "lecture_chapters",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_question_review_position",
+          "expression": "position > 0"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "review_sessions",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "user_id",
+          "apiName": "userId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "topic_id",
+          "apiName": "topicId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "mode",
+          "apiName": "mode",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "enum": [
+            "BLANK",
+            "QUIZ"
+          ]
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'ACTIVE'",
+          "enum": [
+            "ACTIVE",
+            "COMPLETED",
+            "ABANDONED"
+          ]
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "updated_at",
+          "apiName": "updatedAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "completed_at",
+          "apiName": "completedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_review_session_user",
+          "columns": [
+            "user_id"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_review_session_topic",
+          "columns": [
+            "topic_id"
+          ],
+          "referencedTable": "learning_topics",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_review_session_mode",
+          "expression": "mode IN ('BLANK','QUIZ')"
+        },
+        {
+          "name": "ck_review_session_status",
+          "expression": "status IN ('ACTIVE','COMPLETED','ABANDONED')"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_review_session_owner",
+          "columns": [
+            "user_id",
+            "created_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "blank_reviews",
+      "columns": [
+        {
+          "name": "session_id",
+          "apiName": "sessionId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "content",
+          "apiName": "content",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "strengths",
+          "apiName": "strengths",
+          "type": "TEXT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "gaps",
+          "apiName": "gaps",
+          "type": "TEXT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "recommendations",
+          "apiName": "recommendations",
+          "type": "TEXT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'DRAFT'",
+          "enum": [
+            "DRAFT",
+            "PENDING",
+            "COMPLETED",
+            "FAILED"
+          ]
+        },
+        {
+          "name": "submitted_at",
+          "apiName": "submittedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "feedback_at",
+          "apiName": "feedbackAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "error_code",
+          "apiName": "errorCode",
+          "type": "VARCHAR(80)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "session_id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_blank_review_session",
+          "columns": [
+            "session_id"
+          ],
+          "referencedTable": "review_sessions",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_blank_review_status",
+          "expression": "status IN ('DRAFT','PENDING','COMPLETED','FAILED')"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "review_quizzes",
+      "columns": [
+        {
+          "name": "session_id",
+          "apiName": "sessionId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "next_sequence_no",
+          "apiName": "nextSequenceNo",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "1"
+        }
+      ],
+      "primaryKey": [
+        "session_id"
+      ],
+      "uniqueKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_review_quiz_session",
+          "columns": [
+            "session_id"
+          ],
+          "referencedTable": "review_sessions",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_review_quiz_sequence",
+          "expression": "next_sequence_no > 0"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "review_quiz_questions",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "quiz_session_id",
+          "apiName": "quizSessionId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "sequence_no",
+          "apiName": "sequenceNo",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "prompt",
+          "apiName": "prompt",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "choice_a",
+          "apiName": "choiceA",
+          "type": "VARCHAR(2000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "choice_b",
+          "apiName": "choiceB",
+          "type": "VARCHAR(2000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "choice_c",
+          "apiName": "choiceC",
+          "type": "VARCHAR(2000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "choice_d",
+          "apiName": "choiceD",
+          "type": "VARCHAR(2000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "correct_choice",
+          "apiName": "correctChoice",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "explanation",
+          "apiName": "explanation",
+          "type": "TEXT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "selected_choice",
+          "apiName": "selectedChoice",
+          "type": "INT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "is_correct",
+          "apiName": "isCorrect",
+          "type": "BOOLEAN",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "answered_at",
+          "apiName": "answeredAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": "uq_review_quiz_question",
+          "columns": [
+            "quiz_session_id",
+            "sequence_no"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_review_quiz_question_quiz",
+          "columns": [
+            "quiz_session_id"
+          ],
+          "referencedTable": "review_quizzes",
+          "referencedColumns": [
+            "session_id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_review_quiz_question_sequence",
+          "expression": "sequence_no > 0"
+        },
+        {
+          "name": "ck_review_quiz_correct_choice",
+          "expression": "correct_choice BETWEEN 1 AND 4"
+        },
+        {
+          "name": "ck_review_quiz_selected_choice",
+          "expression": "selected_choice IS NULL OR selected_choice BETWEEN 1 AND 4"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "notice_deliveries",
+      "columns": [
+        {
+          "name": "id",
+          "apiName": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": true
+        },
+        {
+          "name": "post_id",
+          "apiName": "postId",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "requested_by",
+          "apiName": "requestedBy",
+          "type": "BIGINT",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "channel",
+          "apiName": "channel",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'DISCORD'",
+          "enum": [
+            "DISCORD"
+          ]
+        },
+        {
+          "name": "status",
+          "apiName": "status",
+          "type": "VARCHAR(20)",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "'PENDING'",
+          "enum": [
+            "PENDING",
+            "SENT",
+            "FAILED"
+          ]
+        },
+        {
+          "name": "idempotency_key",
+          "apiName": "idempotencyKey",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "title_snapshot",
+          "apiName": "titleSnapshot",
+          "type": "VARCHAR(160)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "summary_snapshot",
+          "apiName": "summarySnapshot",
+          "type": "VARCHAR(1000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "public_url",
+          "apiName": "publicUrl",
+          "type": "VARCHAR(2000)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "external_message_id",
+          "apiName": "externalMessageId",
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "attempt_count",
+          "apiName": "attemptCount",
+          "type": "INT",
+          "nullable": false,
+          "autoIncrement": false,
+          "defaultSql": "0"
+        },
+        {
+          "name": "error_code",
+          "apiName": "errorCode",
+          "type": "VARCHAR(80)",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "created_at",
+          "apiName": "createdAt",
+          "type": "DATETIME(6)",
+          "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "sent_at",
+          "apiName": "sentAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        {
+          "name": null,
+          "columns": [
+            "idempotency_key"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_notice_delivery_post",
+          "columns": [
+            "post_id"
+          ],
+          "referencedTable": "posts",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        },
+        {
+          "name": "fk_notice_delivery_requester",
+          "columns": [
+            "requested_by"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_notice_delivery_channel",
+          "expression": "channel IN ('DISCORD')"
+        },
+        {
+          "name": "ck_notice_delivery_status",
+          "expression": "status IN ('PENDING','SENT','FAILED')"
+        },
+        {
+          "name": "ck_notice_delivery_attempts",
+          "expression": "attempt_count >= 0"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_notice_delivery_post",
+          "columns": [
+            "post_id",
+            "created_at"
+          ]
+        }
+      ]
     }
   ]
 }

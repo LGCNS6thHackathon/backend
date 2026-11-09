@@ -2,6 +2,17 @@
 
 Java 17 · Spring Boot 4.1.2 · Spring Security · JDBC · MariaDB 11.8 · Flyway 기반 LMS 백엔드입니다. 프론트 코드는 포함하지 않습니다.
 
+## 기능명세서 추가 개발 기반
+
+Notion 기능명세서의 26개 항목을 기준으로 **35개 테이블·60개 외래키, Java 도메인 모델과 저장소 인터페이스**를 준비했습니다. 기존 JDBC를 유지하며 새 서비스·컨트롤러·JDBC 저장소 구현·AI 호출·Discord 전송은 각 담당자가 이어서 만듭니다. 기존 API 85개에 신규 API를 추가하지 않았습니다.
+
+- [도메인 설계와 이번 작업 범위](docs/foundation/DOMAIN_PLAN.md)
+- [기능별 팀 인수인계와 구현 TODO](docs/foundation/TEAM_HANDOFF.md)
+- 도메인 코드: `src/main/java/kr/wsts/lms/domain/<기능>/model`, `repository`
+- DB 적용: 기존 V1을 보존하고 Flyway V2로 확장합니다. 전체 스키마 SQL은 새 DB/ERD 가져오기용이며 기존 DB에 중복 실행하지 않습니다.
+
+AI 복습은 공통 세션과 백지 복습·객관식 복습의 공유 PK/FK로 IS-A를 표현합니다. 나머지는 기능에 맞는 FK 관계를 사용합니다. 저장소 인터페이스는 아직 Spring Bean이 아니므로 구현체를 만든 후 서비스에 연결하세요. 출결 회차, 소유자 권한, 과제 최종 파일 업로드 시각, 평가 해설·복습 링크 공개는 인수인계 문서의 경계에 따라 구현해야 합니다.
+
 ## 구현 기능
 
 - 회원가입, BCrypt 로그인, JWT 접근 토큰, 갱신 토큰 회전·폐기, 내 정보·비밀번호 변경, 계정 권한 관리
@@ -60,7 +71,7 @@ java -jar build/libs/backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=mariadb
 - [테이블 구조와 가져오기 안내](docs/DATABASE.md)
 - [일반 스키마 JSON](docs/erd/lms-schema.json): 자동화 도구용. ERD Cloud에는 위 스냅샷 JSON을 사용하세요.
 
-문서와 ERD는 실제 코드의 85개 HTTP 작업, 24개 테이블, 42개 외래키를 기준으로 생성했습니다. ERD Cloud의 공식 가져오기 코드로 JSON을 로컬 검증했으며, 사용자 다이어그램에 직접 업로드하지 않았습니다.
+문서와 ERD는 실제 코드의 85개 HTTP 작업, V1+V2의 35개 테이블·60개 외래키를 기준으로 생성했습니다. ERD Cloud의 공식 가져오기 코드로 JSON을 로컬 검증하며, 이번 기반 파일은 사용자 다이어그램에 직접 업로드하지 않습니다. **기존 24개 테이블 다이어그램에 재업로드하면 변경 내용이 반영되지 않으므로 새 빈 다이어그램에서 가져오세요.**
 
 ```powershell
 python scripts/generate-docs.py
@@ -88,7 +99,7 @@ python scripts/generate-docs.py
 
 ## 검증
 
-13개 Spring 통합 테스트로 인증, 토큰 재사용 거부, 기수별 접근, 과제 검토 후 잠금, 출결 승인, 평가 정답 보호·채점, 파일 접근, 동시 스터디 가입을 검사합니다.
+기존 13개 Spring 테스트로 인증, 토큰 재사용 거부, 기수별 접근, 과제 검토 후 잠금, 출결 승인, 평가 정답 보호·채점, 파일 접근, 동시 스터디 가입을 검사합니다. 추가 3개 스키마 테스트는 V1 데이터의 V2 보존, 일자·회차 제약, AI 복습 공유 PK/FK·보기4개·선택 범위, 마이그레이션과 ERD용 통합 SQL의 일치를 검사합니다.
 
 실제 MariaDB를 사용하는 별도 로컬 서버에서는 아래 검증 스크립트도 실행할 수 있습니다. `.env`의 관리자 계정으로 합성 데이터를 생성하며 루프백 주소만 허용합니다.
 
