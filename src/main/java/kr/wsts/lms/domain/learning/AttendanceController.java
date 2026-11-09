@@ -47,12 +47,15 @@ public class AttendanceController {
         String unitType=body.get("unitType")==null?"DATE":Input.choice(body,"unitType","DATE","SESSION");
         int sessionNo=Input.integer(body,"sessionNo",0,0,Integer.MAX_VALUE);
         if((unitType.equals("DATE")&&sessionNo!=0)||(unitType.equals("SESSION")&&sessionNo==0)) throw AppException.bad("일 단위 출결은 sessionNo=0, 회차 단위 출결은 양수 회차가 필요합니다.");
-        String state=Input.choice(body,"status",STATES); LocalDateTime in=Input.nullableDateTime(body,"checkIn"),out=Input.nullableDateTime(body,"checkOut");
+        Optional<Map<String,Object>> existing=db.find("SELECT * FROM attendance_records WHERE enrollment_id=? AND attendance_date=? AND session_no=? FOR UPDATE",enrollmentId,date,sessionNo);
+        // Existing times survive forms that submit only status/note; explicit null clears a time.
+        Map<String,Object> merged=LearningSupport.merged(existing.orElse(Map.of()),body);
+        String state=Input.choice(body,"status",STATES);
+        LocalDateTime in=Input.nullableDateTime(merged,"checkIn"),out=Input.nullableDateTime(merged,"checkOut");
         if(state.equals("ABSENT")&&(in!=null||out!=null)) throw AppException.bad("결석 기록에는 입퇴실 시각을 입력할 수 없습니다.");
         if(in!=null&&!in.plusHours(9).toLocalDate().equals(date)) throw AppException.bad("입실 날짜와 출결 날짜가 다릅니다.");
         if(out!=null&&(in==null||out.isBefore(in)||out.isAfter(in.plusDays(1)))) throw AppException.bad("퇴실 시각은 입실 이후 24시간 이내여야 합니다.");
         String note=Input.optional(body,"note","",1000);
-        Optional<Map<String,Object>> existing=db.find("SELECT * FROM attendance_records WHERE enrollment_id=? AND attendance_date=? AND session_no=? FOR UPDATE",enrollmentId,date,sessionNo);
         long id;
         if(existing.isPresent()) {
             Map<String,Object> current=existing.get();id=Db.id(current,"id");

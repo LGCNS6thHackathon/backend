@@ -103,7 +103,7 @@
 |---|---|---|---|---|
 | GET | `/api/cohorts/{cohortId}/attendance/calendar` | 본인 월별 교육일정·출결 캘린더 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 기수 일정과 로그인 본인의 미삭제 출결을 월별 전체 반환합니다(페이지 잘림 없음). ADMIN도 본인 출결만 조회합니다. 최근 소명과 요청 가능한 목표 상태를 포함하며 PENDING이면 빈 배열입니다. 날짜 기준은 출결 날짜이며 소명 생성일이 아닙니다. 빈 달은 빈 배열, 타인 userId 지정은 제공하지 않습니다. 소명 제출은 기존 POST corrections API를 사용합니다. |
 | GET | `/api/cohorts/{cohortId}/attendance` | 출결 목록·요약 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. ADMIN 외에는 기수 역할과 무관하게 본인 기록만 조회. summary는 현재 필터 전체의 상태별 건수입니다. |
-| PUT | `/api/cohorts/{cohortId}/attendance` | 출결 생성·갱신 | 200 | 권한: 전역 ADMIN. DATE는 sessionNo=0, SESSION은 양수입니다. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜·회차는 갱신합니다. 소명 허용 대상 전환을 직접 수정으로 우회할 수 없습니다. 변경 시 version을 증가시키고 대기 요청을 무효화합니다. |
+| PUT | `/api/cohorts/{cohortId}/attendance` | 출결 생성·갱신 | 200 | 권한: 전역 ADMIN. DATE는 sessionNo=0, SESSION은 양수입니다. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜·회차는 갱신합니다. checkIn/checkOut 생략 시 기존 값 유지, 명시적 null은 해당 값 삭제이며 생성 시 생략은 null입니다. 병합된 시각에도 검증을 적용하므로 결석 변경 시 기존 입퇴실은 모두 명시적 null로 지워야 합니다. 소명 허용 대상 전환을 직접 수정으로 우회할 수 없습니다. 변경 시 version을 증가시키고 대기 요청을 무효화합니다. |
 | DELETE | `/api/attendance/{attendanceId}` | 출결 논리 삭제 | 204 | 권한: 전역 ADMIN. deletedAt과 변경 version을 기록하고 대기 중인 정정 요청을 INVALIDATED로 처리합니다. 삭제 기록은 출결 조회·대시보드에서 제외합니다. |
 | POST | `/api/attendance/{attendanceId}/corrections` | 출결 정정 요청 | 201 | 권한: 해당 출결 본인. ABSENT→LATE/PRESENT, LATE/EXCUSED/LEAVE/EARLY→PRESENT만 허용합니다. 목표 상태를 생략하면 PRESENT, 사유를 생략하면 기본 소명 문구를 사용합니다. 원본 상태·version을 저장하며 접수 시 출결을 바꾸지 않습니다. PENDING 중복 불가. 파일은 받지 않습니다. |
 | GET | `/api/cohorts/{cohortId}/attendance/corrections` | 출결 정정 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. ADMIN 외에는 기수 역할과 무관하게 본인 요청만 조회합니다. |

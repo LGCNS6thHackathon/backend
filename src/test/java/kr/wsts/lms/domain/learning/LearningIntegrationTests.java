@@ -379,6 +379,64 @@ class LearningIntegrationTests {
         assertEquals(List.of(),JsonPath.read(empty,"$.events"));
     }
 
+    @Test
+    void attendanceEditPreservesOmittedTimesAndSupportsExplicitNull() throws Exception {
+        String checkIn=today+"T09:00:00+09:00",checkOut=today+"T18:00:00+09:00";
+        var create=new HashMap<String,Object>(attendanceBody("PRESENT",1));
+        create.put("checkIn",checkIn);create.put("checkOut",checkOut);
+        long record=id(call(admin,put("/api/cohorts/"+cohortId+"/attendance"),create,200));
+        var edit=new HashMap<String,Object>(attendanceBody("PRESENT",1));edit.put("note","관리자 메모만 수정");
+        String saved=call(admin,put("/api/cohorts/"+cohortId+"/attendance"),edit,200);
+        assertEquals(Instant.parse(today+"T00:00:00Z"),Instant.parse(JsonPath.read(saved,"$.checkIn")));
+        assertEquals(Instant.parse(today+"T09:00:00Z"),Instant.parse(JsonPath.read(saved,"$.checkOut")));
+        edit.put("checkOut",today+"T19:00:00+09:00");
+        String changed=call(admin,put("/api/cohorts/"+cohortId+"/attendance"),edit,200);
+        assertEquals(Instant.parse(today+"T00:00:00Z"),Instant.parse(JsonPath.read(changed,"$.checkIn")));
+        assertEquals(Instant.parse(today+"T10:00:00Z"),Instant.parse(JsonPath.read(changed,"$.checkOut")));
+        edit.put("checkOut",null);
+        String clearedOut=call(admin,put("/api/cohorts/"+cohortId+"/attendance"),edit,200);
+        assertNotNull(JsonPath.read(clearedOut,"$.checkIn"));assertNull(JsonPath.read(clearedOut,"$.checkOut"));
+        edit.put("checkIn",null);
+        String cleared=call(admin,put("/api/cohorts/"+cohortId+"/attendance"),edit,200);
+        assertNull(JsonPath.read(cleared,"$.checkIn"));assertNull(JsonPath.read(cleared,"$.checkOut"));
+        assertEquals(record,id(cleared));
+    }
+
+    @Test
+    void preservedTimesStillValidateAndInvalidUpdatesLeaveRecordUnchanged() throws Exception {
+        var create=new HashMap<String,Object>(attendanceBody("PRESENT",1));
+        create.put("checkIn",today+"T09:00:00+09:00");create.put("checkOut",today+"T18:00:00+09:00");
+        long id=id(call(admin,put("/api/cohorts/"+cohortId+"/attendance"),create,200));
+        Map<String,Object> before=db.one("SELECT * FROM attendance_records WHERE id=?",id);
+        var invalid=new HashMap<String,Object>(attendanceBody("PRESENT",1));
+        invalid.put("checkIn",today+"T19:00:00+09:00");
+        call(admin,put("/api/cohorts/"+cohortId+"/attendance"),invalid,400);
+        invalid.remove("checkIn");invalid.put("checkOut",today+"T08:00:00+09:00");
+        call(admin,put("/api/cohorts/"+cohortId+"/attendance"),invalid,400);
+        invalid.put("checkOut",null);invalid.put("checkIn",today+"T09:00:00");
+        call(admin,put("/api/cohorts/"+cohortId+"/attendance"),invalid,400);
+        var absent=new HashMap<String,Object>(attendanceBody("ABSENT",1));
+        call(admin,put("/api/cohorts/"+cohortId+"/attendance"),absent,400);
+        assertEquals(before,db.one("SELECT * FROM attendance_records WHERE id=?",id));
+        absent.put("checkIn",null);absent.put("checkOut",null);
+        call(admin,put("/api/cohorts/"+cohortId+"/attendance"),absent,200);
+        assertEquals("ABSENT",db.one("SELECT status FROM attendance_records WHERE id=?",id).get("status"));
+    }
+
+    @Test
+    void calendarIncludesNullableCheckInAndCheckOutInUtc() throws Exception {
+        var create=new HashMap<String,Object>(attendanceBody("PRESENT",1));
+        create.put("checkIn",today+"T09:00:00+09:00");create.put("checkOut",today+"T18:00:00+09:00");
+        call(admin,put("/api/cohorts/"+cohortId+"/attendance"),create,200);
+        attendance("ABSENT",2);
+        String result=call(first,get("/api/cohorts/"+cohortId+"/attendance/calendar").param("month",today.toString().substring(0,7)),null,200);
+        assertEquals(Instant.parse(today+"T00:00:00Z"),Instant.parse(JsonPath.read(result,"$.attendance[0].checkIn")));
+        assertEquals(Instant.parse(today+"T09:00:00Z"),Instant.parse(JsonPath.read(result,"$.attendance[0].checkOut")));
+        List<Map<String,Object>> rows=JsonPath.read(result,"$.attendance");
+        assertTrue(rows.get(1).containsKey("checkIn"));assertTrue(rows.get(1).containsKey("checkOut"));
+        assertNull(rows.get(1).get("checkIn"));assertNull(rows.get(1).get("checkOut"));
+    }
+
     private long createCohort() throws Exception {
         return id(call(admin,post("/api/courses/"+courseId+"/cohorts"),Map.of("name","통합 테스트 기수","startDate",today.minusDays(20).toString(),"endDate",today.plusDays(100).toString()),201));
     }
