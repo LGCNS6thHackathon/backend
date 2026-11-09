@@ -25,6 +25,9 @@ app:
     admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
   storage:
     directory: ${STORAGE_DIRECTORY:./.storage}
+  discord:
+    webhook-url: ${DISCORD_WEBHOOK_URL:}
+    public-base-url: ${DISCORD_PUBLIC_BASE_URL:}
 
 management:
   endpoints:
