@@ -48,6 +48,34 @@ class LearningIntegrationTests {
     }
 
     @Test
+    void onlyAdminCanManageAttendanceEvenWhenCohortRoleIsStaff() throws Exception {
+        long record=attendance("ABSENT",1);
+        long correction=id(call(first,post("/api/attendance/"+record+"/corrections"),null,201));
+        for(String role:List.of("INSTRUCTOR","MANAGER")) {
+            User staff=account(false);
+            // MANAGER is a cohort role; only INSTRUCTOR also exists as a global role.
+            if(role.equals("INSTRUCTOR")) db.update("UPDATE users SET role=? WHERE id=?",role,staff.id);
+            db.insert("INSERT INTO enrollments(cohort_id,user_id,role,status,created_at,updated_at) VALUES(?,?,?,'ACTIVE',?,?)",cohortId,staff.id,role,Db.now(),Db.now());
+            call(staff,put("/api/cohorts/"+cohortId+"/attendance"),attendanceBody("PRESENT",2),403);
+            call(staff,put("/api/cohorts/"+cohortId+"/attendance"),attendanceBody("EXCUSED",1),403);
+            call(staff,delete("/api/attendance/"+record),null,403);
+            for(String status:List.of("APPROVED","REJECTED"))
+                call(staff,patch("/api/attendance/corrections/"+correction),Map.of("status",status),403);
+            String records=call(staff,get("/api/cohorts/"+cohortId+"/attendance"),null,200);
+            assertEquals(0,number(records,"$.total"));
+            assertEquals(List.of(),JsonPath.read(records,"$.summary"));
+            call(staff,get("/api/cohorts/"+cohortId+"/attendance").param("userId",String.valueOf(first.id)),null,403);
+            assertEquals(0,number(call(staff,get("/api/cohorts/"+cohortId+"/attendance/corrections"),null,200),"$.total"));
+        }
+        assertEquals("ABSENT",db.one("SELECT status FROM attendance_records WHERE id=?",record).get("status"));
+        assertEquals("PENDING",db.one("SELECT status FROM attendance_corrections WHERE id=?",correction).get("status"));
+        assertEquals(1,number(call(admin,get("/api/cohorts/"+cohortId+"/attendance"),null,200),"$.total"));
+        assertEquals(1,number(call(admin,get("/api/cohorts/"+cohortId+"/attendance/corrections"),null,200),"$.total"));
+        call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","APPROVED"),200);
+        call(admin,delete("/api/attendance/"+record),null,204);
+    }
+
+    @Test
     void studentsCanReadTheirScheduleAndRoadmapButCannotManageOrCrossCohortBoundary() throws Exception {
         long foreignCohort=createCohort();
         Map<String,Object> event=Map.of("title","실습 일정","type","LECTURE","startAt",iso(Db.now().plusHours(1)),"endAt",iso(Db.now().plusHours(2)),"location","교육장");
@@ -276,6 +304,79 @@ class LearningIntegrationTests {
         assertEquals(2,db.count("SELECT COUNT(*) FROM assessment_answers WHERE attempt_id=?",timed));
         mvc.perform(get("/api/cohorts/"+cohortId+"/assessment-report").header("Authorization",bearer(first)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.results[0].score").value(100));
+    }
+
+    @Test
+    void calendarShowsOnlyOwnAttendanceAndLatestCorrectionWorkflow() throws Exception {
+        long record=attendance("ABSENT",1);
+        String path="/api/cohorts/"+cohortId+"/attendance/calendar";
+        String month=today.toString().substring(0,7);
+        String initial=call(first,get(path).param("month",month),null,200);
+        assertEquals(List.of("LATE","PRESENT"),JsonPath.read(initial,"$.attendance[0].availableRequestedStatuses"));
+        assertNull(JsonPath.read(initial,"$.attendance[0].latestCorrection"));
+        assertEquals(List.of(),JsonPath.read(call(second,get(path).param("month",month),null,200),"$.attendance"));
+        // Even ADMIN's personal calendar never implicitly becomes the whole cohort.
+        assertEquals(List.of(),JsonPath.read(call(admin,get(path).param("month",month),null,200),"$.attendance"));
+        long correction=id(call(first,post("/api/attendance/"+record+"/corrections"),null,201));
+        String pending=call(first,get(path).param("month",month),null,200);
+        assertEquals("PENDING",JsonPath.read(pending,"$.attendance[0].latestCorrection.status"));
+        assertEquals(List.of(),JsonPath.read(pending,"$.attendance[0].availableRequestedStatuses"));
+        call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","REJECTED"),200);
+        assertEquals(List.of("LATE","PRESENT"),JsonPath.read(call(first,get(path).param("month",month),null,200),"$.attendance[0].availableRequestedStatuses"));
+        long retry=id(call(first,post("/api/attendance/"+record+"/corrections"),null,201));
+        call(admin,patch("/api/attendance/corrections/"+retry),Map.of("status","APPROVED"),200);
+        String approved=call(first,get(path).param("month",month),null,200);
+        assertEquals(retry,number(approved,"$.attendance[0].latestCorrection.id"));
+        assertEquals("PRESENT",JsonPath.read(approved,"$.attendance[0].status"));
+        assertEquals(List.of(),JsonPath.read(approved,"$.attendance[0].availableRequestedStatuses"));
+        call(admin,delete("/api/attendance/"+record),null,204);
+        assertEquals(List.of(),JsonPath.read(call(first,get(path).param("month",month),null,200),"$.attendance"));
+    }
+
+    @Test
+    void calendarValidatesMonthAuthenticationAndCohortMembership() throws Exception {
+        String path="/api/cohorts/"+cohortId+"/attendance/calendar";
+        String month=today.toString().substring(0,7);
+        call(null,get(path).param("month",month),null,401);
+        call(first,get(path),null,400);
+        for(String invalid:List.of("","2026-13","2026-1","0000-01","9999-12","garbage"))
+            call(first,get(path).param("month",invalid),null,400);
+        call(first,get("/api/cohorts/"+createCohort()+"/attendance/calendar").param("month",month),null,403);
+        db.update("UPDATE enrollments SET status='WITHDRAWN' WHERE cohort_id=? AND user_id=?",cohortId,first.id);
+        call(first,get(path).param("month",month),null,403);
+    }
+
+    @Test
+    void calendarUsesKoreanMonthBoundariesForOverlappingEvents() throws Exception {
+        YearMonth selected=YearMonth.from(today);
+        LocalDateTime start=selected.atDay(1).atStartOfDay().minusHours(9);
+        LocalDateTime end=selected.plusMonths(1).atDay(1).atStartOfDay().minusHours(9);
+        List<Long> expected=new ArrayList<>();
+        for(var range:List.of(List.of(start.minusHours(1),start),List.of(start.minusMinutes(1),start.plusMinutes(1)),List.of(end.minusMinutes(1),end.plusMinutes(1)),List.of(end,end.plusHours(1)))) {
+            long event=db.insert("INSERT INTO schedule_events(cohort_id,title,type,start_at,end_at,location,description,created_by,created_at) VALUES(?,'월 경계 검증','LECTURE',?,?,'교육장','',?,?)",cohortId,range.get(0),range.get(1),admin.id,Db.now());
+            if(range.get(0).isBefore(end)&&range.get(1).isAfter(start))expected.add(event);
+        }
+        long other=createCohort();
+        db.insert("INSERT INTO schedule_events(cohort_id,title,type,start_at,end_at,location,description,created_by,created_at) VALUES(?,'타 기수 일정','LECTURE',?,?,'교육장','',?,?)",other,start,start.plusHours(1),admin.id,Db.now());
+        String result=call(first,get("/api/cohorts/"+cohortId+"/attendance/calendar").param("month",selected.toString()),null,200);
+        List<Number> actual=JsonPath.read(result,"$.events[*].id");
+        assertEquals(expected,actual.stream().map(Number::longValue).toList());
+        assertTrue(JsonPath.<String>read(result,"$.events[0].startAt").endsWith("Z"));
+    }
+
+    @Test
+    void calendarDoesNotTruncateSessionsAndOffersAllSupportedCorrectionTargets() throws Exception {
+        long enrollment=Db.id(db.one("SELECT id FROM enrollments WHERE cohort_id=? AND user_id=?",cohortId,first.id),"id");
+        for(int session=1;session<=105;session++)
+            db.insert("INSERT INTO attendance_records(enrollment_id,attendance_date,unit_type,session_no,status,note,updated_at) VALUES(?,?,'SESSION',?,'LEAVE','',?)",enrollment,today,session,Db.now());
+        for(String state:List.of("EXCUSED","EARLY","LATE","PRESENT"))attendance(state,106+List.of("EXCUSED","EARLY","LATE","PRESENT").indexOf(state));
+        String result=call(first,get("/api/cohorts/"+cohortId+"/attendance/calendar").param("month",today.toString().substring(0,7)),null,200);
+        List<Map<String,Object>> rows=JsonPath.read(result,"$.attendance");
+        assertEquals(109,rows.size());
+        for(var row:rows) assertEquals(row.get("status").equals("PRESENT")?List.of():List.of("PRESENT"),row.get("availableRequestedStatuses"));
+        String empty=call(first,get("/api/cohorts/"+cohortId+"/attendance/calendar").param("month",YearMonth.from(today).plusMonths(2).toString()),null,200);
+        assertEquals(List.of(),JsonPath.read(empty,"$.attendance"));
+        assertEquals(List.of(),JsonPath.read(empty,"$.events"));
     }
 
     private long createCohort() throws Exception {

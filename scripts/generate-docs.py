@@ -267,15 +267,20 @@ def learning_endpoints():
     endpoint("post","/api/roadmap/phases/{phaseId}/modules","로드맵 모듈 생성","RoadmapModule",module,["title","startDate","endDate"],status=201,tag="일정·로드맵",access=STAFF,description="기간은 상위 단계 안에 있어야 합니다.")
     endpoint("patch","/api/roadmap/modules/{id}","로드맵 모듈 수정","RoadmapModule",module,tag="일정·로드맵",access=STAFF)
     attend_states=enum("PRESENT","LATE","EARLY","ABSENT","EXCUSED","LEAVE")
+    model("CalendarCorrection",dict(id=ID,status=enum("PENDING","APPROVED","REJECTED","INVALIDATED"),requestedStatus=enum("PRESENT","LATE","EARLY","ABSENT","EXCUSED"),reason=string(),reviewNote=nullable(string()),createdAt=TIME,reviewedAt=nullable(TIME)),["id","status","requestedStatus","reason","reviewNote","createdAt","reviewedAt"])
+    model("CalendarAttendance",dict(id=ID,attendanceDate=DATE,unitType=enum("DATE","SESSION"),sessionNo=integer(0),status=attend_states,note=string(),latestCorrection=nullable(ref("CalendarCorrection")),availableRequestedStatuses=array(enum("LATE","PRESENT"))),["id","attendanceDate","unitType","sessionNo","status","note","latestCorrection","availableRequestedStatuses"])
+    model("CalendarEvent",dict(id=ID,title=string(),type=enum("LECTURE","PROJECT","SPECIAL","HOLIDAY"),startAt=TIME,endAt=TIME,location=string(),description=string()),["id","title","type","startAt","endAt","location","description"])
+    model("AttendanceCalendar",dict(month=string(pattern="^[0-9]{4}-[0-9]{2}$"),events=array("CalendarEvent"),attendance=array("CalendarAttendance")),["month","events","attendance"])
+    endpoint("get","/api/cohorts/{cohortId}/attendance/calendar","본인 월별 교육일정·출결 캘린더","AttendanceCalendar",tag="출결",access=MEMBER,params=[query("month",string(pattern="^[0-9]{4}-[0-9]{2}$"),"0001~9998년 YYYY-MM, 한국 시간 기준",required=True)],description="기수 일정과 로그인 본인의 미삭제 출결을 월별 전체 반환합니다(페이지 잘림 없음). ADMIN도 본인 출결만 조회합니다. 최근 소명과 요청 가능한 목표 상태를 포함하며 PENDING이면 빈 배열입니다. 날짜 기준은 출결 날짜이며 소명 생성일이 아닙니다. 빈 달은 빈 배열, 타인 userId 지정은 제공하지 않습니다. 소명 제출은 기존 POST corrections API를 사용합니다.")
     attendance_page=paged("Attendance")
     SCHEMAS[attendance_page]["properties"]["summary"] = array(obj(dict(status=attend_states,recordCount=integer(0)),["status","recordCount"]))
-    endpoint("get","/api/cohorts/{cohortId}/attendance","출결 목록·요약",attendance_page,tag="출결",access=MEMBER,params=page_params(50)+[MONTH,USER_FILTER],description="수강생은 본인 기록만 조회. summary는 현재 필터 전체의 상태별 건수입니다.")
-    endpoint("put","/api/cohorts/{cohortId}/attendance","출결 생성·갱신","Attendance",dict(userId=ID,date=DATE,status=attend_states,unitType=enum("DATE","SESSION",default="DATE"),sessionNo=integer(0,default=0),checkIn=nullable(TIME),checkOut=nullable(TIME),note=string(maximum=1000,default="")),["userId","date","status"],tag="출결",access=STAFF,description="DATE는 sessionNo=0, SESSION은 양수입니다. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜·회차는 갱신합니다. 소명 허용 대상 전환을 직접 수정으로 우회할 수 없습니다. 변경 시 version을 증가시키고 대기 요청을 무효화합니다.")
-    endpoint("delete","/api/attendance/{attendanceId}","출결 논리 삭제",status=204,tag="출결",access=STAFF,description="deletedAt과 변경 version을 기록하고 대기 중인 정정 요청을 INVALIDATED로 처리합니다. 삭제 기록은 출결 조회·대시보드에서 제외합니다.")
+    endpoint("get","/api/cohorts/{cohortId}/attendance","출결 목록·요약",attendance_page,tag="출결",access=MEMBER,params=page_params(50)+[MONTH,query("userId",ID,"ADMIN은 특정 회원 선택 가능. 그 외에는 본인만 조회")],description="ADMIN 외에는 기수 역할과 무관하게 본인 기록만 조회. summary는 현재 필터 전체의 상태별 건수입니다.")
+    endpoint("put","/api/cohorts/{cohortId}/attendance","출결 생성·갱신","Attendance",dict(userId=ID,date=DATE,status=attend_states,unitType=enum("DATE","SESSION",default="DATE"),sessionNo=integer(0,default=0),checkIn=nullable(TIME),checkOut=nullable(TIME),note=string(maximum=1000,default="")),["userId","date","status"],tag="출결",access=ADMIN,description="DATE는 sessionNo=0, SESSION은 양수입니다. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜·회차는 갱신합니다. 소명 허용 대상 전환을 직접 수정으로 우회할 수 없습니다. 변경 시 version을 증가시키고 대기 요청을 무효화합니다.")
+    endpoint("delete","/api/attendance/{attendanceId}","출결 논리 삭제",status=204,tag="출결",access=ADMIN,description="deletedAt과 변경 version을 기록하고 대기 중인 정정 요청을 INVALIDATED로 처리합니다. 삭제 기록은 출결 조회·대시보드에서 제외합니다.")
     endpoint("post","/api/attendance/{attendanceId}/corrections","출결 정정 요청","AttendanceCorrection",dict(requestedStatus=enum("PRESENT","LATE",default="PRESENT"),reason=string(5,2000)),status=201,tag="출결",access="해당 출결 본인",description="ABSENT→LATE/PRESENT, LATE/EXCUSED/LEAVE/EARLY→PRESENT만 허용합니다. 목표 상태를 생략하면 PRESENT, 사유를 생략하면 기본 소명 문구를 사용합니다. 원본 상태·version을 저장하며 접수 시 출결을 바꾸지 않습니다. PENDING 중복 불가. 파일은 받지 않습니다.")
     PATHS["/api/attendance/{attendanceId}/corrections"]["post"]["requestBody"]["required"] = False
-    endpoint("get","/api/cohorts/{cohortId}/attendance/corrections","출결 정정 목록",paged("AttendanceCorrection"),tag="출결",access=MEMBER,params=page_params(),description="수강생은 본인 요청만 조회합니다.")
-    endpoint("patch","/api/attendance/corrections/{id}","출결 정정 승인·반려","AttendanceCorrection",dict(status=enum("APPROVED","REJECTED"),reviewNote=string(maximum=2000,default="")),["status"],tag="출결",access=STAFF,description="PENDING만 처리 가능. 원본 상태·version·삭제 여부를 재검증합니다. 달라졌다면 INVALIDATED를 저장하고409를 반환합니다. 승인과 실제 출결 변경은 한 트랜잭션입니다.")
+    endpoint("get","/api/cohorts/{cohortId}/attendance/corrections","출결 정정 목록",paged("AttendanceCorrection"),tag="출결",access=MEMBER,params=page_params(),description="ADMIN 외에는 기수 역할과 무관하게 본인 요청만 조회합니다.")
+    endpoint("patch","/api/attendance/corrections/{id}","출결 정정 승인·반려","AttendanceCorrection",dict(status=enum("APPROVED","REJECTED"),reviewNote=string(maximum=2000,default="")),["status"],tag="출결",access=ADMIN,description="PENDING만 처리 가능. 원본 상태·version·삭제 여부를 재검증합니다. 달라졌다면 INVALIDATED를 저장하고409를 반환합니다. 승인과 실제 출결 변경은 한 트랜잭션입니다.")
     assignment=dict(title=string(2,160),description=string(2,20000),dueAt=TIME,maxScore=integer(1,1000,default=100),instructorId=nullable(ID),instructorName=nullable(string(2,80)))
     endpoint("get","/api/cohorts/{cohortId}/assignments","과제 목록",paged("Assignment"),tag="과제",access=MEMBER,params=page_params()+[query("q",string(maximum=200,default=""),"제목 검색")])
     endpoint("post","/api/cohorts/{cohortId}/assignments","과제 생성","Assignment",assignment,["title","description","dueAt"],status=201,tag="과제",access=STAFF,description="담당 강사 ID는 해당 기수의 ACTIVE INSTRUCTOR 등록이어야 합니다. ID 없이 강사 이름만 저장할 수 있습니다. 등록자와 담당 강사는 별개입니다.")
@@ -343,6 +348,13 @@ def community_endpoints():
     endpoint("delete","/api/files/{fileId}","첨부파일 삭제",status=204,tag="첨부파일",access="부모 리소스 수정 권한 및 업로더/스태프 권한",description="논리 삭제. 제출물 첨부는 기한 전·검토 전만 변경할 수 있습니다. 물리 파일 정리는 별도 운영 정책이 필요합니다.")
 
 
+def discord_endpoints():
+    model("DiscordDeliveryView",dict(id=ID,postId=ID,status=enum("PENDING","SENT","FAILED"),externalMessageId=nullable(string()),errorCode=nullable(string())),["id","postId","status","externalMessageId","errorCode"])
+    endpoint("post","/api/posts/{postId}/discord-delivery","Discord 공지 전송","DiscordDeliveryView",tag="Discord",access=ADMIN,description="관리자가 전송 버튼을 누를 때만 전송합니다.")
+    endpoint("get","/api/posts/{postId}/discord-delivery","Discord 전송 결과","DiscordDeliveryView",tag="Discord",access=ADMIN)
+    endpoint("get","/api/cohorts/{cohortId}/discord-deliveries","기수 Discord 전송 상태",dict(type="object",additionalProperties=string()),tag="Discord",access=ADMIN,description="게시글 ID별 상태. 결과 불확실 상태는 UNKNOWN으로 표시합니다.")
+
+
 def source_routes():
     routes = set()
     for source in (ROOT / "src/main/java").rglob("*Controller.java"):
@@ -381,8 +393,8 @@ def verify_openapi(spec):
 
 
 def api_docs():
-    setup_models(); auth_catalog_endpoints(); learning_endpoints(); community_endpoints()
-    tags = ["인증","회원","과정·기수","일정·로드맵","출결","게시판","과제","평가","스터디","알림","첨부파일","상태"]
+    setup_models(); auth_catalog_endpoints(); learning_endpoints(); community_endpoints(); discord_endpoints()
+    tags = ["Discord","인증","회원","과정·기수","일정·로드맵","출결","게시판","과제","평가","스터디","알림","첨부파일","상태"]
     spec = dict(openapi="3.1.0",info=dict(title="WSTS LMS Backend API",version="1.0.0",description="Spring Boot LMS의 실제 컨트롤러·입력 검증·DB 스키마를 기준으로 작성했습니다. 날짜는 한국 달력, 시각은 ISO8601 오프셋 필수이며 UTC로 저장/반환합니다. 응답은 data 래퍼 없이 직접 반환합니다. 전역 역할과 기수별 역할을 구분합니다."),servers=[dict(url="http://localhost:8080",description="로컬 실행")],tags=[dict(name=t) for t in tags],security=[dict(bearerAuth=[])],paths=PATHS,components=dict(securitySchemes=dict(bearerAuth=dict(type="http",scheme="bearer",bearerFormat="JWT")),schemas=SCHEMAS))
     count = verify_openapi(spec)
     write_json(DOCS / "openapi.json",spec)

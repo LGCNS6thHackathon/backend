@@ -57,6 +57,10 @@ AI·영상·Discord 신규 기능의 결과물은 **스키마·ERD·도메인 �
 
 ### 출결
 
+- 학생 캘린더는 `GET /api/cohorts/{cohortId}/attendance/calendar?month=YYYY-MM`으로 월별 기수 일정·본인 출결·최근 소명·허용 정정 상태를 조회합니다. [응답 및 연결 계약](../attendance/STUDENT_CALENDAR.md)을 프론트 연결 시 참고하세요.
+
+- 출결·소명 관리 권한은 전역 ADMIN으로 통일합니다. 출결 생성·갱신·삭제와 정정 승인·반려는 ADMIN만 수행합니다. 목록은 ADMIN 외 사용자의 경우 기수 역할과 무관하게 본인 기록·요청만 반환합니다. 본인 소명 제출은 유지합니다.
+
 - `unit_type=DATE`는 `session_no=0`, `SESSION`은 `session_no>0`입니다. 같은 수강생·날짜·회차를 중복 저장하지 않습니다. 휴가는 `LEAVE`, 조퇴는 `EARLY`이며 둘 다 현재 기록 관리 요구입니다.
 - 채팅에서 정정 전환을 **ABSENT→LATE, ABSENT→PRESENT, LATE→PRESENT, EXCUSED→PRESENT, LEAVE→PRESENT, EARLY→PRESENT**로 확정했습니다. 명세 8번의 세 전환에 공결·휴가·조퇴→출석을 더하여 17번 캘린더 요구를 연결합니다. 접수 시 원본 출결을 유지하고 `original_status`, `original_version`을 기록하는 동작을 기존 API에 코드 반영합니다.
 - `POST /api/attendance/{attendanceId}/corrections`는 로그인 학생 본인의 기록만 접수합니다. `requestedStatus`를 생략하면 PRESENT, `reason`을 생략하면 기본 요청 문구를 사용하며 중복 대기 요청을 차단합니다. 결석→지각은 `requestedStatus=LATE`로 명시합니다.
