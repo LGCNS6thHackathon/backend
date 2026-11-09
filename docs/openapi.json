@@ -5629,7 +5629,7 @@
       },
       "post": {
         "summary": "게시글 작성",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생은 QUESTION만 작성 가능. 나머지 분류와 pinned=true는 스태프만 가능. 공지 작성 시 다른 기수 회원에게 알림 생성.",
+        "description": "권한: 전역 ADMIN. 관리자만 작성 가능. 공지 작성 시 기수 회원에게 알림 생성.",
         "operationId": "post_api_cohorts_cohortId_posts",
         "tags": [
           "게시판"
@@ -5805,7 +5805,7 @@
       },
       "patch": {
         "summary": "게시글 수정",
-        "description": "권한: 작성자 또는 기수 스태프. QUESTION 이외 분류로 변경하거나 공지를 수정하거나 고정하려면 스태프 권한이 필요합니다.",
+        "description": "권한: 전역 ADMIN. 생략한 필드는 유지하고 빈 값은 거부합니다.",
         "operationId": "patch_api_posts_postId",
         "tags": [
           "게시판"
@@ -5897,7 +5897,7 @@
       },
       "delete": {
         "summary": "게시글 삭제",
-        "description": "권한: 작성자 또는 기수 스태프. 논리 삭제합니다.",
+        "description": "권한: 전역 ADMIN. 논리 삭제합니다.",
         "operationId": "delete_api_posts_postId",
         "tags": [
           "게시판"
@@ -5973,8 +5973,8 @@
     },
     "/api/admin/cohorts/{cohortId}/posts": {
       "get": {
-        "summary": "??? 게시글 목록",
-        "description": "??: ?? ADMIN. ?? ??? ???? ?? ???? ?????.",
+        "summary": "관리자 게시글 목록",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
         "operationId": "admin_get_api_cohorts_cohortId_posts",
         "tags": [
           "게시판"
@@ -6106,8 +6106,8 @@
         ]
       },
       "post": {
-        "summary": "??? 게시글 작성",
-        "description": "??: ?? ADMIN. ?? ??? ???? ?? ???? ?????.",
+        "summary": "관리자 게시글 작성",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
         "operationId": "admin_post_api_cohorts_cohortId_posts",
         "tags": [
           "게시판"
@@ -6200,8 +6200,8 @@
     },
     "/api/admin/posts/{postId}": {
       "get": {
-        "summary": "??? 게시글 상세",
-        "description": "??: ?? ADMIN. ?? ??? ???? ?? ???? ?????.",
+        "summary": "관리자 게시글 상세",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
         "operationId": "admin_get_api_posts_postId",
         "tags": [
           "게시판"
@@ -6282,8 +6282,8 @@
         ]
       },
       "patch": {
-        "summary": "??? 게시글 수정",
-        "description": "??: ?? ADMIN. ?? ??? ???? ?? ???? ?????.",
+        "summary": "관리자 게시글 수정",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
         "operationId": "admin_patch_api_posts_postId",
         "tags": [
           "게시판"
@@ -6374,8 +6374,8 @@
         }
       },
       "delete": {
-        "summary": "??? 게시글 삭제",
-        "description": "??: ?? ADMIN. ?? ??? ???? ?? ???? ?????.",
+        "summary": "관리자 게시글 삭제",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
         "operationId": "admin_delete_api_posts_postId",
         "tags": [
           "게시판"
