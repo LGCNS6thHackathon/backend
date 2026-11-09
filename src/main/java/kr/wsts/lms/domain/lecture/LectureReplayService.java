@@ -7,7 +7,10 @@ import java.util.List;
 import java.util.Map;
 import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.Chapter;
 import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.DailyReplay;
+import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.PeriodLink;
 import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.Playback;
+import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.RecentReplays;
+import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.ReplayCard;
 import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.ReplayDate;
 import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.ReplayDates;
 import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.Video;
@@ -51,6 +54,32 @@ public class LectureReplayService {
         actor.cohort(cohortId);
         List<Video> videos = lectures.findStudentVideosForDate(cohortId, date).stream().map(video -> toVideo(cohortId, video)).toList();
         return new DailyReplay(cohortId, date, videos, videos.isEmpty() ? EMPTY_MESSAGE : null);
+    }
+
+    /** Latest lecture dates up to today (KST), newest first, shaped for the frontend replay archive cards. */
+    public RecentReplays recent(long cohortId, int limit) {
+        if (limit < 1 || limit > 30) throw AppException.bad("limit은 1~30 사이여야 합니다.");
+        actor.cohort(cohortId);
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Seoul"));
+        Map<LocalDate, List<LectureVideo>> byDate = new java.util.TreeMap<>(java.util.Comparator.reverseOrder());
+        for (LectureVideo video : lectures.findStudentVideosBetween(cohortId, LocalDate.of(2000, 1, 1), today))
+            byDate.computeIfAbsent(video.lectureDate(), d -> new java.util.ArrayList<>()).add(video);
+        List<ReplayCard> cards = byDate.values().stream().limit(limit).map(videos -> card(cohortId, videos)).toList();
+        return new RecentReplays(cohortId, cards);
+    }
+
+    private ReplayCard card(long cohortId, List<LectureVideo> videos) {
+        LectureVideo first = videos.get(0);
+        List<String> topics = videos.stream().flatMap(v -> lectures.findChapters(cohortId, v.id()).stream().map(LectureChapter::title)).distinct().toList();
+        Integer totalSeconds = videos.stream().allMatch(v -> v.durationSeconds() != null)
+                ? videos.stream().mapToInt(LectureVideo::durationSeconds).sum() : null;
+        String duration = totalSeconds == null ? null
+                : (totalSeconds / 3600 > 0 ? totalSeconds / 3600 + "시간 " : "") + (totalSeconds % 3600) / 60 + "분";
+        List<PeriodLink> periods = videos.stream().map(v -> new PeriodLink(v.id(), v.periodNo(),
+                YouTubeLinks.embedUrl(v.youtubeVideoId(), 0), YouTubeLinks.watchUrl(v.youtubeVideoId(), 0))).toList();
+        String title = first.title().replaceFirst("\\s*\\d+교시$", "");
+        return new ReplayCard(first.id(), first.lectureDate().toString(), title, null, null, duration,
+                periods.get(0).watchUrl(), periods.get(0).embedUrl(), topics, false, periods);
     }
 
     /** Playback position for a chapter (복습하기 → 소단원 시작 시점). */

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.DailyReplay;
 import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.Playback;
+import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.RecentReplays;
 import kr.wsts.lms.domain.lecture.dto.LectureReplayDtos.ReplayDates;
 import kr.wsts.lms.global.error.AppException;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,12 @@ public class LectureReplayController {
     @GetMapping("/lecture-replays/dates")
     public ReplayDates dates(@PathVariable long cohortId, @RequestParam String from, @RequestParam String to) {
         return service.replayDates(cohortId, date(from, "from"), date(to, "to"));
+    }
+
+    /** 다시보기 아카이브 카드: 오늘까지의 최근 강의일 (프론트 ReplayLecture 형태). */
+    @GetMapping("/lecture-replays/recent")
+    public RecentReplays recent(@PathVariable long cohortId, @RequestParam(defaultValue = "3") int limit) {
+        return service.recent(cohortId, limit);
     }
 
     /** 날짜별 강의 제목·교시별 영상 목록. */

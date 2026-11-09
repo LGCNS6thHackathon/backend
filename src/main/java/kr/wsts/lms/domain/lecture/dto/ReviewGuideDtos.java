@@ -25,7 +25,22 @@ public final class ReviewGuideDtos {
     public record Classification(long subjectId, String subject, long unitId, String unit, long topicId, String topic) {
     }
 
+    /**
+     * 역량평가 리포트의 "추천 복습 큐레이션": the caller's wrong answers grouped by review chapter, most wrong first.
+     * {@code summary} is a ready-to-show sentence for the top item (null when nothing to recommend).
+     */
+    public record Recommendations(long assessmentId, boolean reviewReleased, int wrongCount, List<Recommendation> items, String summary) {
+    }
+
+    public record Recommendation(long chapterId, String chapterTitle, LocalDate lectureDate, int periodNo, int startSeconds,
+                                 String embedUrl, String watchUrl, String matchType, List<Integer> questionPositions) {
+    }
+
+    /**
+     * {@code matchType}: QUESTION = chapter linked to this question by the author;
+     * TOPIC = no direct link, so the earliest chapter of the same core concept is suggested (label it e.g. "같은 개념 강의").
+     */
     public record ReviewLink(long chapterId, String chapterTitle, int startSeconds, long videoId, String videoTitle,
-                             LocalDate lectureDate, int periodNo, String embedUrl, String watchUrl) {
+                             LocalDate lectureDate, int periodNo, String embedUrl, String watchUrl, String matchType) {
     }
 }

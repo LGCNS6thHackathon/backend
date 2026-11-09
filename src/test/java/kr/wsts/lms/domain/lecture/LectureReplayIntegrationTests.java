@@ -185,6 +185,100 @@ class LectureReplayIntegrationTests {
     }
 
     @Test
+    void recentReplaysAreArchiveCardsGroupedByDateNewestFirst() throws Exception {
+        long d1p1 = video(cohortId, lectureDay.minusDays(2), 1, "PUBLIC", "HHHHHHHHHH1");
+        video(cohortId, lectureDay.minusDays(2), 2, "PUBLIC", "HHHHHHHHHH2");
+        chapter(d1p1, null, "첫 소단원", 30, 1);
+        video(cohortId, lectureDay, 1, "PUBLIC", "HHHHHHHHHH3");
+        video(cohortId, today.plusDays(2), 1, "PUBLIC", "HHHHHHHHHH4");
+        mvc.perform(get("/api/cohorts/" + cohortId + "/lecture-replays/recent").header("Authorization", bearer(student)).param("limit", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].date").value(lectureDay.toString()))
+                .andExpect(jsonPath("$.items[1].date").value(lectureDay.minusDays(2).toString()))
+                .andExpect(jsonPath("$.items[1].title").value("테스트 강의"))
+                .andExpect(jsonPath("$.items[1].periods.length()").value(2))
+                .andExpect(jsonPath("$.items[1].keyTopics[0]").value("첫 소단원"))
+                .andExpect(jsonPath("$.items[1].videoUrl").value("https://www.youtube.com/watch?v=HHHHHHHHHH1"))
+                .andExpect(jsonPath("$.items[1].hasAiSummary").value(false));
+        call(outsider, get("/api/cohorts/" + cohortId + "/lecture-replays/recent"), null, 403);
+        call(student, get("/api/cohorts/" + cohortId + "/lecture-replays/recent").param("limit", "0"), null, 400);
+    }
+
+    @Test
+    void recommendationsGroupWrongAnswersByChapterAfterRelease() throws Exception {
+        long topic = topic(cohortId, "MSA", "MSA I", "MSA 아키텍처");
+        long video = video(cohortId, lectureDay, 1, "PUBLIC", "IIIIIIIIII1");
+        long saga = chapter(video, topic, "Saga 패턴", 754, 1);
+        long assessment = assessment();
+        long q1 = question(assessment, 1), q2 = question(assessment, 2), q3 = question(assessment, 3), q4 = question(assessment, 4);
+        db.update("UPDATE assessment_questions SET topic_id=? WHERE id IN (?,?,?)", topic, q1, q2, q3);
+        db.insert("INSERT INTO assessment_question_review_links(question_id,chapter_id,position) VALUES(?,?,1)", q1, saga);
+        db.update("UPDATE assessments SET status='PUBLISHED' WHERE id=?", assessment);
+        long attempt = id(call(student, post("/api/assessments/" + assessment + "/attempts"), null, 201));
+        long correctQ3 = number(db.one("SELECT id FROM assessment_options WHERE question_id=? AND is_correct=TRUE", q3).get("id"));
+        long wrongQ1 = number(db.one("SELECT id FROM assessment_options WHERE question_id=? AND is_correct=FALSE", q1).get("id"));
+        call(student, put("/api/assessment-attempts/" + attempt + "/answers"), Map.of("answers", List.of(
+                Map.of("questionId", q1, "optionId", wrongQ1), Map.of("questionId", q3, "optionId", correctQ3))), 200);
+        call(student, post("/api/assessment-attempts/" + attempt + "/submit"), null, 200);
+
+        mvc.perform(get("/api/assessments/" + assessment + "/review-recommendations").header("Authorization", bearer(student)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.reviewReleased").value(false)).andExpect(jsonPath("$.items.length()").value(0));
+        db.update("UPDATE assessments SET status='CLOSED' WHERE id=?", assessment);
+        mvc.perform(get("/api/assessments/" + assessment + "/review-recommendations").header("Authorization", bearer(student)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reviewReleased").value(true))
+                .andExpect(jsonPath("$.wrongCount").value(3))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].chapterId").value(saga))
+                .andExpect(jsonPath("$.items[0].matchType").value("QUESTION"))
+                .andExpect(jsonPath("$.items[0].questionPositions[0]").value(1))
+                .andExpect(jsonPath("$.items[0].questionPositions[1]").value(2))
+                .andExpect(jsonPath("$.summary").isNotEmpty());
+        call(outsider, get("/api/assessments/" + assessment + "/review-recommendations"), null, 403);
+    }
+
+    private static long number(Object value) { return ((Number) value).longValue(); }
+
+    @Test
+    void questionWithoutDirectLinkFallsBackToEarliestChapterOfSameConcept() throws Exception {
+        long topic = topic(cohortId, "MSA", "Docker", "Docker 기초");
+        long otherTopic = topic(cohortId, "MSA", "Kubernetes", "Kubernetes 기초");
+        long later = video(cohortId, lectureDay, 2, "PUBLIC", "GGGGGGGGGG2");
+        long earlier = video(cohortId, lectureDay.minusDays(1), 1, "PUBLIC", "GGGGGGGGGG1");
+        long direct = chapter(later, topic, "docker run 실습", 600, 1);
+        long first = chapter(earlier, topic, "Docker 개념 처음 설명", 120, 1);
+        chapter(later, topic, "Docker 이미지", 30, 2);
+        long assessment = assessment();
+        long linked = question(assessment, 1), byConcept = question(assessment, 2), noChapter = question(assessment, 3);
+        db.update("UPDATE assessment_questions SET topic_id=? WHERE id IN (?,?)", topic, linked, byConcept);
+        db.update("UPDATE assessment_questions SET topic_id=? WHERE id=?", otherTopic, noChapter);
+        db.insert("INSERT INTO assessment_question_review_links(question_id,chapter_id,position) VALUES(?,?,1)", linked, direct);
+
+        mvc.perform(get("/api/assessments/" + assessment + "/review-guide").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.questions[0].reviewLinks.length()").value(1))
+                .andExpect(jsonPath("$.questions[0].reviewLinks[0].chapterId").value(direct))
+                .andExpect(jsonPath("$.questions[0].reviewLinks[0].matchType").value("QUESTION"))
+                .andExpect(jsonPath("$.questions[1].reviewLinks.length()").value(1))
+                .andExpect(jsonPath("$.questions[1].reviewLinks[0].chapterId").value(first))
+                .andExpect(jsonPath("$.questions[1].reviewLinks[0].matchType").value("TOPIC"))
+                .andExpect(jsonPath("$.questions[1].reviewMessage").doesNotExist())
+                .andExpect(jsonPath("$.questions[2].reviewLinks.length()").value(0))
+                .andExpect(jsonPath("$.questions[2].reviewMessage").value("연결된 복습 영상 없음"));
+
+        db.update("UPDATE lecture_videos SET visibility='PRIVATE' WHERE id=?", earlier);
+        db.update("UPDATE assessments SET status='PUBLISHED' WHERE id=?", assessment);
+        long attempt = id(call(student, post("/api/assessments/" + assessment + "/attempts"), null, 201));
+        call(student, post("/api/assessment-attempts/" + attempt + "/submit"), null, 200);
+        db.update("UPDATE assessments SET status='CLOSED' WHERE id=?", assessment);
+        mvc.perform(get("/api/assessments/" + assessment + "/review-guide").header("Authorization", bearer(student)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.questions[1].reviewLinks[0].chapterTitle").value("Docker 이미지"))
+                .andExpect(jsonPath("$.questions[1].reviewLinks[0].matchType").value("TOPIC"));
+    }
+
+    @Test
     void questionTopicIsSavedOnlyForOwnCohortAndReviewLinksDoNotBlockDeletion() throws Exception {
         long topic = topic(cohortId, "MSA", "아키텍처", "Saga");
         long foreignTopic = topic(foreignCohortId, "다른 과목", "다른 단원", "다른 개념");
@@ -279,7 +373,8 @@ class LectureReplayIntegrationTests {
     }
 
     private long topic(long cohort, String subject, String unit, String topic) {
-        long subjectId = db.insert("INSERT INTO learning_subjects(cohort_id,title,position,created_at,updated_at) VALUES(?,?,?,?,?)", cohort, subject, 1, Db.now(), Db.now());
+        int position = (int) db.count("SELECT COUNT(*) FROM learning_subjects WHERE cohort_id=?", cohort) + 1;
+        long subjectId = db.insert("INSERT INTO learning_subjects(cohort_id,title,position,created_at,updated_at) VALUES(?,?,?,?,?)", cohort, subject, position, Db.now(), Db.now());
         long unitId = db.insert("INSERT INTO learning_units(subject_id,title,position,created_at,updated_at) VALUES(?,?,?,?,?)", subjectId, unit, 1, Db.now(), Db.now());
         return db.insert("INSERT INTO learning_topics(unit_id,title,description,position,created_at,updated_at) VALUES(?,?,?,?,?,?)", unitId, topic, "", 1, Db.now(), Db.now());
     }
