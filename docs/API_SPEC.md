@@ -1,6 +1,6 @@
 # LMS API 명세
 
-95개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
+102개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
 
 ## 공통 규칙
 
@@ -37,14 +37,6 @@
 ## 엔드포인트
 
 상세한 필수값·길이·범위·enum·응답 필드는 OpenAPI의 각 `requestBody`, `parameters`, `responses`를 기준으로 연결하세요.
-
-### Discord
-
-| 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
-|---|---|---|---|---|
-| POST | `/api/posts/{postId}/discord-delivery` | Discord 공지 전송 | 200 | 권한: 전역 ADMIN. 관리자가 전송 버튼을 누를 때만 전송합니다. |
-| GET | `/api/posts/{postId}/discord-delivery` | Discord 전송 결과 | 200 | 권한: 전역 ADMIN. |
-| GET | `/api/cohorts/{cohortId}/discord-deliveries` | 기수 Discord 전송 상태 | 200 | 권한: 전역 ADMIN. 게시글 ID별 상태. 결과 불확실 상태는 UNKNOWN으로 표시합니다. |
 
 ### 인증
 
@@ -141,6 +133,26 @@
 | POST | `/api/assignments/{assignmentId}/submissions` | 과제 최초 제출 | 201 | 권한: 해당 기수 ACTIVE 등록 회원. 중복 제출은409. 기한 전만 가능합니다. |
 | PUT | `/api/assignments/{assignmentId}/submission` | 내 과제 제출·재제출 | 200 | 권한: 해당 기수 ACTIVE 등록 회원. 없으면 생성, 있으면 수정. 기한 만료 또는 채점 완료 시409. |
 | PATCH | `/api/submissions/{submissionId}/review` | 과제 채점·피드백 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 피드백을 생성하거나 갱신하고 제출자에게 알림을 생성합니다. |
+
+### 강의영상
+
+| 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
+|---|---|---|---|---|
+| GET | `/api/admin/cohorts/{cohortId}/lecture-videos` | 관리자 강의영상 목록 | 200 | 권한: 전역 ADMIN. 비공개 포함, 삭제 제외. 날짜 내림차순·교시 오름차순. |
+| POST | `/api/admin/cohorts/{cohortId}/lecture-videos` | 관리자 강의영상 등록 | 201 | 권한: 전역 ADMIN. YouTube 링크만 저장합니다. 파일 업로드는 없습니다. 같은 기수·날짜·교시는 삭제 이력까지 포함해 중복 불가(409). 날짜·교시는 필수입니다. |
+| GET | `/api/admin/lecture-videos/{videoId}` | 관리자 강의영상 상세 | 200 | 권한: 전역 ADMIN. |
+| PATCH | `/api/admin/lecture-videos/{videoId}` | 관리자 강의영상 수정 | 200 | 권한: 전역 ADMIN. YouTube 링크만 저장합니다. 파일 업로드는 없습니다. 같은 기수·날짜·교시는 삭제 이력까지 포함해 중복 불가(409). 날짜·교시는 필수입니다. 생략 필드는 유지. 필수 필드의 null·공백 거부. durationSeconds=null은 길이 정보 제거. 기수·등록자 변경 불가. |
+| DELETE | `/api/admin/lecture-videos/{videoId}` | 관리자 강의영상 삭제 | 204 | 권한: 전역 ADMIN. 논리 삭제 후 관리자·사용자 목록 및 상세에서 조회 불가. |
+| GET | `/api/cohorts/{cohortId}/lecture-videos` | 수강생 강의영상 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 소속 기수 PUBLIC 영상만 조회. 날짜 내림차순·교시 오름차순. youtubeVideoId로 사용자 화면의 YouTube 플레이어 구성 가능. |
+| GET | `/api/lecture-videos/{videoId}` | 수강생 강의영상 상세 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 소속 기수만 접근 가능. 비공개·삭제 영상은 404. youtubeUrl 및 youtubeVideoId 제공. 외부 영상 존재·임베드 허용 여부는 확인하지 않습니다. |
+
+### Discord
+
+| 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
+|---|---|---|---|---|
+| POST | `/api/posts/{postId}/discord-delivery` | Discord 공지 전송 | 200 | 권한: 전역 ADMIN. 관리자가 전송 버튼을 누를 때만 전송합니다. |
+| GET | `/api/posts/{postId}/discord-delivery` | Discord 전송 결과 | 200 | 권한: 전역 ADMIN. |
+| GET | `/api/cohorts/{cohortId}/discord-deliveries` | 기수 Discord 전송 상태 | 200 | 권한: 전역 ADMIN. 게시글 ID별 상태. 결과 불확실 상태는 UNKNOWN으로 표시합니다. |
 
 ### 평가
 

@@ -348,6 +348,21 @@ def community_endpoints():
     endpoint("delete","/api/files/{fileId}","첨부파일 삭제",status=204,tag="첨부파일",access="부모 리소스 수정 권한 및 업로더/스태프 권한",description="논리 삭제. 제출물 첨부는 기한 전·검토 전만 변경할 수 있습니다. 물리 파일 정리는 별도 운영 정책이 필요합니다.")
 
 
+def lecture_endpoints():
+    props = {c["apiName"]:sql_schema(c) for t in TABLES if t["name"] == "lecture_videos" for c in t["columns"]}
+    model("LectureVideo", props, props.keys())
+    fields = dict(title=string(1,160), youtubeUrl=string(1,2000,description="HTTPS youtube.com/watch?v=ID 또는 youtu.be/ID. 영상 ID는 11자입니다."), lectureDate=DATE,
+                  periodNo=integer(1), durationSeconds=nullable(integer(1)), visibility=enum("PUBLIC","PRIVATE",default="PRIVATE"))
+    description="YouTube 링크만 저장합니다. 파일 업로드는 없습니다. 같은 기수·날짜·교시는 삭제 이력까지 포함해 중복 불가(409). 날짜·교시는 필수입니다."
+    endpoint("get","/api/admin/cohorts/{cohortId}/lecture-videos","관리자 강의영상 목록",paged("LectureVideo"),tag="강의영상",access=ADMIN,params=page_params(),description="비공개 포함, 삭제 제외. 날짜 내림차순·교시 오름차순.")
+    endpoint("post","/api/admin/cohorts/{cohortId}/lecture-videos","관리자 강의영상 등록","LectureVideo",fields,["title","youtubeUrl","lectureDate","periodNo"],status=201,tag="강의영상",access=ADMIN,description=description)
+    endpoint("get","/api/admin/lecture-videos/{videoId}","관리자 강의영상 상세","LectureVideo",tag="강의영상",access=ADMIN)
+    endpoint("patch","/api/admin/lecture-videos/{videoId}","관리자 강의영상 수정","LectureVideo",fields,tag="강의영상",access=ADMIN,description=description+" 생략 필드는 유지. 필수 필드의 null·공백 거부. durationSeconds=null은 길이 정보 제거. 기수·등록자 변경 불가.")
+    endpoint("delete","/api/admin/lecture-videos/{videoId}","관리자 강의영상 삭제",status=204,tag="강의영상",access=ADMIN,description="논리 삭제 후 관리자·사용자 목록 및 상세에서 조회 불가.")
+    endpoint("get","/api/cohorts/{cohortId}/lecture-videos","수강생 강의영상 목록",paged("LectureVideo"),tag="강의영상",access=MEMBER,params=page_params(),description="소속 기수 PUBLIC 영상만 조회. 날짜 내림차순·교시 오름차순. youtubeVideoId로 사용자 화면의 YouTube 플레이어 구성 가능.")
+    endpoint("get","/api/lecture-videos/{videoId}","수강생 강의영상 상세","LectureVideo",tag="강의영상",access=MEMBER,description="소속 기수만 접근 가능. 비공개·삭제 영상은 404. youtubeUrl 및 youtubeVideoId 제공. 외부 영상 존재·임베드 허용 여부는 확인하지 않습니다.")
+
+
 def discord_endpoints():
     model("DiscordDeliveryView",dict(id=ID,postId=ID,status=enum("PENDING","SENT","FAILED"),externalMessageId=nullable(string()),errorCode=nullable(string())),["id","postId","status","externalMessageId","errorCode"])
     endpoint("post","/api/posts/{postId}/discord-delivery","Discord 공지 전송","DiscordDeliveryView",tag="Discord",access=ADMIN,description="관리자가 전송 버튼을 누를 때만 전송합니다.")
@@ -393,8 +408,8 @@ def verify_openapi(spec):
 
 
 def api_docs():
-    setup_models(); auth_catalog_endpoints(); learning_endpoints(); community_endpoints(); discord_endpoints()
-    tags = ["Discord","인증","회원","과정·기수","일정·로드맵","출결","게시판","과제","평가","스터디","알림","첨부파일","상태"]
+    setup_models(); auth_catalog_endpoints(); learning_endpoints(); community_endpoints(); lecture_endpoints(); discord_endpoints()
+    tags = ["인증","회원","과정·기수","일정·로드맵","출결","게시판","과제","강의영상","Discord","평가","스터디","알림","첨부파일","상태"]
     spec = dict(openapi="3.1.0",info=dict(title="WSTS LMS Backend API",version="1.0.0",description="Spring Boot LMS의 실제 컨트롤러·입력 검증·DB 스키마를 기준으로 작성했습니다. 날짜는 한국 달력, 시각은 ISO8601 오프셋 필수이며 UTC로 저장/반환합니다. 응답은 data 래퍼 없이 직접 반환합니다. 전역 역할과 기수별 역할을 구분합니다."),servers=[dict(url="http://localhost:8080",description="로컬 실행")],tags=[dict(name=t) for t in tags],security=[dict(bearerAuth=[])],paths=PATHS,components=dict(securitySchemes=dict(bearerAuth=dict(type="http",scheme="bearer",bearerFormat="JWT")),schemas=SCHEMAS))
     count = verify_openapi(spec)
     write_json(DOCS / "openapi.json",spec)
