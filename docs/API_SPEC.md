@@ -1,6 +1,6 @@
 # LMS API 명세
 
-85개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
+86개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
 
 ## 공통 규칙
 
@@ -16,7 +16,7 @@
 
 접근 토큰은15분, 갱신 토큰은7일입니다. 갱신할 때 새 토큰 쌍으로 교체하고 이전 갱신 토큰을 폐기합니다. 사용한 갱신 토큰을 재사용하면 같은 토큰 패밀리를 폐기합니다. 로그아웃은 갱신 토큰 패밀리를 폐기하며 기존 접근 토큰은 남은 유효시간까지 유효합니다. 비밀번호·전역 역할·계정 상태 변경은 모든 기존 토큰을 무효화합니다.
 
-회원가입은 전역 `STUDENT`만 생성합니다. 관리자 계정은 `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`를 최초 실행 환경에 지정해 준비합니다. 고정 기본 관리자 계정은 없습니다. 전역 ADMIN은 전체 관리 권한을 가지며, 기수의 INSTRUCTOR/MANAGER 권한은 해당 ACTIVE 수강 등록에서 확인합니다. 전역 INSTRUCTOR 역할만으로 다른 기수를 관리할 수 없습니다.
+공개 회원가입은 없습니다. 운영자가 전역 ADMIN 권한으로 `POST /api/users`에 등록자의 이메일·초기 비밀번호·이름을 입력해 STUDENT 계정을 발급합니다. 초기 비밀번호 전달은 운영 절차이며 이 API는 메일·문자를 발송하지 않습니다. 발급 후 기수별 수강 등록 API로 배정합니다. 관리자 계정은 `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`를 최초 실행 환경에 지정해 준비합니다. 고정 기본 관리자 계정은 없습니다. 전역 ADMIN은 전체 관리 권한을 가지며, 기수의 INSTRUCTOR/MANAGER 권한은 해당 ACTIVE 수강 등록에서 확인합니다. 전역 INSTRUCTOR 역할만으로 다른 기수를 관리할 수 없습니다.
 
 ## 오류
 
@@ -42,7 +42,6 @@
 
 | 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
 |---|---|---|---|---|
-| POST | `/api/auth/register` | 회원가입 | 201 | 권한: 공개; 전역 STUDENT로만 가입. |
 | POST | `/api/auth/login` | 로그인 | 200 | 권한: 공개; ACTIVE 계정. |
 | POST | `/api/auth/refresh` | 토큰 갱신·회전 | 200 | 권한: 공개; 유효한 갱신 토큰. 한 번 사용한 갱신 토큰은 폐기됩니다. 재사용은 같은 토큰 패밀리를 폐기합니다. |
 | POST | `/api/auth/logout` | 로그아웃 | 204 | 권한: 인증된 토큰 소유자. 갱신 토큰 패밀리를 폐기합니다. 이미 발급한 접근 토큰은 남은 유효시간 동안 유효합니다. |
@@ -51,10 +50,11 @@
 
 | 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
 |---|---|---|---|---|
+| POST | `/api/users` | 수강생 계정 발급 | 201 | 권한: 전역 ADMIN. 부트캠프 등록자에게 운영자가 계정을 발급합니다. STUDENT로 생성하며 발급자·시각을 DB에 기록합니다. 비밀번호 원문은 응답하지 않습니다. 기수 배정은 기존 수강 등록 API를 사용합니다. |
+| GET | `/api/users` | 회원 검색 | 200 | 권한: 전역 ADMIN. |
 | GET | `/api/me` | 내 정보 | 200 | 권한: 인증 필요. |
 | PATCH | `/api/me` | 내 정보 수정 | 200 | 권한: 인증 필요. |
 | PATCH | `/api/me/password` | 비밀번호 변경 | 204 | 권한: 인증 필요. 전체 갱신 토큰과 기존 접근 토큰을 무효화합니다. 다시 로그인해야 합니다. |
-| GET | `/api/users` | 회원 검색 | 200 | 권한: 전역 ADMIN. |
 | PATCH | `/api/users/{userId}` | 회원 권한·상태 변경 | 200 | 권한: 전역 ADMIN. 마지막 활성 ADMIN의 권한은 제거할 수 없습니다. 변경 시 사용자의 모든 토큰을 무효화합니다. |
 
 ### 과정·기수
@@ -94,10 +94,11 @@
 | 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
 |---|---|---|---|---|
 | GET | `/api/cohorts/{cohortId}/attendance` | 출결 목록·요약 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 수강생은 본인 기록만 조회. summary는 현재 필터 전체의 상태별 건수입니다. |
-| PUT | `/api/cohorts/{cohortId}/attendance` | 출결 생성·갱신 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜는 갱신합니다. |
-| POST | `/api/attendance/{attendanceId}/corrections` | 출결 정정 요청 | 201 | 권한: 해당 출결 본인. 현재와 다른 상태만 요청. PENDING 요청 중복 불가. |
+| PUT | `/api/cohorts/{cohortId}/attendance` | 출결 생성·갱신 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. DATE는 sessionNo=0, SESSION은 양수입니다. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜·회차는 갱신합니다. 소명 허용 대상 전환을 직접 수정으로 우회할 수 없습니다. 변경 시 version을 증가시키고 대기 요청을 무효화합니다. |
+| DELETE | `/api/attendance/{attendanceId}` | 출결 논리 삭제 | 204 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. deletedAt과 변경 version을 기록하고 대기 중인 정정 요청을 INVALIDATED로 처리합니다. 삭제 기록은 출결 조회·대시보드에서 제외합니다. |
+| POST | `/api/attendance/{attendanceId}/corrections` | 출결 정정 요청 | 201 | 권한: 해당 출결 본인. ABSENT→LATE/PRESENT, LATE/EXCUSED/LEAVE/EARLY→PRESENT만 허용합니다. 목표 상태를 생략하면 PRESENT, 사유를 생략하면 기본 소명 문구를 사용합니다. 원본 상태·version을 저장하며 접수 시 출결을 바꾸지 않습니다. PENDING 중복 불가. 파일은 받지 않습니다. |
 | GET | `/api/cohorts/{cohortId}/attendance/corrections` | 출결 정정 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 수강생은 본인 요청만 조회합니다. |
-| PATCH | `/api/attendance/corrections/{id}` | 출결 정정 승인·반려 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. PENDING만 처리 가능. 승인과 실제 출결 변경은 한 트랜잭션입니다. |
+| PATCH | `/api/attendance/corrections/{id}` | 출결 정정 승인·반려 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. PENDING만 처리 가능. 원본 상태·version·삭제 여부를 재검증합니다. 달라졌다면 INVALIDATED를 저장하고409를 반환합니다. 승인과 실제 출결 변경은 한 트랜잭션입니다. |
 
 ### 게시판
 
@@ -118,10 +119,10 @@
 | 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
 |---|---|---|---|---|
 | GET | `/api/cohorts/{cohortId}/assignments` | 과제 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
-| POST | `/api/cohorts/{cohortId}/assignments` | 과제 생성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. |
+| POST | `/api/cohorts/{cohortId}/assignments` | 과제 생성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 담당 강사 ID는 해당 기수의 ACTIVE INSTRUCTOR 등록이어야 합니다. ID 없이 강사 이름만 저장할 수 있습니다. 등록자와 담당 강사는 별개입니다. |
 | GET | `/api/assignments/{id}` | 과제 상세·내 제출·피드백 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
 | PATCH | `/api/assignments/{id}` | 과제 수정 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 이미 부여한 점수보다 낮은 maxScore로 변경할 수 없습니다. |
-| DELETE | `/api/assignments/{id}` | 과제 삭제 | 204 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 제출물 또는 첨부 기록이 있는 과제는409입니다. |
+| DELETE | `/api/assignments/{id}` | 과제 논리 삭제 | 204 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 제출물·첨부 기록을 보존하고 과제를 논리 삭제합니다. 삭제 후 목록·상세·제출·평가·첨부 접근에서 제외합니다. |
 | GET | `/api/assignments/{assignmentId}/submissions` | 제출물 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 수강생은 본인 제출만, 스태프는 전체 제출을 조회합니다. |
 | POST | `/api/assignments/{assignmentId}/submissions` | 과제 최초 제출 | 201 | 권한: 해당 기수 ACTIVE 등록 회원. 중복 제출은409. 기한 전만 가능합니다. |
 | PUT | `/api/assignments/{assignmentId}/submission` | 내 과제 제출·재제출 | 200 | 권한: 해당 기수 ACTIVE 등록 회원. 없으면 생성, 있으면 수정. 기한 만료 또는 채점 완료 시409. |

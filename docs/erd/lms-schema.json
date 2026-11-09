@@ -9,7 +9,7 @@
   },
   "source": {
     "path": "docs/erd/lms-mariadb.sql",
-    "sha256": "1e5623b73ec9c3793436f8a7f78387fad94f0c34244cefcd7162b84e5af8335f",
+    "sha256": "7f8802f3ed66366d6c9c6cfd570eca587bdf7af139d8ff0a520341723deb6897",
     "migrations": [
       {
         "path": "src/main/resources/db/migration/V1__lms_schema.sql",
@@ -18,6 +18,10 @@
       {
         "path": "src/main/resources/db/migration/V2__spec_domain_foundation.sql",
         "sha256": "9c555db1d56fc4b932738790e6107304a1eccaa6a7d31d7339036e73b00848c5"
+      },
+      {
+        "path": "src/main/resources/db/migration/V3__managed_account_provisioning.sql",
+        "sha256": "7d5856e53b00778867797a10afe2e3b5a658073ff5f5ecd6514a79f35a5341e9"
       }
     ]
   },
@@ -112,6 +116,20 @@
           "type": "DATETIME(6)",
           "nullable": false,
           "autoIncrement": false
+        },
+        {
+          "name": "provisioned_by",
+          "apiName": "provisionedBy",
+          "type": "BIGINT",
+          "nullable": true,
+          "autoIncrement": false
+        },
+        {
+          "name": "provisioned_at",
+          "apiName": "provisionedAt",
+          "type": "DATETIME(6)",
+          "nullable": true,
+          "autoIncrement": false
         }
       ],
       "primaryKey": [
@@ -125,7 +143,20 @@
           ]
         }
       ],
-      "foreignKeys": [],
+      "foreignKeys": [
+        {
+          "name": "fk_users_provisioner",
+          "columns": [
+            "provisioned_by"
+          ],
+          "referencedTable": "users",
+          "referencedColumns": [
+            "id"
+          ],
+          "onDelete": "RESTRICT",
+          "onUpdate": "RESTRICT"
+        }
+      ],
       "checks": [
         {
           "name": "ck_users_role",
@@ -136,7 +167,14 @@
           "expression": "status IN ('ACTIVE','DISABLED')"
         }
       ],
-      "indexes": []
+      "indexes": [
+        {
+          "name": "ix_users_provisioner",
+          "columns": [
+            "provisioned_by"
+          ]
+        }
+      ]
     },
     {
       "name": "refresh_tokens",

@@ -1,43 +1,51 @@
 # 기능별 개발 인수인계
 
-기준은 [Notion 기능명세서](https://app.notion.com/p/41382c18756e807c8646c002f9e7ebcd?pvs=21)의 26개 항목과 2026-11-09 채팅에서 확정한 과제 요구입니다. 전체 설계 결정과 컬럼은 [DOMAIN_PLAN.md](DOMAIN_PLAN.md), 실제 생성 스키마는 [MariaDB SQL](../erd/lms-mariadb.sql)을 확인하세요.
+기준은 2026-11-09 재확인한 [Notion 기능명세서](https://app.notion.com/p/c4f933854d4a45d5a545bf62cd8e2045?pvs=23)의 비어 있지 않은 26개 항목과 채팅에서 확정한 관리자 계정 발급·출결 정정 정책입니다. 전체 설계 결정과 컬럼은 [DOMAIN_PLAN.md](DOMAIN_PLAN.md), 실제 생성 스키마는 [MariaDB SQL](../erd/lms-mariadb.sql)을 확인하세요.
 
-이번 결과물은 **스키마·ERD·도메인 모델·저장소 인터페이스 기반**입니다. 신규 기능의 API, 서비스, JDBC 저장소 구현, AI 요청, Discord 전송은 각 담당자가 구현합니다. 기존 API는 기존 JDBC 구현을 계속 사용하며 새 도메인 모델에 자동 연결되지 않습니다.
+AI·영상·Discord 신규 기능의 결과물은 **스키마·ERD·도메인 모델·저장소 인터페이스 기반**입니다. 해당 기능의 API, 서비스, JDBC 저장소 구현, AI 요청, Discord 전송은 각 담당자가 구현합니다. 기존 JDBC API에는 공개 회원가입 제거·관리자 발급, 출결 단위·정정·논리 삭제, 과제 담당 강사·논리 삭제, 제출 파일 업로드 시각 갱신을 반영했습니다. 전체 테스트 32개와 실제 MariaDB API 흐름 25개 검증을 통과했습니다. 신규 도메인 모델은 기존 JDBC API에 자동 연결되지 않습니다.
 
 ## 명세와 도메인 연결
 
-번호는 기능명세서의 행 순서입니다. 코드 위치는 `src/main/java/kr/wsts/lms/domain/` 기준이며 각 기능의 `model/`, `repository/`를 사용합니다.
+번호는 기능명세서의 비어 있지 않은 행 순서입니다. Discord 다음 빈 행 3개는 제외합니다. 이전 출결 공지 행은 제거되었고 캘린더 소명 요청 행이 추가되었습니다. `ATTENDANCE` 게시판 분류는 호환용으로 유지하며 현재 메뉴 요구에 포함하지 않습니다. 코드 위치는 `src/main/java/kr/wsts/lms/domain/` 기준이며 각 기능의 `model/`, `repository/`를 사용합니다.
 
-| 번호 | 명세 기능 | 테이블·주요 모델 | 개발 패키지·남은 작업 |
+| 번호 | 명세 기능 | 테이블·주요 모델 | 코드 반영 범위·남은 연결 |
 |---|---|---|---|
 | 1 | 과정 공지 CRUD | `posts` / Post, category=COURSE | `community`: 관리자 권한, 제목·내용 필수, 삭제 숨김, 목록·상세 반영 |
 | 2 | 시스템 공지 CRUD | `posts` / Post, category=SYSTEM | `community`: 관리자 권한과 공지 조회 범위 연결 |
-| 3 | 출결 공지 CRUD | `posts` / Post, category=ATTENDANCE | `community`: 추가 분류의 요청 검증·조회 필터 연결 |
-| 4 | FAQ 질문·답변 CRUD | `posts` / Post, category=FAQ | `community`: title=질문, body=답변, 필수값·삭제 숨김 |
-| 5 | 학습 질문 CRUD | `posts`, `comments` / Post, Comment | `community`: 제목·내용 검증. 명세의 관리자 CRUD와 기존 학생 QUESTION 작성 정책을 조율 |
-| 6 | 게시판의 과제 안내 CRUD | `assignments` / Assignment | `assignment`: 과제 관리와 동일 원본을 사용해 게시글 형태 목록·상세 제공 |
-| 7 | 강의 제목·YouTube URL CRUD | `lecture_videos` / LectureVideo | `lecture`: 관리자 CRUD, 지원 URL 검사, 삭제 영상 숨김 |
-| 8 | 수강생별 일자/회차 출결 CRUD | `attendance_records`, `enrollments` / AttendanceRecord | `attendance`: 출결 단위·휴가·중복 제어, 논리 삭제, 수정 버전 증가 |
-| 9 | 출결 정정 요청 접수 | `attendance_corrections` / AttendanceCorrection | `attendance`: 본인 기록, 허용된 세 전환, 대기 중복 차단, 요청 당시 상태·버전 저장 |
-| 10 | 관리자 정정 요청 허용 | `attendance_corrections`, `attendance_records` | `attendance`: 잠금·재검증 후 상태 변경. 변경/삭제된 원본 요청 무효화, 반복 처리 방지 |
-| 11 | Discord 공지 채널 게시 | `notice_deliveries`, `posts` / NoticeDelivery, Post | `announcement`: 공개 링크·제목·요약 한 메시지, Webhook 어댑터, 멘션 차단·길이 제한 |
-| 12 | 복습 주제·방식 선택 | `learning_subjects`, `learning_units`, `learning_topics`, `review_sessions` / ReviewSession | `curriculum`, `review`: 주제 선택 필수, 소속 기수 검사, BLANK/QUIZ 세션 생성 |
-| 13 | 백지 복습 작성·AI 제출 | `blank_reviews`, `review_sessions` / BlankReview | `review`: 빈 내용 차단, 본인 세션, AI 호출·요청 실패 응답 |
-| 14 | 백지 복습 AI 피드백 | `blank_reviews` / BlankReview | `review`: strengths·gaps·recommendations 저장·조회, 실패 상태·재시도 |
-| 15 | AI 객관식 문제 순차 생성·풀이 | `review_quizzes`, `review_quiz_questions` / ReviewQuiz, ReviewQuizQuestion | `review`: 한 번에 한 문제, 보기 4개, 단일 선택, 다음 문제 동의·종료 |
-| 16 | AI 객관식 답안 확인·해설 | `review_quiz_questions` / ReviewQuizQuestion | `review`: 본인 문제 답안 저장·채점, 답안 제출 후 정답·해설 응답, 실패 재시도 |
-| 17 | 캘린더 날짜별 다시보기 연결 | `lecture_videos`, `schedule_events` | `lecture`, `schedule`: 날짜별 존재 여부 조회, 영상 없는 날짜 버튼 숨김, 다른 기수 접근 차단 |
+| 3 | FAQ 질문·답변 CRUD | `posts` / Post, category=FAQ | `community`: title=질문, body=답변, 필수값·삭제 숨김 |
+| 4 | 학습 질문 CRUD | `posts`, `comments` / Post, Comment | `community`: 제목·내용 검증. 명세의 관리자 CRUD와 기존 학생 QUESTION 작성 정책을 조율 |
+| 5 | 게시판의 과제 안내 CRUD | `assignments` / Assignment | `assignment`: 과제 관리와 동일 원본을 사용해 게시글 형태 목록·상세 제공 |
+| 6 | 강의 제목·YouTube URL CRUD | `lecture_videos` / LectureVideo | `lecture`: 관리자 CRUD, 지원 URL 검사, 삭제 영상 숨김 |
+| 7 | 수강생별 일자/회차 출결 CRUD | `attendance_records`, `enrollments` / AttendanceRecord | 기존 `learning/AttendanceController`에 DATE/SESSION·여섯 상태·논리 삭제·버전 증가 코드 반영. 화면의 회차 선택·기록 표시 연결 |
+| 8 | 출결 정정 요청 접수 | `attendance_corrections` / AttendanceCorrection | 기존 API에 본인 기록·확정된 여섯 전환·중복 대기 차단·상태/버전 스냅샷 코드 반영. 소명 버튼과 선택 목표·접수 상태 표시 연결 |
+| 9 | 관리자 정정 요청 허용 | `attendance_corrections`, `attendance_records` | 기존 API에 잠금·재검증·승인 후 변경·반복 처리 차단·INVALIDATED 저장 및 409 코드 반영. 대기 목록·무효화 안내 연결 |
+| 10 | Discord 공지 채널 게시 | `notice_deliveries`, `posts` / NoticeDelivery, Post | `announcement`: 공개 링크·제목·요약 한 메시지, Webhook 어댑터, 멘션 차단·길이 제한 |
+| 11 | 복습 주제·방식 선택 | `learning_subjects`, `learning_units`, `learning_topics`, `review_sessions` / ReviewSession | `curriculum`, `review`: 주제 선택 필수, 소속 기수 검사, BLANK/QUIZ 세션 생성 |
+| 12 | 백지 복습 작성·AI 제출 | `blank_reviews`, `review_sessions` / BlankReview | `review`: 빈 내용 차단, 본인 세션, AI 호출·요청 실패 응답 |
+| 13 | 백지 복습 AI 피드백 | `blank_reviews` / BlankReview | `review`: strengths·gaps·recommendations 저장·조회, 실패 상태·재시도 |
+| 14 | AI 객관식 문제 순차 생성·풀이 | `review_quizzes`, `review_quiz_questions` / ReviewQuiz, ReviewQuizQuestion | `review`: 한 번에 한 문제, 보기 4개, 단일 선택, 다음 문제 동의·종료 |
+| 15 | AI 객관식 답안 확인·해설 | `review_quiz_questions` / ReviewQuizQuestion | `review`: 본인 문제 답안 저장·채점, 답안 제출 후 정답·해설 응답, 실패 재시도 |
+| 16 | 캘린더 날짜별 다시보기 연결 | `lecture_videos`, `schedule_events` | `lecture`, `schedule`: 날짜별 존재 여부 조회, 영상 없는 날짜 버튼 숨김, 다른 기수 접근 차단 |
+| 17 | 캘린더 지각·결석·공결·휴가·조퇴 소명 요청 | `attendance_records`, `attendance_corrections` / AttendanceRecord, AttendanceCorrection | 8번의 기존 정정 API 재사용. 공결·휴가·조퇴는 승인 시 PRESENT로 확정, 목표 생략 시 PRESENT·사유 생략 가능. 실제 파일 없이 캘린더 버튼·대기 표시 연결 |
 | 18 | 날짜·교시별 영상 목록·재생 | `lecture_videos` / LectureVideo | `lecture`: 날짜 필터·교시 정렬, 빈 목록·재생 불가 안내용 응답 |
 | 19 | 평가 문제 과목·단원·핵심 개념 | `assessment_questions`, `learning_topics`, `learning_units`, `learning_subjects` | `assessment`, `curriculum`: nullable topic 연결 조회, 미분류 표시, 본인 평가 결과 조회 |
 | 20 | 평가 해설의 복습 영상 연결 | `assessment_question_review_links`, `lecture_chapters`, `lecture_videos` / AssessmentQuestionReviewLink | `assessment`, `lecture`: 공개된 정답·해설에 한해 날짜·교시·소단원·링크 조회 |
 | 21 | 관련 영상 구간 바로 재생 | `lecture_chapters` / LectureChapter | `lecture`: start_seconds로 재생 링크 생성, 0초 기본값, 자동재생·재생 불가 안내 |
-| 22 | 과제 제목·강사·기한 관리 | `assignments`, `users` / Assignment | `assignment`: 등록자와 담당 강사 구분, 강사 이름·기한 조회, 삭제 숨김 |
-| 23 | 과제 탭 목록·상세 | `assignments` / Assignment | `assignment`: 제목·담당 강사 이름·제출 기한 DTO와 기수별 접근 연결 |
-| 24 | 과제 제출·파일 재업로드 | `submissions`, `files` / Submission, 파일 모델 | `assignment`, `attachment`: 파일 업로드 완료와 submitted_at 갱신의 일관성 보장 |
-| 25 | 강사 점수·평가 등록·수정 | `submission_reviews`, `submissions` / SubmissionReview | `assignment`: 담당 강사 권한, 배점 검증, 해당 학생 상세에 평가 반영 |
-| 26 | 본인 제출 내역·평가 조회 | `submissions`, `submission_reviews`, `files` | `assignment`, `attachment`: 학생 소유자 조건을 SQL에 포함하고 다운로드에도 적용 |
+| 22 | 과제 제목·강사·기한 관리 | `assignments`, `users` / Assignment | 기존 `learning/AssignmentController`에 instructorId/instructorName·논리 삭제 코드 반영. 관리자 폼·삭제 상태 연결 |
+| 23 | 과제 탭 목록·상세 | `assignments` / Assignment | 기존 API에 담당 강사 필드·삭제 제외를 코드 반영하고 기수 접근 검사 재사용. 제목·강사 이름·제출 기한을 화면/DTO에 연결 |
+| 24 | 과제 제출·파일 재업로드 | `submissions`, `files` / Submission, 파일 모델 | 기존 `attachment/FileController`에 성공한 제출 파일 업로드 후 submitted_at 갱신 코드 반영. 제출 생성→파일 업로드 및 최종 시각 표시 연결 |
+| 25 | 강사 점수·평가 등록·수정 | `submission_reviews`, `submissions` / SubmissionReview | 기존 평가 API의 기수 강사/운영 권한·배점 검증·등록/수정 재사용. 평가 폼과 본인 상세 재조회 연결 |
+| 26 | 본인 제출 내역·평가 조회 | `submissions`, `submission_reviews`, `files` | 기존 학생 소유자 SQL 조건과 첨부 조회·다운로드 권한 재사용. 본인 제출물·최종 시각·점수·평가 화면 연결 |
 
 ## 담당자들이 함께 지켜야 할 계약
+
+### 관리자 계정 발급과 기수 배정
+
+- 공개 회원가입 경로는 제공하지 않습니다. `ADMIN`이 인증 후 `POST /api/users`로 이름·이메일·초기 비밀번호·선택 전화번호를 입력해 `STUDENT` 계정을 발급합니다. 강사·관리자 역할은 기존 권한 변경 API에서 따로 지정합니다. 비밀번호는 해시로 저장하며 발급 응답에 원문·해시를 포함하지 않습니다.
+- `users.provisioned_by`는 인증된 발급 관리자 ID, `provisioned_at`은 서버 UTC 시각입니다. 클라이언트가 발급 이력을 임의 지정하지 않습니다. 자기참조 FK는 발급자의 존재를 보장하고 관리자 역할은 API에서 검증합니다.
+- V3는 기존 계정의 발급자를 추정하거나 데이터를 바꾸지 않습니다. 기존 계정과 환경 설정으로 생성하는 초기 관리자는 두 값이 NULL입니다. 초기 관리자가 이후 발급하는 계정에는 해당 초기 관리자의 ID를 기록합니다.
+- 계정 생성 후 관리자가 기존 `POST /api/cohorts/{cohortId}/enrollments`로 수강생·강사 등을 기수에 배정합니다. 사용자 전역 역할과 수강 등록 역할은 각각 검증합니다. 계정 발급 자체가 자동 기수 배정을 뜻하지 않습니다.
+- 메일 발송, CSV 일괄 발급, 강제 비밀번호 변경 절차는 이번 범위에 포함하지 않습니다.
 
 ### 게시판과 Discord
 
@@ -49,19 +57,21 @@
 
 ### 출결
 
-- `unit_type=DATE`는 `session_no=0`, `SESSION`은 `session_no>0`입니다. 같은 수강생·날짜·회차를 중복 저장하지 않습니다. 휴가는 `LEAVE`이며 기존 `EARLY`는 호환성을 위해 유지합니다.
-- 정정 요청은 **ABSENT→LATE, ABSENT→PRESENT, LATE→PRESENT**만 허용합니다. 접수 시 원본 출결은 유지하고 `original_status`, `original_version`을 기록합니다.
-- 정정 허용은 출결과 요청을 같은 트랜잭션에서 잠그고 원본 상태·버전을 재검증합니다. 요청 후 수정·삭제된 출결의 요청은 `INVALIDATED`로 처리합니다. 이미 처리한 요청은 다시 출결을 바꾸지 않습니다.
-- 출결 삭제는 결석으로 변경하는 작업이 아닙니다. `deleted_at`을 기록하고 대기 요청을 무효화합니다.
+- `unit_type=DATE`는 `session_no=0`, `SESSION`은 `session_no>0`입니다. 같은 수강생·날짜·회차를 중복 저장하지 않습니다. 휴가는 `LEAVE`, 조퇴는 `EARLY`이며 둘 다 현재 기록 관리 요구입니다.
+- 채팅에서 정정 전환을 **ABSENT→LATE, ABSENT→PRESENT, LATE→PRESENT, EXCUSED→PRESENT, LEAVE→PRESENT, EARLY→PRESENT**로 확정했습니다. 명세 8번의 세 전환에 공결·휴가·조퇴→출석을 더하여 17번 캘린더 요구를 연결합니다. 접수 시 원본 출결을 유지하고 `original_status`, `original_version`을 기록하는 동작을 기존 API에 코드 반영합니다.
+- `POST /api/attendance/{attendanceId}/corrections`는 로그인 학생 본인의 기록만 접수합니다. `requestedStatus`를 생략하면 PRESENT, `reason`을 생략하면 기본 요청 문구를 사용하며 중복 대기 요청을 차단합니다. 결석→지각은 `requestedStatus=LATE`로 명시합니다.
+- 정정 허용은 출결과 요청을 같은 트랜잭션에서 잠그고 원본 상태·버전을 재검증합니다. 요청 후 수정·삭제된 출결의 요청은 `INVALIDATED`로 저장하고 승인을 409로 차단합니다. 이미 처리한 요청은 다시 출결을 바꾸지 않습니다. 이 동작은 기존 API에 코드 반영하며 루트 작업에서 검증합니다.
+- `DELETE /api/attendance/{attendanceId}`는 `deleted_at`과 증가한 version을 기록하고 대기 요청을 무효화합니다. 삭제 기록은 출결 목록·요약에서 제외합니다. 결석으로 바꾸거나 원본 행을 제거하지 않습니다.
 - 명세의 **‘파일(소명자료) 제출’은 요청 정보 저장 버튼**입니다. 실제 파일 선택·전송·저장과 소명 파일용 DB는 범위에서 제외합니다.
-- 기존 출결 API는 날짜로만 기록을 찾고, 직접 수정도 허용합니다. 회차 입력과 승인 전환을 서비스에 연결하기 전에 기존 날짜 전용 SQL 및 직접 수정 경로를 정리해야 합니다. 원본 스냅샷이 NULL인 기존 요청은 새 승인 규칙에 맞는 처리 방침을 정하세요.
+- 기존 출결 저장 API는 `unitType`·`sessionNo`로 일자/회차를 구분하며 기본값 DATE/0으로 기존 날짜 요청과 호환합니다. 여섯 정정 전환의 직접 변경은 차단하고 승인 경로를 사용합니다. 일반 수정은 version을 올리고 대기 요청을 무효화합니다. 원본 스냅샷이 NULL인 기존 요청도 승인 재검증에서 INVALIDATED로 처리합니다. 프런트엔드는 회차 선택과 무효화·409 안내를 연결해야 합니다.
 
 ### 과제와 첨부
 
-- `author_id`는 등록자이며 담당 강사는 `instructor_id`·`instructor_name`으로 표현합니다. 둘이 동일하다고 가정하지 않습니다.
-- `submissions.submitted_at`은 **마지막으로 완료된 제출/파일 업로드 시각**입니다. 현재 파일 업로드 API는 이 시각을 갱신하지 않으므로 담당자가 연결해야 합니다. 실패한 업로드는 제출 시각을 바꾸지 않습니다.
-- 학생 조회는 로그인한 사용자의 `user_id`를 반드시 SQL 조건에 포함합니다. 다른 학생의 제출 시간·제출물·점수·강사 평가·첨부파일은 학생에게 노출하지 않습니다. 강사 평가 경로는 별도 강사 권한을 확인합니다.
-- 기존 구현의 마감 후 제출 제한과 검토 후 수정 잠금은 신규 명세에서 세부 기준이 확정되지 않았습니다. 과제 담당자가 정책을 확인한 뒤 연결하세요.
+- `author_id`는 등록자이며 담당 강사는 `instructor_id`·`instructor_name`으로 표현합니다. 둘이 동일하다고 가정하지 않습니다. 기존 과제 생성·수정 API의 `instructorId`·`instructorName` 처리와 목록·상세 조회에 코드 반영합니다.
+- 과제 삭제는 `deleted_at`을 기록하며 제출물·평가·첨부 이력을 보존합니다. 목록·상세·대시보드와 과제에 연결된 제출·파일 경로에서 삭제 과제를 제외하는 동작을 코드 반영합니다.
+- `submissions.submitted_at`은 **마지막으로 성공한 제출/파일 업로드 시각**입니다. 제출 파일 저장과 메타데이터 저장이 성공한 뒤 이 값을 갱신하도록 기존 파일 업로드 API에 코드 반영합니다. 실패한 업로드는 제출 시각을 바꾸지 않습니다. 과제 안내 첨부 업로드는 학생 제출 시각을 바꾸지 않습니다.
+- 학생 조회는 기존 API의 로그인 `user_id` SQL 조건과 첨부 조회·다운로드 소유자 검사를 재사용합니다. 다른 학생의 제출 시간·제출물·점수·강사 평가·첨부파일은 학생에게 노출하지 않습니다. 기존 평가 경로는 기수 강사/운영 권한과 배점을 확인합니다.
+- 기존 마감 후 제출 제한과 검토 후 수정 잠금은 유지합니다. 프런트엔드는 제출 생성 후 파일 업로드, 재업로드 후 최종 시각 재조회, 본인 제출·평가 표시를 연결해야 합니다. 기존 API 변경의 최종 회귀·통합 검증은 루트 작업에서 수행합니다.
 
 ### 영상과 평가 복습
 
@@ -84,6 +94,6 @@
 1. 각 담당자는 해당 기능의 `model/`, `repository/` 계약과 DB 제약을 확인합니다.
 2. 서비스와 JDBC 저장소 구현을 만들고 소유자·기수·역할 검사를 연결합니다. 미구현 저장소 인터페이스 자체를 Spring Bean으로 등록하지 않습니다.
 3. 요청·응답 DTO와 컨트롤러를 구현합니다. 도메인 모델을 그대로 JSON으로 노출하지 않습니다. 회원 비밀번호 해시, 갱신 토큰 해시, 퀴즈 정답, 내부 오류 정보는 응답 대상에서 제외합니다.
-4. 기능별 테스트와 기존 회귀 테스트를 통과시킨 뒤 실제 구현된 API만 명세에 추가합니다. DB를 확장할 때 적용된 V1/V2를 수정하지 않고 후속 마이그레이션을 추가합니다.
+4. 기능별 테스트와 기존 회귀 테스트를 통과시킨 뒤 실제 구현된 API만 명세에 추가합니다. DB를 확장할 때 적용된 V1/V2/V3를 수정하지 않고 후속 마이그레이션을 추가합니다.
 
 인증·과정·기수·수강 등록, 일정·로드맵, 스터디, 개인 알림, 첨부파일의 기존 테이블과 모델도 유지합니다. 신규 기능 담당자는 이 공통 기반을 참조하되 다른 담당자의 비즈니스 구현을 대신 추가하지 않습니다.

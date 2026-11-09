@@ -4,10 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HexFormat;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import kr.wsts.lms.global.error.AppException;
@@ -38,14 +36,17 @@ public class AuthService {
     }
 
     @Transactional
-    public Map<String, Object> register(AuthController.RegisterRequest request) {
+    public Map<String, Object> createAccount(AdminUsersController.CreateAccountRequest request) {
+        actor.requireAdmin();
+        long provisionedBy = actor.id();
         String email = normalizeEmail(request.email());
         validatePassword(request.password());
         String name = request.name().trim();
         if (name.length() < 2) throw AppException.bad("이름은 2자 이상이어야 합니다.");
         if (db.count("SELECT COUNT(*) FROM users WHERE email=?", email) > 0) throw AppException.conflict("이미 등록된 이메일입니다.");
-        long id = db.insert("INSERT INTO users(email,password_hash,name,phone,role,status,token_version,created_at,updated_at) VALUES(?,?,?,?,'STUDENT','ACTIVE',0,?,?)",
-                email, passwords.encode(request.password()), name, normalizePhone(request.phone()), Db.now(), Db.now());
+        var now = Db.now();
+        long id = db.insert("INSERT INTO users(email,password_hash,name,phone,role,status,token_version,provisioned_by,provisioned_at,created_at,updated_at) VALUES(?,?,?,?,'STUDENT','ACTIVE',0,?,?,?,?)",
+                email, passwords.encode(request.password()), name, normalizePhone(request.phone()), provisionedBy, now, now, now);
         return publicUser(id);
     }
 

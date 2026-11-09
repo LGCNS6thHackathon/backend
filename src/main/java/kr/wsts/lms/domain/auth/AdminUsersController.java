@@ -1,11 +1,16 @@
 package kr.wsts.lms.domain.auth;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import kr.wsts.lms.global.error.AppException;
 import kr.wsts.lms.global.support.Actor;
 import kr.wsts.lms.global.support.Db;
 import kr.wsts.lms.global.support.Input;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +20,12 @@ public class AdminUsersController {
     private static final String COLUMNS = "id,email,name,phone,role,status,created_at,updated_at";
     private final Db db;
     private final Actor actor;
-    public AdminUsersController(Db db, Actor actor) { this.db = db; this.actor = actor; }
+    private final AuthService auth;
+    public AdminUsersController(Db db, Actor actor, AuthService auth) { this.db = db; this.actor = actor; this.auth = auth; }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map<String, Object> create(@Valid @RequestBody CreateAccountRequest request) { return auth.createAccount(request); }
 
     @GetMapping
     public Map<String, Object> list(@RequestParam(defaultValue = "") String q,
@@ -48,4 +58,10 @@ public class AdminUsersController {
         }
         return db.one("SELECT " + COLUMNS + " FROM users WHERE id=?", userId);
     }
+
+    public record CreateAccountRequest(
+            @NotBlank @Email @Size(max = 254) String email,
+            @NotBlank @Size(min = 8, max = 72) String password,
+            @NotBlank @Size(min = 2, max = 80) String name,
+            @Size(max = 30) String phone) { }
 }

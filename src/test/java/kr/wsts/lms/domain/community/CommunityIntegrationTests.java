@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -30,6 +31,7 @@ import tools.jackson.databind.json.JsonMapper;
 class CommunityIntegrationTests {
     @Autowired MockMvc mvc;
     @Autowired Db db;
+    @Autowired PasswordEncoder passwords;
     private static final JsonMapper JSON=JsonMapper.builder().build();
     private static final String PASSWORD="TestPassword!42";
     record User(long id,String token){}
@@ -42,8 +44,9 @@ class CommunityIntegrationTests {
     private static long id(String json){return ((Number)JsonPath.read(json,"$.id")).longValue();}
     private User user(boolean admin)throws Exception{
         String email="case-"+UUID.randomUUID()+"@example.test";
-        long id=id(send(post("/api/auth/register"),null,Map.of("email",email,"password",PASSWORD,"name","테스트사용자"),201));
-        if(admin)db.update("UPDATE users SET role='ADMIN' WHERE id=?",id);
+        var now=Db.now();
+        long id=db.insert("INSERT INTO users(email,password_hash,name,role,status,token_version,created_at,updated_at) VALUES(?,?,?,?,'ACTIVE',0,?,?)",
+                email,passwords.encode(PASSWORD),"테스트사용자",admin?"ADMIN":"STUDENT",now,now);
         String json=send(post("/api/auth/login"),null,Map.of("email",email,"password",PASSWORD),200);
         return new User(id,JsonPath.read(json,"$.accessToken"));
     }

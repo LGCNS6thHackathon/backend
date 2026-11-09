@@ -25,8 +25,8 @@ public class AssignmentController {
         actor.cohort(cohortId); LearningSupport.page(page); LearningSupport.size(size);
         if(q.length()>200) throw AppException.bad("검색어는 200자 이내로 입력해주세요.");
         String search="%"+q.toLowerCase(Locale.ROOT)+"%";
-        return db.page("SELECT * FROM assignments WHERE cohort_id=? AND LOWER(title) LIKE ? ORDER BY due_at DESC,id DESC",
-                "SELECT COUNT(*) FROM assignments WHERE cohort_id=? AND LOWER(title) LIKE ?",page,size,cohortId,search);
+        return db.page("SELECT * FROM assignments WHERE cohort_id=? AND deleted_at IS NULL AND LOWER(title) LIKE ? ORDER BY due_at DESC,id DESC",
+                "SELECT COUNT(*) FROM assignments WHERE cohort_id=? AND deleted_at IS NULL AND LOWER(title) LIKE ?",page,size,cohortId,search);
     }
 
     @PostMapping("/cohorts/{cohortId}/assignments")
@@ -35,8 +35,9 @@ public class AssignmentController {
     public Map<String,Object> create(@PathVariable long cohortId,@RequestBody Map<String,Object> body) {
         actor.staff(cohortId);LocalDateTime due=Input.dateTime(body,"dueAt");
         support.withinCohort(cohortId,due.plusHours(9).toLocalDate(),due.plusHours(9).toLocalDate());
-        long id=db.insert("INSERT INTO assignments(cohort_id,author_id,title,description,due_at,max_score,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)",
-                cohortId,actor.id(),Input.str(body,"title",2,160),Input.str(body,"description",2,20000),due,Input.integer(body,"maxScore",100,1,1000),Db.now(),Db.now());
+        Instructor instructor=instructor(cohortId,body,Map.of());
+        long id=db.insert("INSERT INTO assignments(cohort_id,author_id,instructor_id,instructor_name,title,description,due_at,max_score,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                cohortId,actor.id(),instructor.id(),instructor.name(),Input.str(body,"title",2,160),Input.str(body,"description",2,20000),due,Input.integer(body,"maxScore",100,1,1000),Db.now(),Db.now());
         return db.one("SELECT * FROM assignments WHERE id=?",id);
     }
 
@@ -54,25 +55,25 @@ public class AssignmentController {
     @PatchMapping("/assignments/{id}")
     @Transactional
     public Map<String,Object> update(@PathVariable long id,@RequestBody Map<String,Object> body) {
-        Map<String,Object> old=db.one("SELECT * FROM assignments WHERE id=? FOR UPDATE",id);long cohortId=Db.id(old,"cohortId");actor.staff(cohortId);
+        Map<String,Object> old=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);long cohortId=Db.id(old,"cohortId");actor.staff(cohortId);
         Map<String,Object> merged=LearningSupport.merged(old,body);
+        Instructor instructor=instructor(cohortId,body,old);
         LocalDateTime due=LearningSupport.dateTime(body,"dueAt",old);
         support.withinCohort(cohortId,due.plusHours(9).toLocalDate(),due.plusHours(9).toLocalDate());
         int maxScore=Input.integer(merged,"maxScore",100,1,1000);
         if(db.count("SELECT COUNT(*) FROM submission_reviews r JOIN submissions s ON s.id=r.submission_id WHERE s.assignment_id=? AND r.score>?",id,maxScore)>0)
             throw AppException.conflict("이미 부여한 점수보다 낮은 최대 점수로 바꿀 수 없습니다.");
-        db.update("UPDATE assignments SET title=?,description=?,due_at=?,max_score=?,updated_at=? WHERE id=?",Input.str(merged,"title",2,160),
-                Input.str(merged,"description",2,20000),due,maxScore,Db.now(),id);
+        db.update("UPDATE assignments SET title=?,description=?,due_at=?,max_score=?,instructor_id=?,instructor_name=?,updated_at=? WHERE id=?",Input.str(merged,"title",2,160),
+                Input.str(merged,"description",2,20000),due,maxScore,instructor.id(),instructor.name(),Db.now(),id);
         return db.one("SELECT * FROM assignments WHERE id=?",id);
     }
 
     @DeleteMapping("/assignments/{id}")
     @Transactional
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        Map<String,Object> row=db.one("SELECT * FROM assignments WHERE id=? FOR UPDATE",id);actor.staff(Db.id(row,"cohortId"));
-        if(db.count("SELECT COUNT(*) FROM submissions WHERE assignment_id=?",id)>0 || db.count("SELECT COUNT(*) FROM files WHERE assignment_id=?",id)>0)
-            throw AppException.conflict("제출물 또는 첨부 기록이 있는 과제는 삭제할 수 없습니다.");
-        db.update("DELETE FROM assignments WHERE id=?",id);
+        Map<String,Object> row=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);actor.staff(Db.id(row,"cohortId"));
+        var now=Db.now();
+        db.update("UPDATE assignments SET deleted_at=?,updated_at=? WHERE id=?",now,now,id);
         return ResponseEntity.noContent().build();
     }
 
@@ -102,7 +103,7 @@ public class AssignmentController {
 
     private Map<String,Object> save(long assignmentId,Map<String,Object> body,boolean createOnly) {
         // All writes for an assignment lock the parent first, including grading.
-        Map<String,Object> assignment=db.one("SELECT * FROM assignments WHERE id=? FOR UPDATE",assignmentId);long cohortId=Db.id(assignment,"cohortId");
+        Map<String,Object> assignment=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",assignmentId);long cohortId=Db.id(assignment,"cohortId");
         actor.cohort(cohortId);support.enrollment(cohortId,actor.id());
         if(!Db.now().isBefore(LearningSupport.utc(assignment.get("dueAt")))) throw AppException.conflict("제출 기한이 지났습니다.");
         String text=Input.str(body,"body",2,20000),url=Input.url(body,"repositoryUrl",false);
@@ -121,7 +122,7 @@ public class AssignmentController {
     @Transactional
     public Map<String,Object> review(@PathVariable long submissionId,@RequestBody Map<String,Object> body) {
         Map<String,Object> initial=db.one("SELECT * FROM submissions WHERE id=?",submissionId);
-        Map<String,Object> assignment=db.one("SELECT * FROM assignments WHERE id=? FOR UPDATE",Db.id(initial,"assignmentId"));long cohortId=Db.id(assignment,"cohortId");actor.staff(cohortId);
+        Map<String,Object> assignment=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",Db.id(initial,"assignmentId"));long cohortId=Db.id(assignment,"cohortId");actor.staff(cohortId);
         Map<String,Object> submission=db.one("SELECT * FROM submissions WHERE id=? FOR UPDATE",submissionId);
         int score=Input.integer(body,"score",-1,0,((Number)assignment.get("maxScore")).intValue());
         if(score<0) throw AppException.bad("score를 입력해주세요.");
@@ -132,4 +133,19 @@ public class AssignmentController {
         support.notify(Db.id(submission,"userId"),cohortId,"ASSIGNMENT_REVIEW","과제 피드백이 등록되었습니다.",String.valueOf(assignment.get("title")),"SUBMISSION",submissionId);
         return db.one("SELECT * FROM submission_reviews WHERE id=?",id);
     }
+
+    private Instructor instructor(long cohortId,Map<String,Object> changes,Map<String,Object> existing) {
+        Long id=existing.get("instructorId")==null?null:Db.id(existing,"instructorId");
+        String name=(String)existing.get("instructorName");
+        if(changes.containsKey("instructorId")) {
+            id=changes.get("instructorId")==null?null:Input.id(changes,"instructorId");
+            if(id==null) name=null;
+            else name=(String)db.find("SELECT u.name FROM users u JOIN enrollments e ON e.user_id=u.id WHERE u.id=? AND u.status='ACTIVE' AND e.cohort_id=? AND e.status='ACTIVE' AND e.role='INSTRUCTOR'",id,cohortId)
+                    .orElseThrow(()->AppException.bad("해당 기수의 활성 강사를 지정해주세요.")).get("name");
+        }
+        if(changes.containsKey("instructorName")) name=changes.get("instructorName")==null?null:Input.str(changes,"instructorName",2,80);
+        return new Instructor(id,name);
+    }
+
+    private record Instructor(Long id,String name) { }
 }

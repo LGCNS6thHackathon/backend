@@ -14,10 +14,6 @@ public class AuthController {
 
     public AuthController(AuthService auth) { this.auth = auth; }
 
-    @PostMapping("/api/auth/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    public Map<String, Object> register(@Valid @RequestBody RegisterRequest request) { return auth.register(request); }
-
     @PostMapping("/api/auth/login")
     public AuthService.TokenResponse login(@Valid @RequestBody LoginRequest request) { return auth.login(request); }
 
@@ -38,11 +34,6 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@Valid @RequestBody PasswordRequest request) { auth.changePassword(request); }
 
-    public record RegisterRequest(
-            @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Size(min = 8, max = 72) String password,
-            @NotBlank @Size(min = 2, max = 80) String name,
-            @Size(max = 30) String phone) { }
     public record LoginRequest(@NotBlank @Email @Size(max = 254) String email, @NotBlank @Size(max = 72) String password) { }
     public record RefreshRequest(@NotBlank @Size(min = 20, max = 512) String refreshToken) { }
     public record PasswordRequest(@NotBlank @Size(max = 72) String currentPassword, @NotBlank @Size(min = 8, max = 72) String newPassword) { }

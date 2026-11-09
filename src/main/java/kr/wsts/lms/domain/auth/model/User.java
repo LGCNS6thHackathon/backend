@@ -6,6 +6,7 @@ import java.time.Instant;
  * JDBC domain state for {@code users}.
  * Internal account model: never serialize passwordHash or tokenVersion as an API response.
  * Timestamp components use UTC instants.
+ * Provisioning metadata is nullable for legacy accounts and the bootstrap administrator.
  * Persistence mapping and business operations are implemented by the feature owner.
  */
 public record User(
@@ -18,7 +19,9 @@ public record User(
         Status status,
         Integer tokenVersion,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Long provisionedBy,
+        Instant provisionedAt
 ) {
     public enum Role {
         ADMIN, INSTRUCTOR, STUDENT

@@ -118,13 +118,13 @@
         "security": []
       }
     },
-    "/api/auth/register": {
+    "/api/users": {
       "post": {
-        "summary": "회원가입",
-        "description": "권한: 공개; 전역 STUDENT로만 가입.",
-        "operationId": "post_api_auth_register",
+        "summary": "수강생 계정 발급",
+        "description": "권한: 전역 ADMIN. 부트캠프 등록자에게 운영자가 계정을 발급합니다. STUDENT로 생성하며 발급자·시각을 DB에 기록합니다. 비밀번호 원문은 응답하지 않습니다. 기수 배정은 기존 수강 등록 API를 사용합니다.",
+        "operationId": "post_api_users",
         "tags": [
-          "인증"
+          "회원"
         ],
         "responses": {
           "201": {
@@ -157,6 +157,16 @@
               }
             }
           },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "404": {
             "description": "리소스 없음",
             "content": {
@@ -178,17 +188,122 @@
             }
           }
         },
-        "security": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/post_api_auth_registerRequest"
+                "$ref": "#/components/schemas/post_api_usersRequest"
               }
             }
           }
         }
+      },
+      "get": {
+        "summary": "회원 검색",
+        "description": "권한: 전역 ADMIN.",
+        "operationId": "get_api_users",
+        "tags": [
+          "회원"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "0부터 시작"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "페이지 크기"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "maxLength": 100
+            },
+            "description": "이메일 또는 이름"
+          }
+        ]
       }
     },
     "/api/auth/login": {
@@ -637,114 +752,6 @@
             }
           }
         }
-      }
-    },
-    "/api/users": {
-      "get": {
-        "summary": "회원 검색",
-        "description": "권한: 전역 ADMIN.",
-        "operationId": "get_api_users",
-        "tags": [
-          "회원"
-        ],
-        "responses": {
-          "200": {
-            "description": "성공",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "입력 검증 실패",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "인증 실패",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "권한 없음",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "리소스 없음",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "중복 또는 상태 충돌",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
-            },
-            "description": "0부터 시작"
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 20,
-              "minimum": 1,
-              "maximum": 100
-            },
-            "description": "페이지 크기"
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "",
-              "maxLength": 100
-            },
-            "description": "이메일 또는 이름"
-          }
-        ]
       }
     },
     "/api/users/{userId}": {
@@ -3021,7 +3028,7 @@
       },
       "put": {
         "summary": "출결 생성·갱신",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜는 갱신합니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. DATE는 sessionNo=0, SESSION은 양수입니다. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜·회차는 갱신합니다. 소명 허용 대상 전환을 직접 수정으로 우회할 수 없습니다. 변경 시 version을 증가시키고 대기 요청을 무효화합니다.",
         "operationId": "put_api_cohorts_cohortId_attendance",
         "tags": [
           "출결"
@@ -3112,10 +3119,87 @@
         }
       }
     },
+    "/api/attendance/{attendanceId}": {
+      "delete": {
+        "summary": "출결 논리 삭제",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. deletedAt과 변경 version을 기록하고 대기 중인 정정 요청을 INVALIDATED로 처리합니다. 삭제 기록은 출결 조회·대시보드에서 제외합니다.",
+        "operationId": "delete_api_attendance_attendanceId",
+        "tags": [
+          "출결"
+        ],
+        "responses": {
+          "204": {
+            "description": "성공, 응답 본문 없음"
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "attendanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
     "/api/attendance/{attendanceId}/corrections": {
       "post": {
         "summary": "출결 정정 요청",
-        "description": "권한: 해당 출결 본인. 현재와 다른 상태만 요청. PENDING 요청 중복 불가.",
+        "description": "권한: 해당 출결 본인. ABSENT→LATE/PRESENT, LATE/EXCUSED/LEAVE/EARLY→PRESENT만 허용합니다. 목표 상태를 생략하면 PRESENT, 사유를 생략하면 기본 소명 문구를 사용합니다. 원본 상태·version을 저장하며 접수 시 출결을 바꾸지 않습니다. PENDING 중복 불가. 파일은 받지 않습니다.",
         "operationId": "post_api_attendance_attendanceId_corrections",
         "tags": [
           "출결"
@@ -3195,7 +3279,7 @@
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
@@ -3316,7 +3400,7 @@
     "/api/attendance/corrections/{id}": {
       "patch": {
         "summary": "출결 정정 승인·반려",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. PENDING만 처리 가능. 승인과 실제 출결 변경은 한 트랜잭션입니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. PENDING만 처리 가능. 원본 상태·version·삭제 여부를 재검증합니다. 달라졌다면 INVALIDATED를 저장하고409를 반환합니다. 승인과 실제 출결 변경은 한 트랜잭션입니다.",
         "operationId": "patch_api_attendance_corrections_id",
         "tags": [
           "출결"
@@ -3526,7 +3610,7 @@
       },
       "post": {
         "summary": "과제 생성",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 담당 강사 ID는 해당 기수의 ACTIVE INSTRUCTOR 등록이어야 합니다. ID 없이 강사 이름만 저장할 수 있습니다. 등록자와 담당 강사는 별개입니다.",
         "operationId": "post_api_cohorts_cohortId_assignments",
         "tags": [
           "과제"
@@ -3793,8 +3877,8 @@
         }
       },
       "delete": {
-        "summary": "과제 삭제",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 제출물 또는 첨부 기록이 있는 과제는409입니다.",
+        "summary": "과제 논리 삭제",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 제출물·첨부 기록을 보존하고 과제를 논리 삭제합니다. 삭제 후 목록·상세·제출·평가·첨부 접근에서 제외합니다.",
         "operationId": "delete_api_assignments_id",
         "tags": [
           "과제"
@@ -8472,6 +8556,17 @@
           "attendanceDate": {
             "type": "string",
             "format": "date"
+          },
+          "unitType": {
+            "type": "string",
+            "enum": [
+              "DATE",
+              "SESSION"
+            ]
+          },
+          "sessionNo": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
@@ -10194,7 +10289,7 @@
           "domains"
         ]
       },
-      "post_api_auth_registerRequest": {
+      "post_api_usersRequest": {
         "type": "object",
         "properties": {
           "email": {
@@ -10204,7 +10299,7 @@
           },
           "password": {
             "type": "string",
-            "description": "UTF-8로도 최대72바이트",
+            "description": "운영자가 정한 초기 비밀번호. UTF-8로도 최대72바이트",
             "minLength": 8,
             "maxLength": 72
           },
@@ -10903,7 +10998,8 @@
                     "LATE",
                     "EARLY",
                     "ABSENT",
-                    "EXCUSED"
+                    "EXCUSED",
+                    "LEAVE"
                   ]
                 },
                 "recordCount": {
@@ -10944,8 +11040,22 @@
               "LATE",
               "EARLY",
               "ABSENT",
-              "EXCUSED"
+              "EXCUSED",
+              "LEAVE"
             ]
+          },
+          "unitType": {
+            "type": "string",
+            "enum": [
+              "DATE",
+              "SESSION"
+            ],
+            "default": "DATE"
+          },
+          "sessionNo": {
+            "type": "integer",
+            "default": 0,
+            "minimum": 0
           },
           "checkIn": {
             "anyOf": [
@@ -10990,22 +11100,16 @@
             "type": "string",
             "enum": [
               "PRESENT",
-              "LATE",
-              "EARLY",
-              "ABSENT",
-              "EXCUSED"
-            ]
+              "LATE"
+            ],
+            "default": "PRESENT"
           },
           "reason": {
             "type": "string",
             "minLength": 5,
             "maxLength": 2000
           }
-        },
-        "required": [
-          "requestedStatus",
-          "reason"
-        ]
+        }
       },
       "AttendanceCorrectionPage": {
         "type": "object",
@@ -11100,7 +11204,7 @@
           "description": {
             "type": "string",
             "minLength": 2,
-            "maxLength": 30000
+            "maxLength": 20000
           },
           "dueAt": {
             "type": "string",
@@ -11112,6 +11216,30 @@
             "default": 100,
             "minimum": 1,
             "maximum": 1000
+          },
+          "instructorId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instructorName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -11131,7 +11259,7 @@
           "description": {
             "type": "string",
             "minLength": 2,
-            "maxLength": 30000
+            "maxLength": 20000
           },
           "dueAt": {
             "type": "string",
@@ -11143,6 +11271,30 @@
             "default": 100,
             "minimum": 1,
             "maximum": 1000
+          },
+          "instructorId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instructorName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },

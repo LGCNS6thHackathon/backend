@@ -85,9 +85,9 @@ public class CatalogService {
         if (db.count("SELECT COUNT(*) FROM roadmap_phases WHERE cohort_id=? AND (start_date<? OR end_date>?)", cohortId, start, end) > 0) throw AppException.conflict("로드맵이 포함되는 기간으로 설정해주세요.");
         LocalDateTime lower = start.atStartOfDay().minusHours(9), upper = end.plusDays(1).atStartOfDay().minusHours(9);
         if (db.count("SELECT COUNT(*) FROM schedule_events WHERE cohort_id=? AND (start_at<? OR end_at>?)",cohortId,lower,upper)>0
-                || db.count("SELECT COUNT(*) FROM assignments WHERE cohort_id=? AND (due_at<? OR due_at>=?)",cohortId,lower,upper)>0
+                || db.count("SELECT COUNT(*) FROM assignments WHERE cohort_id=? AND deleted_at IS NULL AND (due_at<? OR due_at>=?)",cohortId,lower,upper)>0
                 || db.count("SELECT COUNT(*) FROM assessments WHERE cohort_id=? AND (start_at<? OR end_at>?)",cohortId,lower,upper)>0
-                || db.count("SELECT COUNT(*) FROM attendance_records a JOIN enrollments e ON e.id=a.enrollment_id WHERE e.cohort_id=? AND (a.attendance_date<? OR a.attendance_date>?)",cohortId,start,end)>0)
+                || db.count("SELECT COUNT(*) FROM attendance_records a JOIN enrollments e ON e.id=a.enrollment_id WHERE e.cohort_id=? AND a.deleted_at IS NULL AND (a.attendance_date<? OR a.attendance_date>?)",cohortId,start,end)>0)
             throw AppException.conflict("기존 일정·과제·평가·출결이 포함되는 교육 기간으로 설정해주세요.");
         db.update("UPDATE cohorts SET name=?,start_date=?,end_date=?,classroom_url=?,materials_url=?,updated_at=? WHERE id=?",
                 Input.str(merged, "name", 2, 120), start, end, Input.url(merged, "classroomUrl", false), Input.url(merged, "materialsUrl", false), Db.now(), cohortId);
@@ -140,7 +140,7 @@ public class CatalogService {
         long totalDays = ChronoUnit.DAYS.between(start, end);
         int progress = totalDays == 0 ? (today.isBefore(start) ? 0 : 100) : (int) Math.max(0, Math.min(100, Math.round(100.0 * ChronoUnit.DAYS.between(start, today) / totalDays)));
         LocalDateTime dayStart = today.atStartOfDay(ZoneId.of("Asia/Seoul")).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
-        var attendance = db.one("SELECT COUNT(*) AS training_days, COALESCE(SUM(CASE WHEN status IN ('PRESENT','LATE','EARLY','EXCUSED') THEN 1 ELSE 0 END),0) AS attended_days, COALESCE(SUM(CASE WHEN status='ABSENT' THEN 1 ELSE 0 END),0) AS absent_days, COALESCE(SUM(CASE WHEN status='LATE' THEN 1 ELSE 0 END),0) AS late_days, COALESCE(SUM(CASE WHEN status='EARLY' THEN 1 ELSE 0 END),0) AS early_days FROM attendance_records WHERE enrollment_id=? AND attendance_date<=?", Db.id(membership, "id"), today);
+        var attendance = db.one("SELECT COUNT(*) AS training_days, COALESCE(SUM(CASE WHEN status IN ('PRESENT','LATE','EARLY','EXCUSED') THEN 1 ELSE 0 END),0) AS attended_days, COALESCE(SUM(CASE WHEN status='ABSENT' THEN 1 ELSE 0 END),0) AS absent_days, COALESCE(SUM(CASE WHEN status='LATE' THEN 1 ELSE 0 END),0) AS late_days, COALESCE(SUM(CASE WHEN status='EARLY' THEN 1 ELSE 0 END),0) AS early_days FROM attendance_records WHERE enrollment_id=? AND deleted_at IS NULL AND attendance_date<=?", Db.id(membership, "id"), today);
         var attendanceSummary = new LinkedHashMap<>(attendance);
         long trainingDays = Db.id(attendance, "trainingDays");
         attendanceSummary.put("attendanceRate", trainingDays == 0 ? 0 : Math.round(1000.0 * Db.id(attendance, "attendedDays") / trainingDays) / 10.0);
@@ -148,7 +148,7 @@ public class CatalogService {
         output.put("cohort", cohort); output.put("enrollment", Db.id(membership, "id") == 0 ? null : membership); output.put("progressPercent", progress);
         output.put("attendance", attendanceSummary);
         output.put("todayEvents", db.list("SELECT * FROM schedule_events WHERE cohort_id=? AND start_at<? AND end_at>? ORDER BY start_at,id", cohortId, dayStart.plusDays(1), dayStart));
-        output.put("upcomingAssignments", db.list("SELECT a.* FROM assignments a WHERE a.cohort_id=? AND a.due_at>=? AND NOT EXISTS(SELECT 1 FROM submissions s WHERE s.assignment_id=a.id AND s.user_id=?) ORDER BY a.due_at,a.id LIMIT 5", cohortId, Db.now(), actor.id()));
+        output.put("upcomingAssignments", db.list("SELECT a.* FROM assignments a WHERE a.cohort_id=? AND a.deleted_at IS NULL AND a.due_at>=? AND NOT EXISTS(SELECT 1 FROM submissions s WHERE s.assignment_id=a.id AND s.user_id=?) ORDER BY a.due_at,a.id LIMIT 5", cohortId, Db.now(), actor.id()));
         output.put("notices", db.list("SELECT p.id,p.title,p.category,p.pinned,p.created_at,u.name AS author_name FROM posts p JOIN users u ON u.id=p.author_id WHERE p.cohort_id=? AND p.deleted_at IS NULL AND p.category IN ('COURSE','SYSTEM') ORDER BY p.pinned DESC,p.created_at DESC,p.id DESC LIMIT 5", cohortId));
         output.put("activeMemberCount", db.count("SELECT COUNT(*) FROM enrollments WHERE cohort_id=? AND status='ACTIVE'", cohortId));
         output.put("unreadNotificationCount", db.count("SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL AND (cohort_id=? OR cohort_id IS NULL)", actor.id(), cohortId));
