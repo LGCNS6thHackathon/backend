@@ -5,6 +5,7 @@ No database, credentials, or external service is contacted.
 """
 from pathlib import Path
 from datetime import datetime, timezone
+import copy
 import hashlib
 import json
 import re
@@ -309,12 +310,19 @@ def learning_endpoints():
 
 
 def community_endpoints():
-    post=dict(category=enum("COURSE","SYSTEM","QUESTION","FAQ"),title=string(2,160),body=string(2,20000),pinned=dict(type="boolean",default=False))
+    post=dict(category=enum("COURSE","SYSTEM","QUESTION","FAQ"),title=string(1,160),body=string(1,20000),pinned=dict(type="boolean",default=False))
     endpoint("get","/api/cohorts/{cohortId}/posts","게시글 목록",paged("PostListItem"),tag="게시판",access=MEMBER,params=page_params()+[query("category",enum("","COURSE","SYSTEM","QUESTION","FAQ",default=""),"빈 값은 전체"),query("q",string(maximum=100,default=""),"제목·본문 검색")])
-    endpoint("post","/api/cohorts/{cohortId}/posts","게시글 작성","Post",post,["category","title","body"],status=201,tag="게시판",access=MEMBER,description="학생은 QUESTION만 작성 가능. 나머지 분류와 pinned=true는 스태프만 가능. 공지 작성 시 다른 기수 회원에게 알림 생성.")
+    endpoint("post","/api/cohorts/{cohortId}/posts","게시글 작성","Post",post,["category","title","body"],status=201,tag="게시판",access=ADMIN,description="관리자만 작성 가능. 공지 작성 시 기수 회원에게 알림 생성.")
     endpoint("get","/api/posts/{postId}","게시글 상세","PostDetail",tag="게시판",access=MEMBER,description="조회 시 views가 증가합니다.")
-    endpoint("patch","/api/posts/{postId}","게시글 수정","Post",post,tag="게시판",access="작성자 또는 기수 스태프",description="QUESTION 이외 분류로 변경하거나 공지를 수정하거나 고정하려면 스태프 권한이 필요합니다.")
-    endpoint("delete","/api/posts/{postId}","게시글 삭제",status=204,tag="게시판",access="작성자 또는 기수 스태프",description="논리 삭제합니다.")
+    endpoint("patch","/api/posts/{postId}","게시글 수정","Post",post,tag="게시판",access=ADMIN,description="생략한 필드는 유지하고 빈 값은 거부합니다.")
+    endpoint("delete","/api/posts/{postId}","게시글 삭제",status=204,tag="게시판",access=ADMIN,description="논리 삭제합니다.")
+    for path in ("/api/cohorts/{cohortId}/posts", "/api/posts/{postId}"):
+        admin_path=path.replace("/api/", "/api/admin/", 1)
+        PATHS[admin_path]=copy.deepcopy(PATHS[path])
+        for operation in PATHS[admin_path].values():
+            operation["summary"]="관리자 " + operation["summary"]
+            operation["description"]="권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다."
+            operation["operationId"]="admin_" + operation["operationId"]
     endpoint("get","/api/posts/{postId}/comments","댓글 목록",paged("Comment"),tag="게시판",access=MEMBER,params=page_params())
     endpoint("post","/api/posts/{postId}/comments","댓글 작성","Comment",dict(body=string(1,5000)),["body"],status=201,tag="게시판",access=MEMBER,description="게시글 작성자에게 알림. 본인 댓글은 알림 생략.")
     endpoint("patch","/api/comments/{commentId}","댓글 수정","Comment",dict(body=string(1,5000)),["body"],tag="게시판",access="댓글 작성자 또는 기수 스태프")
