@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import kr.wsts.lms.domain.curriculum.CurriculumAccess;
 import kr.wsts.lms.global.error.AppException;
 import kr.wsts.lms.global.support.Actor;
 import kr.wsts.lms.global.support.Db;
@@ -17,7 +18,8 @@ public class AssessmentController {
     private final Db db;
     private final Actor actor;
     private final LearningSupport support;
-    public AssessmentController(Db db,Actor actor,LearningSupport support) {this.db=db;this.actor=actor;this.support=support;}
+    private final CurriculumAccess curriculum;
+    public AssessmentController(Db db,Actor actor,LearningSupport support,CurriculumAccess curriculum) {this.db=db;this.actor=actor;this.support=support;this.curriculum=curriculum;}
 
     @GetMapping("/cohorts/{cohortId}/assessments")
     public Map<String,Object> assessments(@PathVariable long cohortId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
@@ -74,7 +76,10 @@ public class AssessmentController {
     @Transactional
     public ResponseEntity<Void> delete(@PathVariable long id) {
         Map<String,Object> assessment=editable(id);
-        for(Map<String,Object> question:db.list("SELECT id FROM assessment_questions WHERE assessment_id=?",id)) db.update("DELETE FROM assessment_options WHERE question_id=?",Db.id(question,"id"));
+        for(Map<String,Object> question:db.list("SELECT id FROM assessment_questions WHERE assessment_id=?",id)) {
+            db.update("DELETE FROM assessment_question_review_links WHERE question_id=?",Db.id(question,"id"));
+            db.update("DELETE FROM assessment_options WHERE question_id=?",Db.id(question,"id"));
+        }
         db.update("DELETE FROM assessment_questions WHERE assessment_id=?",id);
         db.update("DELETE FROM assessments WHERE id=?",Db.id(assessment,"id"));
         return ResponseEntity.noContent().build();
@@ -84,21 +89,26 @@ public class AssessmentController {
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public Map<String,Object> createQuestion(@PathVariable long assessmentId,@RequestBody Map<String,Object> body) {
-        editable(assessmentId);List<Map<String,Object>> options=validatedOptions(body);
-        long id=db.insert("INSERT INTO assessment_questions(assessment_id,prompt,position,points,explanation) VALUES(?,?,?,?,?)",assessmentId,
-                Input.str(body,"prompt",2,10000),Input.integer(body,"position",1,1,1000),Input.integer(body,"points",1,1,100),Input.optional(body,"explanation","",10000));
+        Map<String,Object> assessment=editable(assessmentId);List<Map<String,Object>> options=validatedOptions(body);
+        Long topicId=topicId(body,Db.id(assessment,"cohortId"),null);
+        Long chapterId=chapterId(body,Db.id(assessment,"cohortId"));
+        long id=db.insert("INSERT INTO assessment_questions(assessment_id,prompt,position,points,explanation,topic_id) VALUES(?,?,?,?,?,?)",assessmentId,
+                Input.str(body,"prompt",2,10000),Input.integer(body,"position",1,1,1000),Input.integer(body,"points",1,1,100),Input.optional(body,"explanation","",10000),topicId);
         insertOptions(id,options);
+        if(chapterId!=null) replaceReviewLink(id,chapterId);
         return question(id,true);
     }
 
     @PatchMapping("/assessment-questions/{id}")
     @Transactional
     public Map<String,Object> updateQuestion(@PathVariable long id,@RequestBody Map<String,Object> body) {
-        Map<String,Object> old=db.one("SELECT * FROM assessment_questions WHERE id=?",id);editable(Db.id(old,"assessmentId"));
+        Map<String,Object> old=db.one("SELECT * FROM assessment_questions WHERE id=?",id);Map<String,Object> assessment=editable(Db.id(old,"assessmentId"));
         Map<String,Object> merged=LearningSupport.merged(old,body);
+        Long topicId=topicId(body,Db.id(assessment,"cohortId"),old.get("topicId"));
+        if(body.containsKey("chapterId")) replaceReviewLink(id,chapterId(body,Db.id(assessment,"cohortId")));
         if(body.containsKey("options")) {List<Map<String,Object>> options=validatedOptions(body);db.update("DELETE FROM assessment_options WHERE question_id=?",id);insertOptions(id,options);}
-        db.update("UPDATE assessment_questions SET prompt=?,position=?,points=?,explanation=? WHERE id=?",Input.str(merged,"prompt",2,10000),
-                Input.integer(merged,"position",1,1,1000),Input.integer(merged,"points",1,1,100),Input.optional(merged,"explanation","",10000),id);
+        db.update("UPDATE assessment_questions SET prompt=?,position=?,points=?,explanation=?,topic_id=? WHERE id=?",Input.str(merged,"prompt",2,10000),
+                Input.integer(merged,"position",1,1,1000),Input.integer(merged,"points",1,1,100),Input.optional(merged,"explanation","",10000),topicId,id);
         return question(id,true);
     }
 
@@ -106,8 +116,30 @@ public class AssessmentController {
     @Transactional
     public ResponseEntity<Void> deleteQuestion(@PathVariable long id) {
         Map<String,Object> old=db.one("SELECT * FROM assessment_questions WHERE id=?",id);editable(Db.id(old,"assessmentId"));
+        db.update("DELETE FROM assessment_question_review_links WHERE question_id=?",id);
         db.update("DELETE FROM assessment_options WHERE question_id=?",id);db.update("DELETE FROM assessment_questions WHERE id=?",id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** chapterId absent or null: no link. Otherwise it must be a chapter of a non-deleted video in the assessment's cohort. */
+    private Long chapterId(Map<String,Object> body,long cohortId) {
+        if(body.get("chapterId")==null) return null;
+        long chapterId=Input.id(body,"chapterId");curriculum.requireChapterInCohort(chapterId,cohortId);
+        return chapterId;
+    }
+
+    /** The admin UI links one review chapter per question; null clears the link (연결된 복습 영상 없음). */
+    private void replaceReviewLink(long questionId,Long chapterId) {
+        db.update("DELETE FROM assessment_question_review_links WHERE question_id=?",questionId);
+        if(chapterId!=null) db.insert("INSERT INTO assessment_question_review_links(question_id,chapter_id,position) VALUES(?,?,1)",questionId,chapterId);
+    }
+
+    /** topicId omitted: keep current. null: clear (단원 미분류). Otherwise it must be a topic of the assessment's cohort. */
+    private Long topicId(Map<String,Object> body,long cohortId,Object current) {
+        if(!body.containsKey("topicId")) return current==null?null:((Number)current).longValue();
+        if(body.get("topicId")==null) return null;
+        long topicId=Input.id(body,"topicId");curriculum.requireTopicInCohort(topicId,cohortId);
+        return topicId;
     }
 
     private Map<String,Object> editable(long assessmentId) {
@@ -154,6 +186,8 @@ public class AssessmentController {
         Map<String,Object> question=new LinkedHashMap<>(db.one("SELECT * FROM assessment_questions WHERE id=?",questionId));
         List<Map<String,Object>> options=db.list("SELECT * FROM assessment_options WHERE question_id=? ORDER BY id",questionId);
         if(!reveal) {question.remove("explanation");for(Map<String,Object> option:options)option.remove("isCorrect");}
+        // Review links are released together with answers/explanations.
+        if(reveal) question.put("chapterId",db.find("SELECT chapter_id FROM assessment_question_review_links WHERE question_id=? ORDER BY position LIMIT 1",questionId).map(row->row.get("chapterId")).orElse(null));
         question.put("options",options);return question;
     }
 

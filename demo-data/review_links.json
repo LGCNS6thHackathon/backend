@@ -1,0 +1,630 @@
+{
+ "_comment": "소단원 시작 시각은 커리큘럼 자료의 날짜·주제와 강의 자막(SRT)으로 찾은 값이다. verified=true는 자막·영상 화면으로 직접 확인한 구간. questions는 examId:no 형식.",
+ "chapters": [
+  {
+   "date": "2026-10-01",
+   "period": 2,
+   "title": "보상 트랜잭션과 데이터 일관성(Saga)",
+   "startSeconds": 2680,
+   "verified": true,
+   "questions": [
+    "158:10",
+    "158:15",
+    "158:24",
+    "159:45",
+    "159:50",
+    "159:54"
+   ]
+  },
+  {
+   "date": "2026-10-02",
+   "period": 2,
+   "title": "유레카 서버와 서비스 등록",
+   "startSeconds": 1028,
+   "questions": [
+    "158:11",
+    "159:46"
+   ]
+  },
+  {
+   "date": "2026-10-02",
+   "period": 3,
+   "title": "랜덤 포트로 여러 인스턴스 기동",
+   "startSeconds": 111,
+   "questions": [
+    "159:68"
+   ]
+  },
+  {
+   "date": "2026-10-06",
+   "period": 1,
+   "title": "API Gateway 라우팅과 로드밸런싱",
+   "startSeconds": 353,
+   "questions": [
+    "158:32",
+    "159:58"
+   ]
+  },
+  {
+   "date": "2026-10-06",
+   "period": 2,
+   "title": "lb:// 와 유레카 서비스 이름 치환",
+   "startSeconds": 9880,
+   "verified": true,
+   "questions": [
+    "159:69"
+   ]
+  },
+  {
+   "date": "2026-10-08",
+   "period": 2,
+   "title": "JWT 토큰 인증",
+   "startSeconds": 769,
+   "questions": [
+    "158:18",
+    "159:52"
+   ]
+  },
+  {
+   "date": "2026-10-13",
+   "period": 1,
+   "title": "Config Server 구성",
+   "startSeconds": 263,
+   "questions": [
+    "158:31",
+    "159:71"
+   ]
+  },
+  {
+   "date": "2026-10-13",
+   "period": 2,
+   "title": "Actuator refresh와 Spring Cloud Bus",
+   "startSeconds": 468,
+   "questions": [
+    "159:72",
+    "159:73"
+   ]
+  },
+  {
+   "date": "2026-10-13",
+   "period": 2,
+   "title": "대칭키·비대칭키 암호화",
+   "startSeconds": 8940,
+   "questions": [
+    "159:74",
+    "159:75"
+   ]
+  },
+  {
+   "date": "2026-10-14",
+   "period": 2,
+   "title": "OpenFeign 클라이언트",
+   "startSeconds": 1048,
+   "questions": [
+    "159:77",
+    "158:12"
+   ]
+  },
+  {
+   "date": "2026-10-15",
+   "period": 1,
+   "title": "메시지 브로커와 비동기 통신",
+   "startSeconds": 1960,
+   "verified": true,
+   "questions": [
+    "159:56",
+    "158:30",
+    "159:59"
+   ]
+  },
+  {
+   "date": "2026-10-15",
+   "period": 1,
+   "title": "Kafka 프로듀서와 컨슈머",
+   "startSeconds": 3675,
+   "verified": true,
+   "questions": [
+    "158:26",
+    "159:78"
+   ]
+  },
+  {
+   "date": "2026-10-16",
+   "period": 1,
+   "title": "Circuit Breaker와 회복성 패턴",
+   "startSeconds": 212,
+   "verified": true,
+   "questions": [
+    "158:27",
+    "159:51",
+    "159:57"
+   ]
+  },
+  {
+   "date": "2026-10-16",
+   "period": 2,
+   "title": "분산 추적: Trace ID·Span ID와 Zipkin",
+   "startSeconds": 645,
+   "questions": [
+    "158:25",
+    "159:55",
+    "159:79"
+   ]
+  },
+  {
+   "date": "2026-10-20",
+   "period": 1,
+   "title": "Prometheus 모니터링",
+   "startSeconds": 522,
+   "questions": [
+    "159:80"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "period": 1,
+   "title": "쿠버네티스 컨트롤러와 Pod",
+   "startSeconds": 5932,
+   "questions": [
+    "158:33",
+    "159:22",
+    "159:30"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 1,
+   "title": "스케일 업과 스케일 아웃",
+   "startSeconds": 3015,
+   "questions": [
+    "159:60"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 1,
+   "title": "클라우드 네이티브 아키텍처",
+   "startSeconds": 4958,
+   "questions": [
+    "158:3",
+    "158:20",
+    "159:43",
+    "159:53"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 1,
+   "title": "카나리·블루그린 배포 전략",
+   "startSeconds": 5869,
+   "questions": [
+    "158:7",
+    "158:17",
+    "159:61"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 1,
+   "title": "가상 머신과 컨테이너 가상화",
+   "startSeconds": 6359,
+   "questions": [
+    "158:6",
+    "159:62"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 1,
+   "title": "12 Factors",
+   "startSeconds": 6779,
+   "questions": [
+    "158:23"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 2,
+   "title": "모놀리식과 마이크로서비스 비교",
+   "startSeconds": 7,
+   "questions": [
+    "158:1",
+    "158:2",
+    "159:41",
+    "159:42"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 2,
+   "title": "결합도와 의존 관계",
+   "startSeconds": 2141,
+   "questions": [
+    "158:8",
+    "159:44"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 2,
+   "title": "최종적 일관성(Eventual Consistency)",
+   "startSeconds": 2726,
+   "questions": [
+    "158:13",
+    "159:48"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 2,
+   "title": "폴리글랏",
+   "startSeconds": 4712,
+   "questions": [
+    "159:64"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 2,
+   "title": "이너·아우터 아키텍처",
+   "startSeconds": 5175,
+   "questions": [
+    "159:65"
+   ]
+  },
+  {
+   "date": "2026-10-06",
+   "period": 2,
+   "title": "Gateway 필터(Pre/Post)",
+   "startSeconds": 1116,
+   "questions": [
+    "158:45"
+   ]
+  },
+  {
+   "date": "2026-10-07",
+   "period": 2,
+   "title": "201 Created 응답",
+   "startSeconds": 373,
+   "questions": [
+    "159:67"
+   ]
+  },
+  {
+   "date": "2026-10-08",
+   "period": 2,
+   "title": "Config 서버 설정 우선순위와 프로파일",
+   "startSeconds": 9054,
+   "questions": [
+    "158:41"
+   ]
+  },
+  {
+   "date": "2026-10-14",
+   "period": 1,
+   "title": "동기·비동기 통신",
+   "startSeconds": 1449,
+   "questions": [
+    "159:47",
+    "159:76"
+   ]
+  },
+  {
+   "date": "2026-10-16",
+   "period": 1,
+   "title": "Fallback 처리",
+   "startSeconds": 1926,
+   "questions": [
+    "158:58"
+   ]
+  },
+  {
+   "date": "2026-10-16",
+   "period": 2,
+   "title": "Sleuth와 분산 추적",
+   "startSeconds": 504,
+   "questions": [
+    "158:54"
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "period": 2,
+   "title": "docker ps·컨테이너 삭제·run 옵션",
+   "startSeconds": 9065,
+   "questions": [
+    "159:7",
+    "159:8",
+    "159:16"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "period": 1,
+   "title": "포트 연결(-p)",
+   "startSeconds": 746,
+   "questions": [
+    "159:20"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "period": 1,
+   "title": "docker run = pull + create + start",
+   "startSeconds": 1557,
+   "questions": [
+    "159:9",
+    "159:10",
+    "159:11",
+    "159:12"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "period": 1,
+   "title": "이미지와 컨테이너",
+   "startSeconds": 2607,
+   "questions": [
+    "159:3",
+    "159:4"
+   ]
+  },
+  {
+   "date": "2026-10-23",
+   "period": 2,
+   "title": "Dockerfile FROM과 레이어",
+   "startSeconds": 13335,
+   "questions": [
+    "158:37",
+    "159:17",
+    "159:18"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "period": 1,
+   "title": "쿠버네티스 핵심 컴포넌트(API 서버·스케줄러·etcd)",
+   "startSeconds": 5614,
+   "questions": [
+    "158:48",
+    "158:53"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "period": 2,
+   "title": "kubectl apply -f로 YAML 적용",
+   "startSeconds": 2224,
+   "questions": [
+    "159:36"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "period": 2,
+   "title": "YAML로 리소스 만들고 지우기",
+   "startSeconds": 4218,
+   "questions": [
+    "159:33",
+    "159:34",
+    "159:37",
+    "159:35"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "period": 1,
+   "title": "describe로 상세 정보 확인",
+   "startSeconds": 2243,
+   "questions": [
+    "159:28",
+    "159:40",
+    "158:34"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "period": 2,
+   "title": "디플로이먼트와 롤링 업데이트",
+   "startSeconds": 58,
+   "questions": [
+    "159:31"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "period": 2,
+   "title": "네임스페이스 만들기",
+   "startSeconds": 3689,
+   "questions": [
+    "159:38"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "period": 2,
+   "title": "데몬셋",
+   "startSeconds": 5628,
+   "questions": [
+    "158:55"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "period": 2,
+   "title": "Service와 클러스터 IP",
+   "startSeconds": 12479,
+   "questions": [
+    "158:35",
+    "159:32"
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "period": 2,
+   "title": "CI/CD 파이프라인 구축",
+   "startSeconds": 4326,
+   "questions": [
+    "158:5",
+    "158:19",
+    "158:29",
+    "158:56"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 1,
+   "title": "DevOps: 개발과 운영의 통합",
+   "startSeconds": 5306,
+   "questions": [
+    "158:9",
+    "159:63"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 1,
+   "title": "지속적 통합·지속적 배포(CI/CD)",
+   "startSeconds": 5495,
+   "questions": [
+    "158:51"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 1,
+   "title": "컨테이너 가상화와 오케스트레이션",
+   "startSeconds": 7551,
+   "questions": [
+    "158:4",
+    "158:22",
+    "159:1",
+    "159:21"
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "period": 2,
+   "title": "CI/CD 도구: Jenkins",
+   "startSeconds": 9102,
+   "questions": [
+    "158:52"
+   ]
+  },
+  {
+   "date": "2026-10-06",
+   "period": 1,
+   "title": "Predicates로 라우팅 조건 설정",
+   "startSeconds": 3384,
+   "questions": [
+    "158:40"
+   ]
+  },
+  {
+   "date": "2026-10-07",
+   "period": 1,
+   "title": "REST API 엔드포인트 설계(복수형 명사)",
+   "startSeconds": 750,
+   "questions": [
+    "159:66"
+   ]
+  },
+  {
+   "date": "2026-10-07",
+   "period": 1,
+   "title": "Database per Service",
+   "startSeconds": 1190,
+   "questions": [
+    "158:14",
+    "159:49",
+    "159:70"
+   ]
+  },
+  {
+   "date": "2026-10-08",
+   "period": 2,
+   "title": "설정 저장소(Git·Vault·파일)",
+   "startSeconds": 8125,
+   "questions": [
+    "158:28"
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "period": 2,
+   "title": "docker stop으로 컨테이너 중지",
+   "startSeconds": 9248,
+   "questions": [
+    "159:13",
+    "159:14"
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "period": 2,
+   "title": "컨테이너는 왜 가벼운가",
+   "startSeconds": 13015,
+   "questions": [
+    "159:2"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "period": 2,
+   "title": "Docker Hub에 이미지 배포",
+   "startSeconds": 2850,
+   "questions": [
+    "159:19"
+   ]
+  },
+  {
+   "date": "2026-10-22",
+   "period": 2,
+   "title": "docker images로 이미지 확인",
+   "startSeconds": 3795,
+   "questions": [
+    "159:6"
+   ]
+  },
+  {
+   "date": "2026-10-23",
+   "period": 1,
+   "title": "docker logs로 로그 확인",
+   "startSeconds": 182,
+   "questions": [
+    "159:15"
+   ]
+  },
+  {
+   "date": "2026-10-26",
+   "period": 2,
+   "title": "클러스터 구성과 kubectl get nodes",
+   "startSeconds": 10961,
+   "questions": [
+    "159:23",
+    "159:24",
+    "159:25",
+    "159:26"
+   ]
+  },
+  {
+   "date": "2026-10-27",
+   "period": 2,
+   "title": "kubectl logs로 파드 로그 확인",
+   "startSeconds": 1922,
+   "questions": [
+    "159:27",
+    "159:29"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "period": 2,
+   "title": "StatefulSet",
+   "startSeconds": 6209,
+   "questions": [
+    "158:57"
+   ]
+  }
+ ]
+}
