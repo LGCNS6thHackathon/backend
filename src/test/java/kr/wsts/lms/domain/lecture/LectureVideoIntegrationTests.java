@@ -57,6 +57,44 @@ class LectureVideoIntegrationTests {
         for(User u:List.of(student,other))send(post("/api/cohorts/"+cohort+"/enrollments"),admin,Map.of("userId",u.id,"role","STUDENT"),201);
         return new Context(admin,student,other,outsider,cohort);
     }
+    @Test void adminChangesFlowThroughReplayCalendarArchiveAndPlayback()throws Exception {
+        var c=context();
+        String day=LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).toString();
+        String adminBase="/api/admin/cohorts/"+c.cohort+"/lecture-videos";
+        String replayBase="/api/cohorts/"+c.cohort;
+        var input=new HashMap<String,Object>(video(1));
+        input.put("lectureDate",day);input.put("visibility","PRIVATE");
+        long video=id(send(post(adminBase),c.admin,input,201));
+        String path="/api/admin/lecture-videos/"+video;
+        String daily=replayBase+"/lecture-replays?date="+day;
+        String dates=replayBase+"/lecture-replays/dates?from="+day+"&to="+day;
+        String recent=replayBase+"/lecture-replays/recent?limit=3";
+        String playback=replayBase+"/lecture-videos/"+video+"/playback?start=15";
+        assertEquals(0,((List<?>)JsonPath.read(send(get(daily),c.student,null,200),"$.videos")).size());
+        send(get(playback),c.student,null,404);
+        send(patch(path),c.admin,Map.of("visibility","PUBLIC"),200);
+        assertEquals(video,((Number)JsonPath.read(send(get(daily),c.student,null,200),"$.videos[0].id")).longValue());
+        assertEquals(1,((Number)JsonPath.read(send(get(dates),c.student,null,200),"$.dates[0].videoCount")).intValue());
+        assertEquals(video,((Number)JsonPath.read(send(get(recent),c.student,null,200),"$.items[0].id")).longValue());
+        String played=send(get(playback),c.student,null,200);
+        assertTrue(((String)JsonPath.read(played,"$.embedUrl")).contains("/embed/dQw4w9WgXcQ"));
+        assertTrue(((String)JsonPath.read(played,"$.embedUrl")).contains("start=15"));
+        send(get(playback),c.outsider,null,403);
+        send(patch(path),c.admin,Map.of("title","변경된 강의","youtubeUrl","https://www.youtube.com/watch?v=abcdefghijk"),200);
+        assertEquals("변경된 강의",JsonPath.read(send(get(daily),c.student,null,200),"$.videos[0].title"));
+        assertEquals("abcdefghijk",JsonPath.read(send(get(playback),c.student,null,200),"$.youtubeVideoId"));
+        send(patch(path),c.admin,Map.of("visibility","PRIVATE"),200);
+        send(get(playback),c.student,null,404);
+        assertEquals(0,((List<?>)JsonPath.read(send(get(dates),c.student,null,200),"$.dates")).size());
+        assertEquals(0,((List<?>)JsonPath.read(send(get(recent),c.student,null,200),"$.items")).size());
+        send(patch(path),c.admin,Map.of("visibility","PUBLIC"),200);
+        send(delete(path),c.admin,null,204);
+        send(get(playback),c.student,null,404);
+        assertEquals(0,((List<?>)JsonPath.read(send(get(daily),c.student,null,200),"$.videos")).size());
+        assertNotNull(JsonPath.read(send(get(daily),c.student,null,200),"$.emptyMessage"));
+        assertEquals(0,((List<?>)JsonPath.read(send(get(dates),c.student,null,200),"$.dates")).size());
+        assertEquals(0,((List<?>)JsonPath.read(send(get(recent),c.student,null,200),"$.items")).size());
+    }
     private Map<String,Object> video(int period) {
         return Map.of("title","강의","youtubeUrl","https://youtu.be/dQw4w9WgXcQ","lectureDate",LocalDate.now().toString(),"periodNo",period,"visibility","PUBLIC");
     }
