@@ -3,9 +3,12 @@ CREATE TABLE users (
  password_hash VARCHAR(255) NOT NULL, name VARCHAR(80) NOT NULL, phone VARCHAR(30),
  role VARCHAR(20) NOT NULL DEFAULT 'STUDENT', status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
  token_version INT NOT NULL DEFAULT 0, created_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL,
+ provisioned_by BIGINT, provisioned_at DATETIME(6),
+ CONSTRAINT fk_users_provisioner FOREIGN KEY(provisioned_by) REFERENCES users(id),
  CONSTRAINT ck_users_role CHECK (role IN ('ADMIN','INSTRUCTOR','STUDENT')),
  CONSTRAINT ck_users_status CHECK (status IN ('ACTIVE','DISABLED'))
 );
+CREATE INDEX ix_users_provisioner ON users(provisioned_by);
 CREATE TABLE refresh_tokens (
  id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE,
  family_id VARCHAR(36) NOT NULL, expires_at DATETIME(6) NOT NULL, revoked_at DATETIME(6), created_at DATETIME(6) NOT NULL,

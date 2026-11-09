@@ -135,6 +135,34 @@
           "relFieldId": null,
           "relType": null,
           "relGroupId": null
+        },
+        {
+          "_id": "5df6ed4f27ae43892",
+          "name": "provisioned_by",
+          "pName": "provisioned_by",
+          "domain": "",
+          "type": "BIGINT",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": "de694949b51a78e40",
+          "relFieldId": "b5ebc02052b8bff5f",
+          "relType": "ZERO_OR_MANY",
+          "relGroupId": "3f8b5633d3c44ae95"
+        },
+        {
+          "_id": "d802f28b5bef19a42",
+          "name": "provisioned_at",
+          "pName": "provisioned_at",
+          "domain": "",
+          "type": "DATETIME(6)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
         }
       ],
       "keys": {
@@ -4805,7 +4833,7 @@
   ],
   "memoData": [],
   "domainData": [],
-  "createdAt": "2026-11-09T07:09:27.302Z",
+  "createdAt": "2026-11-09T08:07:06.100Z",
   "creatorName": "",
   "creatorThumb": ""
 }

@@ -16,11 +16,21 @@ async function api(method,path,token,body,expected=200){
 }
 function check(condition,name){assert.ok(condition,name);checks++;console.log(`PASS ${name}`);}
 async function login(email,password){return api('POST','/api/auth/login',null,{email,password});}
-async function register(suffix){const email=`${run}-${suffix}@example.test`,password='ApiVerifyPassword!42';const user=await api('POST','/api/auth/register',null,{email,password,name:`검증 ${suffix}`},201);return {...user,...await login(email,password)};}
+function account(suffix){return {email:`${run}-${suffix}@example.test`,password:'ApiVerifyPassword!42',name:`검증 ${suffix}`,phone:'010-0000-0000'};}
+async function createAccount(suffix,adminToken){const details=account(suffix);const user=await api('POST','/api/users',adminToken,details,201);return {...user,...await login(details.email,details.password)};}
 const health=await api('GET','/api/health');check(health.status==='UP','Spring Boot health');
 const admin=await login(config.BOOTSTRAP_ADMIN_EMAIL,config.BOOTSTRAP_ADMIN_PASSWORD);
-const a=await register('student-a'),b=await register('student-b'),outsider=await register('outsider');
-check(a.user.role==='STUDENT','Public registration cannot create admin');
+const removedAccount=account('removed-registration');
+await api('POST','/api/auth/register',null,removedAccount,401);
+await api('POST','/api/auth/register',admin.accessToken,removedAccount,404);
+const removedUsers=await api('GET',`/api/users?q=${encodeURIComponent(removedAccount.email)}`,admin.accessToken);
+check(removedUsers.total===0,'Removed public registration cannot create accounts');
+const a=await createAccount('student-a',admin.accessToken),b=await createAccount('student-b',admin.accessToken),outsider=await createAccount('outsider',admin.accessToken);
+check([a,b,outsider].every(user=>user.user.role==='STUDENT'),'Administrator-created accounts default to student');
+const forbiddenAccount=account('student-created');
+await api('POST','/api/users',a.accessToken,forbiddenAccount,403);
+const forbiddenUsers=await api('GET',`/api/users?q=${encodeURIComponent(forbiddenAccount.email)}`,admin.accessToken);
+check(forbiddenUsers.total===0,'Students cannot create accounts');
 await api('GET','/api/users',a.accessToken,undefined,403);checks++;
 const course=await api('POST','/api/courses',admin.accessToken,{title:`${run} 과정`,description:'MariaDB 실제 API 검증',totalHours:100},201);
 const now=new Date(),date=(days)=>new Date(now.getTime()+days*86400000).toISOString().slice(0,10),at=(hours)=>new Date(now.getTime()+hours*3600000).toISOString();
@@ -39,10 +49,59 @@ await api('PATCH',`/api/cohorts/${cohort.id}`,admin.accessToken,{endDate:date(-1
 const attendance=await api('PUT',`/api/cohorts/${cohort.id}/attendance`,admin.accessToken,{userId:a.id,date:date(-1),status:'ABSENT'});
 const correction=await api('POST',`/api/attendance/${attendance.id}/corrections`,a.accessToken,{requestedStatus:'PRESENT',reason:'실제 출석 기록 정정을 요청합니다.'},201);
 await api('PATCH',`/api/attendance/corrections/${correction.id}`,admin.accessToken,{status:'APPROVED',reviewNote:'확인 후 승인'});check(true,'Attendance correction approved');
-const assignment=await api('POST',`/api/cohorts/${cohort.id}/assignments`,admin.accessToken,{title:'설계 과제',description:'기능과 테이블 관계를 설명해주세요.',dueAt:at(24),maxScore:100},201);
+const attendancePath=`/api/cohorts/${cohort.id}/attendance`;
+const attendanceBody=(status,sessionNo=0)=>({userId:a.id,date:date(-2),unitType:sessionNo===0?'DATE':'SESSION',sessionNo,status});
+const calendarRecords=[];
+for(const [status,sessionNo] of [['LEAVE',0],['EARLY',1],['EXCUSED',2]]){
+  const body=attendanceBody(status,sessionNo),record=await api('PUT',attendancePath,admin.accessToken,body);
+  await api('PUT',attendancePath,admin.accessToken,{...body,status:'PRESENT'},409);
+  const request=await api('POST',`/api/attendance/${record.id}/corrections`,a.accessToken,undefined,201);
+  assert.equal(request.originalStatus,status,'Calendar correction snapshots original state');
+  assert.equal(request.originalVersion,0,'Calendar correction snapshots original version');
+  assert.equal(request.requestedStatus,'PRESENT','Calendar correction defaults to present');
+  assert.ok(request.reason.length>=5,'Calendar correction supplies default reason');
+  await api('POST',`/api/attendance/${record.id}/corrections`,a.accessToken,undefined,409);
+  await api('PATCH',`/api/attendance/corrections/${request.id}`,admin.accessToken,{status:'APPROVED'});
+  calendarRecords.push(record.id);
+}
+const calendarAttendance=await api('GET',attendancePath,a.accessToken);
+check(calendarRecords.every(id=>calendarAttendance.items.some(record=>record.id===id && record.status==='PRESENT' && record.version===1)),'Date/session calendar states require approval and reject duplicate pending requests');
+const editedBody=attendanceBody('ABSENT',3),editedAttendance=await api('PUT',attendancePath,admin.accessToken,editedBody);
+const editedRequest=await api('POST',`/api/attendance/${editedAttendance.id}/corrections`,a.accessToken,{},201);
+const edited=await api('PUT',attendancePath,admin.accessToken,{...editedBody,note:'입실 근거를 추가로 확인합니다.'});
+await api('PATCH',`/api/attendance/corrections/${editedRequest.id}`,admin.accessToken,{status:'APPROVED'},409);
+const editHistory=await api('GET',`/api/cohorts/${cohort.id}/attendance/corrections`,a.accessToken);
+check(edited.status==='ABSENT' && edited.version===1 && editHistory.items.some(request=>request.id===editedRequest.id && request.status==='INVALIDATED'),'Editing attendance invalidates pending requests and advances version');
+const deletedAttendance=await api('PUT',attendancePath,admin.accessToken,attendanceBody('LEAVE',4));
+const deletedRequest=await api('POST',`/api/attendance/${deletedAttendance.id}/corrections`,a.accessToken,undefined,201);
+await api('DELETE',`/api/attendance/${deletedAttendance.id}`,a.accessToken,undefined,403);
+await api('DELETE',`/api/attendance/${deletedAttendance.id}`,admin.accessToken,undefined,204);
+await api('PATCH',`/api/attendance/corrections/${deletedRequest.id}`,admin.accessToken,{status:'APPROVED'},409);
+await api('POST',`/api/attendance/${deletedAttendance.id}/corrections`,a.accessToken,undefined,404);
+const remainingAttendance=await api('GET',attendancePath,a.accessToken),deleteHistory=await api('GET',`/api/cohorts/${cohort.id}/attendance/corrections`,a.accessToken);
+check(!remainingAttendance.items.some(record=>record.id===deletedAttendance.id) && deleteHistory.items.some(request=>request.id===deletedRequest.id && request.status==='INVALIDATED'),'Soft deletion hides attendance and retains invalidated request history');
+const instructor=await createAccount('instructor',admin.accessToken);
+await api('PATCH',`/api/users/${instructor.id}`,admin.accessToken,{role:'INSTRUCTOR'});
+await api('POST',`/api/cohorts/${cohort.id}/enrollments`,admin.accessToken,{userId:instructor.id,role:'INSTRUCTOR'},201);
+const assignment=await api('POST',`/api/cohorts/${cohort.id}/assignments`,admin.accessToken,{title:'설계 과제',description:'기능과 테이블 관계를 설명해주세요.',dueAt:at(24),maxScore:100,instructorId:instructor.id,instructorName:'검증 담당 강사'},201);
+check(assignment.instructorId===instructor.id && assignment.instructorName==='검증 담당 강사','Assignment stores active cohort instructor and displayed name');
 const submission=await api('PUT',`/api/assignments/${assignment.id}/submission`,a.accessToken,{body:'과제 설명을 제출합니다.',repositoryUrl:'https://example.com/repository'});
+const submissionForm=new FormData();submissionForm.append('file',new Blob(['submission-verification'],{type:'text/plain'}),'submission.txt');
+const submissionUpload=await fetch(new URL(`/api/submissions/${submission.id}/files`,base),{method:'POST',headers:{Authorization:`Bearer ${a.accessToken}`},body:submissionForm});
+assert.equal(submissionUpload.status,201,'Submission file upload');const submissionFile=await submissionUpload.json();
+const uploadedAssignment=await api('GET',`/api/assignments/${assignment.id}`,a.accessToken);
+const uploadedSubmission=uploadedAssignment.mySubmission;
+check(uploadedSubmission.id===submission.id && uploadedSubmission.submittedAt!==submission.submittedAt && Date.parse(uploadedSubmission.submittedAt)>=Date.parse(submission.submittedAt),'Successful submission upload refreshes last submitted time');
+await api('GET',`/api/files/${submissionFile.id}`,a.accessToken);
 await api('PATCH',`/api/submissions/${submission.id}/review`,admin.accessToken,{score:88,feedback:'구조가 명확합니다.'});
 await api('PUT',`/api/assignments/${assignment.id}/submission`,a.accessToken,{body:'검토 후 수정 불가',repositoryUrl:''},409);check(true,'Submission review locks further editing');
+await api('DELETE',`/api/assignments/${assignment.id}`,admin.accessToken,undefined,204);
+await api('GET',`/api/assignments/${assignment.id}`,a.accessToken,undefined,404);
+await api('GET',`/api/assignments/${assignment.id}/submissions`,admin.accessToken,undefined,404);
+await api('GET',`/api/files/${submissionFile.id}`,a.accessToken,undefined,404);
+await api('GET',`/api/files/${submissionFile.id}/download`,a.accessToken,undefined,404);
+const remainingAssignments=await api('GET',`/api/cohorts/${cohort.id}/assignments`,a.accessToken);
+check(!remainingAssignments.items.some(item=>item.id===assignment.id),'Soft-deleted assignment hides detail, submissions, and uploaded files');
 const group=await api('POST',`/api/cohorts/${cohort.id}/study-groups`,a.accessToken,{name:'함께 복습하는 스터디',description:'정원을 검증합니다.',capacity:2},201);
 await api('POST',`/api/study-groups/${group.id}/members/me`,b.accessToken,undefined,201);
 await api('POST',`/api/study-groups/${group.id}/members/me`,admin.accessToken,undefined,409);check(true,'Study group capacity enforced');

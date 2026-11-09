@@ -27,6 +27,31 @@ class FoundationSchemaTests {
     }
 
     @Test
+    void managedAccountUpgradePreservesLegacyAccountsAndTracksKnownIssuers() {
+        var dataSource = database();
+        migration(dataSource, "2").migrate();
+        var jdbc = new JdbcTemplate(dataSource);
+        seedEnrollment(jdbc);
+        jdbc.update("UPDATE users SET role='ADMIN' WHERE id=1");
+        jdbc.update("INSERT INTO users(id,email,password_hash,name,created_at,updated_at) VALUES(2,'legacy-student@example.test','legacy-hash','Legacy student',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+
+        migration(dataSource, null).migrate();
+
+        assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM users", Integer.class));
+        assertEquals("legacy-hash", jdbc.queryForObject("SELECT password_hash FROM users WHERE id=2", String.class));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM enrollments WHERE user_id=1", Integer.class));
+        assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE provisioned_by IS NULL AND provisioned_at IS NULL", Integer.class));
+        jdbc.update("INSERT INTO users(id,email,password_hash,name,provisioned_by,provisioned_at,created_at,updated_at) VALUES(3,'issued@example.test','issued-hash','Issued student',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        assertEquals(1L, jdbc.queryForObject("SELECT provisioned_by FROM users WHERE id=3", Long.class));
+        assertNotNull(jdbc.queryForObject("SELECT provisioned_at FROM users WHERE id=3", Object.class));
+        assertThrows(DataIntegrityViolationException.class, () -> jdbc.update("INSERT INTO users(email,password_hash,name,provisioned_by,provisioned_at,created_at,updated_at) VALUES('unknown-issuer@example.test','hash','Invalid issuer',999,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)"));
+        // A bootstrap administrator has no issuing user, even after V3 is installed.
+        jdbc.update("INSERT INTO users(id,email,password_hash,name,role,created_at,updated_at) VALUES(4,'bootstrap@example.test','hash','Bootstrap','ADMIN',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        assertNull(jdbc.queryForObject("SELECT provisioned_by FROM users WHERE id=4", Long.class));
+        assertNull(jdbc.queryForObject("SELECT provisioned_at FROM users WHERE id=4", Object.class));
+    }
+
+    @Test
     void upgradePreservesLegacyRowsAndSeparatesDailyAndSessionAttendance() {
         var dataSource = database();
         migration(dataSource, "1").migrate();

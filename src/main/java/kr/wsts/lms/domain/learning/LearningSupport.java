@@ -22,7 +22,7 @@ public class LearningSupport {
     }
 
     public Map<String, Object> assignment(long id) {
-        Map<String, Object> row = db.one("SELECT * FROM assignments WHERE id=?", id);
+        Map<String, Object> row = db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL", id);
         actor.cohort(Db.id(row, "cohortId"));
         return row;
     }

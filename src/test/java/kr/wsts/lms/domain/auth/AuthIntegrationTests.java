@@ -1,6 +1,6 @@
 package kr.wsts.lms.domain.auth;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -18,18 +18,19 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:lms-auth-tests;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
         "app.security.jwt-secret=auth-test-only-fixed-key-at-least-32-bytes",
-        "app.bootstrap.admin-email=", "app.bootstrap.admin-password="
+        "app.bootstrap.admin-email=auth-admin@example.test", "app.bootstrap.admin-password=TestPassword!42"
 })
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 class AuthIntegrationTests {
     private static final String PASSWORD = "TestPassword!42";
+    private static final String ADMIN_EMAIL = "auth-admin@example.test";
     @Autowired MockMvc mvc;
     @Autowired Db db;
 
     @Test
-    void registrationReturnsPublicStudentAndLoginAuthenticates() throws Exception {
-        var account = register();
+    void administratorCreatesPublicStudentAndStudentCanLogIn() throws Exception {
+        var account = createAccount();
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + account.email + "\",\"password\":\"wrong-password\"}"))
                 .andExpect(status().isUnauthorized());
@@ -37,13 +38,61 @@ class AuthIntegrationTests {
         mvc.perform(get("/api/me").header("Authorization", "Bearer " + session.access))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(account.id))
                 .andExpect(jsonPath("$.role").value("STUDENT"))
-                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+                .andExpect(jsonPath("$.passwordHash").doesNotExist())
+                .andExpect(jsonPath("$.provisionedBy").doesNotExist())
+                .andExpect(jsonPath("$.provisionedAt").doesNotExist());
         mvc.perform(get("/api/me")).andExpect(status().isUnauthorized());
     }
 
     @Test
+    void anonymousAndStudentRequestsCannotCreateAccounts() throws Exception {
+        String anonymousEmail = uniqueEmail();
+        mvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON)
+                .content(accountRequest(anonymousEmail)))
+                .andExpect(status().isUnauthorized());
+        var student = createAccount();
+        var session = login(student.email, PASSWORD);
+        String studentEmail = uniqueEmail();
+        mvc.perform(post("/api/users").header("Authorization", "Bearer " + session.access)
+                .contentType(MediaType.APPLICATION_JSON).content(accountRequest(studentEmail)))
+                .andExpect(status().isForbidden());
+        assertEquals(0, db.count("SELECT COUNT(*) FROM users WHERE email IN (?,?)", anonymousEmail, studentEmail));
+    }
+
+    @Test
+    void removedRegistrationEndpointCannotCreateAccounts() throws Exception {
+        String email = uniqueEmail();
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(accountRequest(email)))
+                .andExpect(status().isUnauthorized());
+        var administrator = login(ADMIN_EMAIL, PASSWORD);
+        mvc.perform(post("/api/auth/register").header("Authorization", "Bearer " + administrator.access)
+                .contentType(MediaType.APPLICATION_JSON).content(accountRequest(email)))
+                .andExpect(status().isNotFound());
+        assertEquals(0, db.count("SELECT COUNT(*) FROM users WHERE email=?", email));
+    }
+
+    @Test
+    void accountCreationStoresAdministratorAuditAndRejectsCaseInsensitiveDuplicate() throws Exception {
+        var administrator = login(ADMIN_EMAIL, PASSWORD);
+        String email = uniqueEmail();
+        var account = createAccount(administrator, email.toUpperCase(java.util.Locale.ROOT));
+        var stored = db.one("SELECT email,provisioned_by,provisioned_at FROM users WHERE id=?", account.id);
+        long administratorId = Db.id(db.one("SELECT id FROM users WHERE email=?", ADMIN_EMAIL), "id");
+        assertEquals(email, stored.get("email"));
+        assertEquals(administratorId, Db.id(stored, "provisionedBy"));
+        assertNotNull(stored.get("provisionedAt"));
+        mvc.perform(post("/api/users").header("Authorization", "Bearer " + administrator.access)
+                .contentType(MediaType.APPLICATION_JSON).content(accountRequest(email)))
+                .andExpect(status().isConflict());
+        assertEquals(1, db.count("SELECT COUNT(*) FROM users WHERE email=?", email));
+        var bootstrap = db.one("SELECT provisioned_by,provisioned_at FROM users WHERE id=?", administratorId);
+        assertNull(bootstrap.get("provisionedBy"));
+        assertNull(bootstrap.get("provisionedAt"));
+    }
+
+    @Test
     void rotatingRefreshTokenCannotBeReplayedAndRevokesItsFamily() throws Exception {
-        var account = register();
+        var account = createAccount();
         var first = login(account.email, PASSWORD);
         String rotated = mvc.perform(post("/api/auth/refresh").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"refreshToken\":\"" + first.refresh + "\"}"))
@@ -60,7 +109,7 @@ class AuthIntegrationTests {
 
     @Test
     void changingPasswordImmediatelyInvalidatesOldAccessAndRefreshTokens() throws Exception {
-        var account = register();
+        var account = createAccount();
         var session = login(account.email, PASSWORD);
         mvc.perform(patch("/api/me/password").header("Authorization", "Bearer " + session.access)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -79,7 +128,7 @@ class AuthIntegrationTests {
 
     @Test
     void disabledAccountCannotContinueUsingAnAlreadyIssuedAccessToken() throws Exception {
-        var account = register();
+        var account = createAccount();
         var session = login(account.email, PASSWORD);
         db.update("UPDATE users SET status='DISABLED' WHERE id=?", account.id);
         mvc.perform(get("/api/me").header("Authorization", "Bearer " + session.access))
@@ -88,7 +137,7 @@ class AuthIntegrationTests {
 
     @Test
     void studentCannotReadUserDirectoryOrCreateGlobalCourses() throws Exception {
-        var account = register();
+        var account = createAccount();
         var session = login(account.email, PASSWORD);
         mvc.perform(get("/api/users").header("Authorization", "Bearer " + session.access))
                 .andExpect(status().isForbidden());
@@ -97,15 +146,25 @@ class AuthIntegrationTests {
                 .andExpect(status().isForbidden());
     }
 
-    private Account register() throws Exception {
-        String email = "auth-" + UUID.randomUUID() + "@example.test";
-        String response = mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\",\"name\":\"테스트 사용자\"}"))
+    private Account createAccount() throws Exception {
+        return createAccount(login(ADMIN_EMAIL, PASSWORD), uniqueEmail());
+    }
+
+    private Account createAccount(Session administrator, String email) throws Exception {
+        String response = mvc.perform(post("/api/users").header("Authorization", "Bearer " + administrator.access)
+                .contentType(MediaType.APPLICATION_JSON).content(accountRequest(email)))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("STUDENT"))
                 .andExpect(jsonPath("$.passwordHash").doesNotExist()).andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.provisionedBy").doesNotExist()).andExpect(jsonPath("$.provisionedAt").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
         Number id = JsonPath.read(response, "$.id");
         return new Account(id.longValue(), email);
+    }
+
+    private static String uniqueEmail() { return "auth-" + UUID.randomUUID() + "@example.test"; }
+
+    private static String accountRequest(String email) {
+        return "{\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\",\"name\":\"테스트 사용자\",\"phone\":\"010-1234-5678\"}";
     }
 
     private Session login(String email, String password) throws Exception {

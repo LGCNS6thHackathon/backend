@@ -7,6 +7,9 @@ import kr.wsts.lms.domain.auth.model.User;
 
 /**
  * JDBC persistence contract only; implement and register an adapter in this feature.
+ * Accounts are issued by a global administrator, never through public sign-up.
+ * Issuance adapters preserve provisionedBy/provisionedAt; bootstrap and legacy
+ * accounts may have no known issuer. Credentials are handed out by the operator.
  * Password hashes and token hashes belong to internal models, never response DTOs.
  * Token rotation and account changes must share their service transaction.
  */

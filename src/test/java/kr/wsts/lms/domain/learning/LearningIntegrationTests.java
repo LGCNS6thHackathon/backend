@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.jayway.jsonpath.JsonPath;
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.*;
 import kr.wsts.lms.global.support.Db;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -31,6 +33,7 @@ class LearningIntegrationTests {
     private final JsonMapper json=JsonMapper.builder().build();
     @Autowired MockMvc mvc;
     @Autowired Db db;
+    @Autowired PasswordEncoder passwords;
     private User admin,first,second;
     private long courseId,cohortId;
     private LocalDate today;
@@ -77,6 +80,144 @@ class LearningIntegrationTests {
         call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","REJECTED"),409);
         call(second,get("/api/cohorts/"+cohortId+"/attendance").param("userId",String.valueOf(first.id)),null,403);
         assertEquals("PRESENT",db.one("SELECT status FROM attendance_records WHERE id=?",record).get("status"));
+    }
+
+    @Test
+    void attendanceStoresDateAndDistinctSessionUnitsWithAllSixStates() throws Exception {
+        long dateRecord=id(call(admin,put("/api/cohorts/"+cohortId+"/attendance"),Map.of("userId",first.id,"date",today.toString(),"status","PRESENT"),200));
+        String dateView=call(first,get("/api/cohorts/"+cohortId+"/attendance"),null,200);
+        assertEquals("DATE",JsonPath.read(dateView,"$.items[0].unitType"));
+        assertEquals(0,((Number)JsonPath.read(dateView,"$.items[0].sessionNo")).intValue());
+        List<String> states=List.of("PRESENT","LATE","EARLY","ABSENT","EXCUSED","LEAVE");
+        for(int session=1;session<=states.size();session++)attendance(states.get(session-1),session);
+        String records=call(first,get("/api/cohorts/"+cohortId+"/attendance"),null,200);
+        assertEquals(7,((Number)JsonPath.read(records,"$.total")).intValue());
+        assertEquals(new HashSet<>(states),new HashSet<>(JsonPath.<List<String>>read(records,"$.items[*].status")));
+        long leave=Db.id(db.one("SELECT id FROM attendance_records WHERE enrollment_id=(SELECT id FROM enrollments WHERE cohort_id=? AND user_id=?) AND attendance_date=? AND session_no=6",cohortId,first.id,today),"id");
+        long updated=attendance("EXCUSED",6);
+        assertEquals(leave,updated);
+        assertEquals(1,Db.id(db.one("SELECT version FROM attendance_records WHERE id=?",leave),"version"));
+        assertEquals("PRESENT",db.one("SELECT status FROM attendance_records WHERE id=?",dateRecord).get("status"));
+        for(Map<String,Object> invalid:List.<Map<String,Object>>of(Map.of("unitType","DATE","sessionNo",1),Map.of("unitType","SESSION","sessionNo",0),Map.of("unitType","SESSION","sessionNo",-1),Map.of("unitType","SESSION","sessionNo",2147483648L),Map.of("unitType","OTHER","sessionNo",1))) {
+            var body=new HashMap<String,Object>(Map.of("userId",first.id,"date",today.toString(),"status","PRESENT"));body.putAll(invalid);
+            call(admin,put("/api/cohorts/"+cohortId+"/attendance"),body,400);
+        }
+    }
+
+    @Test
+    void positiveAttendanceTransitionsRequireOwnerRequestAndStaffApproval() throws Exception {
+        List<List<String>> transitions=List.of(List.of("ABSENT","LATE"),List.of("ABSENT","PRESENT"),List.of("LATE","PRESENT"),List.of("EXCUSED","PRESENT"),List.of("LEAVE","PRESENT"),List.of("EARLY","PRESENT"));
+        for(int index=0;index<transitions.size();index++) {
+            String original=transitions.get(index).get(0),requested=transitions.get(index).get(1);int session=index+1;
+            long record=attendance(original,session);
+            call(admin,put("/api/cohorts/"+cohortId+"/attendance"),attendanceBody(requested,session),409);
+            assertEquals(original,db.one("SELECT status FROM attendance_records WHERE id=?",record).get("status"));
+            assertEquals(0,Db.id(db.one("SELECT version FROM attendance_records WHERE id=?",record),"version"));
+            call(second,post("/api/attendance/"+record+"/corrections"),null,403);
+            call(admin,post("/api/attendance/"+record+"/corrections"),null,403);
+            Object request=requested.equals("PRESENT")?null:Map.of("requestedStatus",requested);
+            String response=call(first,post("/api/attendance/"+record+"/corrections"),request,201);long correction=id(response);
+            assertEquals(original,JsonPath.read(response,"$.originalStatus"));
+            assertEquals(0,((Number)JsonPath.read(response,"$.originalVersion")).intValue());
+            assertEquals(requested,JsonPath.read(response,"$.requestedStatus"));
+            assertTrue(JsonPath.<String>read(response,"$.reason").length()>=5);
+            call(first,post("/api/attendance/"+record+"/corrections"),request,409);
+            call(first,patch("/api/attendance/corrections/"+correction),Map.of("status","APPROVED"),403);
+            call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","APPROVED"),200);
+            call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","APPROVED"),409);
+            Map<String,Object> stored=db.one("SELECT status,version FROM attendance_records WHERE id=?",record);
+            assertEquals(requested,stored.get("status"));assertEquals(1,Db.id(stored,"version"));
+            assertEquals(1,db.count("SELECT COUNT(*) FROM notifications WHERE resource_type='ATTENDANCE_CORRECTION' AND resource_id=?",correction));
+        }
+    }
+
+    @Test
+    void correctionsRejectUnsupportedTransitionsAndStillValidateProvidedReason() throws Exception {
+        long present=attendance("PRESENT",1),late=attendance("LATE",2),absent=attendance("ABSENT",3);
+        call(first,post("/api/attendance/"+present+"/corrections"),null,400);
+        call(first,post("/api/attendance/"+present+"/corrections"),Map.of("requestedStatus","LATE"),400);
+        call(first,post("/api/attendance/"+late+"/corrections"),Map.of("requestedStatus","EXCUSED"),400);
+        call(first,post("/api/attendance/"+absent+"/corrections"),Map.of("requestedStatus","EXCUSED"),400);
+        call(first,post("/api/attendance/"+absent+"/corrections"),Map.of("reason","짧음"),400);
+        String requested=call(first,post("/api/attendance/"+absent+"/corrections"),Map.of("reason"," 입실 기록 확인을 요청합니다. "),201);
+        assertEquals("입실 기록 확인을 요청합니다.",JsonPath.read(requested,"$.reason"));
+    }
+
+    @Test
+    void concurrentCorrectionRequestsCannotCreateTwoPendingSnapshots() throws Exception {
+        long record=attendance("ABSENT",1);
+        ExecutorService executor=Executors.newFixedThreadPool(2);CountDownLatch ready=new CountDownLatch(2),start=new CountDownLatch(1);
+        try {
+            List<Future<Integer>> futures=new ArrayList<>();
+            for(int i=0;i<2;i++)futures.add(executor.submit(()->{ready.countDown();start.await();return mvc.perform(post("/api/attendance/"+record+"/corrections").header("Authorization",bearer(first))).andReturn().getResponse().getStatus();}));
+            assertTrue(ready.await(5,TimeUnit.SECONDS));start.countDown();List<Integer> statuses=new ArrayList<>();
+            for(var future:futures)statuses.add(future.get(10,TimeUnit.SECONDS));Collections.sort(statuses);assertEquals(List.of(201,409),statuses);
+            assertEquals(1,db.count("SELECT COUNT(*) FROM attendance_corrections WHERE attendance_id=? AND status='PENDING'",record));
+        } finally {executor.shutdownNow();}
+    }
+
+    @Test
+    void normalStaffCorrectionInvalidatesPendingRequestAndAdvancesRecordVersion() throws Exception {
+        long record=attendance("ABSENT",1);
+        long correction=id(call(first,post("/api/attendance/"+record+"/corrections"),Map.of(),201));
+        assertEquals(record,attendance("EXCUSED",1));
+        Map<String,Object> stored=db.one("SELECT status,version FROM attendance_records WHERE id=?",record);
+        assertEquals("EXCUSED",stored.get("status"));assertEquals(1,Db.id(stored,"version"));
+        assertEquals("INVALIDATED",db.one("SELECT status FROM attendance_corrections WHERE id=?",correction).get("status"));
+        call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","APPROVED"),409);
+        assertEquals("EXCUSED",db.one("SELECT status FROM attendance_records WHERE id=?",record).get("status"));
+        String history=call(first,get("/api/cohorts/"+cohortId+"/attendance/corrections"),null,200);
+        assertEquals("INVALIDATED",JsonPath.read(history,"$.items[0].status"));
+        long replacement=id(call(first,post("/api/attendance/"+record+"/corrections"),Map.of(),201));
+        assertEquals(1,Db.id(db.one("SELECT original_version FROM attendance_corrections WHERE id=?",replacement),"originalVersion"));
+        var sameStatusEdit=new HashMap<>(attendanceBody("EXCUSED",1));sameStatusEdit.put("note","공결 근거를 추가로 확인했습니다.");
+        call(admin,put("/api/cohorts/"+cohortId+"/attendance"),sameStatusEdit,200);
+        assertEquals(2,Db.id(db.one("SELECT version FROM attendance_records WHERE id=?",record),"version"));
+        assertEquals("INVALIDATED",db.one("SELECT status FROM attendance_corrections WHERE id=?",replacement).get("status"));
+        long current=id(call(first,post("/api/attendance/"+record+"/corrections"),Map.of(),201));
+        assertEquals(2,Db.id(db.one("SELECT original_version FROM attendance_corrections WHERE id=?",current),"originalVersion"));
+        call(admin,patch("/api/attendance/corrections/"+current),Map.of("status","APPROVED"),200);
+        assertEquals(3,Db.id(db.one("SELECT version FROM attendance_records WHERE id=?",record),"version"));
+    }
+
+    @Test
+    void staleSnapshotReviewPersistsInvalidationWithoutChangingAttendance() throws Exception {
+        for(int session=1;session<=4;session++) {
+            long record=attendance("ABSENT",session);
+            long correction=id(call(first,post("/api/attendance/"+record+"/corrections"),null,201));
+            if(session==1)db.update("UPDATE attendance_records SET version=version+1 WHERE id=?",record);
+            else if(session==2)db.update("UPDATE attendance_records SET status='EXCUSED' WHERE id=?",record);
+            else if(session==3)db.update("UPDATE attendance_records SET deleted_at=? WHERE id=?",Db.now(),record);
+            else db.update("UPDATE attendance_corrections SET original_status=NULL,original_version=NULL WHERE id=?",correction);
+            Map<String,Object> before=db.one("SELECT status,version,deleted_at FROM attendance_records WHERE id=?",record);
+            call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","APPROVED"),409);
+            Map<String,Object> after=db.one("SELECT status,version,deleted_at FROM attendance_records WHERE id=?",record);
+            assertEquals(before,after);
+            Map<String,Object> invalidated=db.one("SELECT status,reviewed_by,reviewed_at FROM attendance_corrections WHERE id=?",correction);
+            assertEquals("INVALIDATED",invalidated.get("status"));assertEquals(admin.id,Db.id(invalidated,"reviewedBy"));assertNotNull(invalidated.get("reviewedAt"));
+        }
+        String history=call(first,get("/api/cohorts/"+cohortId+"/attendance/corrections"),null,200);
+        assertEquals(4,((Number)JsonPath.read(history,"$.total")).intValue());
+        assertEquals(List.of("INVALIDATED","INVALIDATED","INVALIDATED","INVALIDATED"),JsonPath.read(history,"$.items[*].status"));
+    }
+
+    @Test
+    void softDeletedAttendanceIsHiddenAndItsInvalidatedRequestRemainsInHistory() throws Exception {
+        long record=attendance("LEAVE",1);
+        long correction=id(call(first,post("/api/attendance/"+record+"/corrections"),null,201));
+        call(first,delete("/api/attendance/"+record),null,403);
+        call(admin,delete("/api/attendance/"+record),null,204);
+        Map<String,Object> deleted=db.one("SELECT deleted_at,version FROM attendance_records WHERE id=?",record);
+        assertNotNull(deleted.get("deletedAt"));assertEquals(1,Db.id(deleted,"version"));
+        String records=call(first,get("/api/cohorts/"+cohortId+"/attendance"),null,200);
+        assertEquals(0,((Number)JsonPath.read(records,"$.total")).intValue());assertEquals(List.of(),JsonPath.read(records,"$.summary"));
+        call(first,post("/api/attendance/"+record+"/corrections"),null,404);
+        call(admin,put("/api/cohorts/"+cohortId+"/attendance"),attendanceBody("ABSENT",1),409);
+        call(admin,delete("/api/attendance/"+record),null,404);
+        call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","APPROVED"),409);
+        String history=call(first,get("/api/cohorts/"+cohortId+"/attendance/corrections"),null,200);
+        assertEquals(1,((Number)JsonPath.read(history,"$.total")).intValue());assertEquals("INVALIDATED",JsonPath.read(history,"$.items[0].status"));
+        assertEquals("SESSION",JsonPath.read(history,"$.items[0].unitType"));assertEquals(1,((Number)JsonPath.read(history,"$.items[0].sessionNo")).intValue());
     }
 
     @Test
@@ -140,6 +281,12 @@ class LearningIntegrationTests {
     private long createCohort() throws Exception {
         return id(call(admin,post("/api/courses/"+courseId+"/cohorts"),Map.of("name","통합 테스트 기수","startDate",today.minusDays(20).toString(),"endDate",today.plusDays(100).toString()),201));
     }
+    private Map<String,Object> attendanceBody(String status,int session) {
+        return Map.of("userId",first.id,"date",today.toString(),"unitType","SESSION","sessionNo",session,"status",status);
+    }
+    private long attendance(String status,int session) throws Exception {
+        return id(call(admin,put("/api/cohorts/"+cohortId+"/attendance"),attendanceBody(status,session),200));
+    }
     private long assignment(LocalDateTime due) throws Exception {
         return id(call(admin,post("/api/cohorts/"+cohortId+"/assignments"),Map.of("title","서비스 설계 과제","description","문제와 해결 과정을 설명해주세요.","dueAt",iso(due),"maxScore",100),201));
     }
@@ -154,8 +301,9 @@ class LearningIntegrationTests {
     private static Map<String,Object> answer(long question,long option) {return Map.of("questionId",question,"optionId",option);}
     private User account(boolean administrator) throws Exception {
         String email="learning-"+UUID.randomUUID()+"@example.test";
-        String response=call(null,post("/api/auth/register"),Map.of("email",email,"password",PASSWORD,"name","학습 테스트 사용자"),201);long id=id(response);
-        if(administrator)db.update("UPDATE users SET role='ADMIN' WHERE id=?",id);
+        var now=Db.now();
+        long id=db.insert("INSERT INTO users(email,password_hash,name,role,status,token_version,created_at,updated_at) VALUES(?,?,?,?,'ACTIVE',0,?,?)",
+                email,passwords.encode(PASSWORD),"학습 테스트 사용자",administrator?"ADMIN":"STUDENT",now,now);
         String session=call(null,post("/api/auth/login"),Map.of("email",email,"password",PASSWORD),200);
         return new User(id,JsonPath.read(session,"$.accessToken"));
     }
