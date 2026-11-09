@@ -1,6 +1,6 @@
 # LMS API 명세
 
-86개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
+91개 실제 HTTP 작업의 상세 요청·응답 스키마는 [openapi.json](openapi.json)에 있습니다. 실행 중에는 `GET /api-docs`로 동일 명세를 받을 수 있습니다. Swagger Editor 또는 OpenAPI를 지원하는 Postman에 가져올 수 있습니다.
 
 ## 공통 규칙
 
@@ -109,6 +109,11 @@
 | GET | `/api/posts/{postId}` | 게시글 상세 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 조회 시 views가 증가합니다. |
 | PATCH | `/api/posts/{postId}` | 게시글 수정 | 200 | 권한: 작성자 또는 기수 스태프. QUESTION 이외 분류로 변경하거나 공지를 수정하거나 고정하려면 스태프 권한이 필요합니다. |
 | DELETE | `/api/posts/{postId}` | 게시글 삭제 | 204 | 권한: 작성자 또는 기수 스태프. 논리 삭제합니다. |
+| GET | `/api/admin/cohorts/{cohortId}/posts` | ??? 게시글 목록 | 200 | ??: ?? ADMIN. ?? ??? ???? ?? ???? ?????. |
+| POST | `/api/admin/cohorts/{cohortId}/posts` | ??? 게시글 작성 | 201 | ??: ?? ADMIN. ?? ??? ???? ?? ???? ?????. |
+| GET | `/api/admin/posts/{postId}` | ??? 게시글 상세 | 200 | ??: ?? ADMIN. ?? ??? ???? ?? ???? ?????. |
+| PATCH | `/api/admin/posts/{postId}` | ??? 게시글 수정 | 200 | ??: ?? ADMIN. ?? ??? ???? ?? ???? ?????. |
+| DELETE | `/api/admin/posts/{postId}` | ??? 게시글 삭제 | 204 | ??: ?? ADMIN. ?? ??? ???? ?? ???? ?????. |
 | GET | `/api/posts/{postId}/comments` | 댓글 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
 | POST | `/api/posts/{postId}/comments` | 댓글 작성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 게시글 작성자에게 알림. 본인 댓글은 알림 생략. |
 | PATCH | `/api/comments/{commentId}` | 댓글 수정 | 200 | 권한: 댓글 작성자 또는 기수 스태프. |
