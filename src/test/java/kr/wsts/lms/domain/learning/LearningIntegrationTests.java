@@ -48,6 +48,34 @@ class LearningIntegrationTests {
     }
 
     @Test
+    void onlyAdminCanManageAttendanceEvenWhenCohortRoleIsStaff() throws Exception {
+        long record=attendance("ABSENT",1);
+        long correction=id(call(first,post("/api/attendance/"+record+"/corrections"),null,201));
+        for(String role:List.of("INSTRUCTOR","MANAGER")) {
+            User staff=account(false);
+            // MANAGER is a cohort role; only INSTRUCTOR also exists as a global role.
+            if(role.equals("INSTRUCTOR")) db.update("UPDATE users SET role=? WHERE id=?",role,staff.id);
+            db.insert("INSERT INTO enrollments(cohort_id,user_id,role,status,created_at,updated_at) VALUES(?,?,?,'ACTIVE',?,?)",cohortId,staff.id,role,Db.now(),Db.now());
+            call(staff,put("/api/cohorts/"+cohortId+"/attendance"),attendanceBody("PRESENT",2),403);
+            call(staff,put("/api/cohorts/"+cohortId+"/attendance"),attendanceBody("EXCUSED",1),403);
+            call(staff,delete("/api/attendance/"+record),null,403);
+            for(String status:List.of("APPROVED","REJECTED"))
+                call(staff,patch("/api/attendance/corrections/"+correction),Map.of("status",status),403);
+            String records=call(staff,get("/api/cohorts/"+cohortId+"/attendance"),null,200);
+            assertEquals(0,number(records,"$.total"));
+            assertEquals(List.of(),JsonPath.read(records,"$.summary"));
+            call(staff,get("/api/cohorts/"+cohortId+"/attendance").param("userId",String.valueOf(first.id)),null,403);
+            assertEquals(0,number(call(staff,get("/api/cohorts/"+cohortId+"/attendance/corrections"),null,200),"$.total"));
+        }
+        assertEquals("ABSENT",db.one("SELECT status FROM attendance_records WHERE id=?",record).get("status"));
+        assertEquals("PENDING",db.one("SELECT status FROM attendance_corrections WHERE id=?",correction).get("status"));
+        assertEquals(1,number(call(admin,get("/api/cohorts/"+cohortId+"/attendance"),null,200),"$.total"));
+        assertEquals(1,number(call(admin,get("/api/cohorts/"+cohortId+"/attendance/corrections"),null,200),"$.total"));
+        call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","APPROVED"),200);
+        call(admin,delete("/api/attendance/"+record),null,204);
+    }
+
+    @Test
     void studentsCanReadTheirScheduleAndRoadmapButCannotManageOrCrossCohortBoundary() throws Exception {
         long foreignCohort=createCohort();
         Map<String,Object> event=Map.of("title","실습 일정","type","LECTURE","startAt",iso(Db.now().plusHours(1)),"endAt",iso(Db.now().plusHours(2)),"location","교육장");
