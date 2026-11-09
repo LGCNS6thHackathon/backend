@@ -25,9 +25,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 시연용 데이터 입력 (profile {@code demo-seed} 에서만 동작).
- * 데이터 파일은 저장소에 포함하지 않고 로컬 폴더에서 읽는다:
+ * 데이터 파일 기본 위치는 저장소의 {@code demo-data/} 이다(docs/DEMO_SEED.md 참고):
  * <ul>
- *   <li>{@code app.demo-seed.video-tsv}: 강의 영상 목록 TSV (date, title, period, id, youtubeUrl ...)</li>
+ *   <li>{@code app.demo-seed.video-tsv}: 강의 영상 목록 TSV (date, title, period, id)</li>
  *   <li>{@code app.demo-seed.data-dir}: lms_exam_*.json(평가 문항), review_links.json(소단원·문제 연결)</li>
  * </ul>
  * 같은 이름의 시연 기수가 이미 있으면 아무것도 하지 않는다.
@@ -50,9 +50,9 @@ public class DemoSeedRunner implements ApplicationRunner {
     private final AuthService auth;
     @Value("${app.bootstrap.admin-email:}") String adminEmail;
     @Value("${app.bootstrap.admin-password:}") String adminPassword;
-    @Value("${app.demo-seed.data-dir}") String dataDir;
-    @Value("${app.demo-seed.video-tsv}") String videoTsv;
-    @Value("${app.demo-seed.student-email}") String studentEmail;
+    @Value("${app.demo-seed.data-dir:demo-data}") String dataDir;
+    @Value("${app.demo-seed.video-tsv:demo-data/lecture_videos.tsv}") String videoTsv;
+    @Value("${app.demo-seed.student-email:student@demo.test}") String studentEmail;
     @Value("${app.demo-seed.student-password}") String studentPassword;
     @Value("${app.demo-seed.student-name:시연 교육생}") String studentName;
 
@@ -203,7 +203,7 @@ public class DemoSeedRunner implements ApplicationRunner {
         return linked;
     }
 
-    /** 가상 응시 기록: 복습 링크가 있는 문항만 오답으로 저장한다. */
+    /** 가상 응시 기록: 복습 링크가 있는 문항 중 번호가 3의 배수인 것만 오답으로 저장한다. */
     @SuppressWarnings("unchecked")
     private void seedDemoAttempt(long studentId, Map<String, Object> exam, Map<String, Long> questions, Set<String> linked) {
         int examId = ((Number) exam.get("examId")).intValue();
@@ -217,7 +217,8 @@ public class DemoSeedRunner implements ApplicationRunner {
         for (Map<String, Object> p : problems) {
             String key = examId + ":" + p.get("no");
             long questionId = questions.get(key);
-            boolean correct = !linked.contains(key);
+            // Demo only: about one in three linked questions is answered wrong so the report shows realistic recommendations.
+            boolean correct = !(linked.contains(key) && ((Number) p.get("no")).intValue() % 3 == 0);
             Map<String, Object> option = db.one("SELECT id FROM assessment_options WHERE question_id=? AND is_correct=? ORDER BY id LIMIT 1", questionId, correct);
             db.insert("INSERT INTO assessment_answers(attempt_id,question_id,option_id,is_correct,earned_points) VALUES(?,?,?,?,?)",
                     attemptId, questionId, Db.id(option, "id"), correct, correct ? 1 : 0);
