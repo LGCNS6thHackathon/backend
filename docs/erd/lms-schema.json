@@ -9,7 +9,7 @@
   },
   "source": {
     "path": "docs/erd/lms-mariadb.sql",
-    "sha256": "7f8802f3ed66366d6c9c6cfd570eca587bdf7af139d8ff0a520341723deb6897",
+    "sha256": "dc5d0a0f80bd8acbe93b8cfb966d80bc818a49c58c1ee345c2ea99e6925729ac",
     "migrations": [
       {
         "path": "src/main/resources/db/migration/V1__lms_schema.sql",
@@ -22,6 +22,10 @@
       {
         "path": "src/main/resources/db/migration/V3__managed_account_provisioning.sql",
         "sha256": "7d5856e53b00778867797a10afe2e3b5a658073ff5f5ecd6514a79f35a5341e9"
+      },
+      {
+        "path": "src/main/resources/db/migration/V4__assignment_screen_fields.sql",
+        "sha256": "ca5d1e96b2bef501cb95c488fda806f8e7e61e6818a5fdd98fe3298eba7c13c5"
       }
     ]
   },
@@ -1531,6 +1535,13 @@
           "type": "DATETIME(6)",
           "nullable": true,
           "autoIncrement": false
+        },
+        {
+          "name": "subject",
+          "apiName": "subject",
+          "type": "VARCHAR(100)",
+          "nullable": true,
+          "autoIncrement": false
         }
       ],
       "primaryKey": [
@@ -1641,6 +1652,13 @@
           "apiName": "updatedAt",
           "type": "DATETIME(6)",
           "nullable": false,
+          "autoIncrement": false
+        },
+        {
+          "name": "deployment_url",
+          "apiName": "deploymentUrl",
+          "type": "VARCHAR(2000)",
+          "nullable": true,
           "autoIncrement": false
         }
       ],

@@ -2,7 +2,7 @@
 
 기준은 2026-11-09 재확인한 [Notion 기능명세서](https://app.notion.com/p/c4f933854d4a45d5a545bf62cd8e2045?pvs=23)의 비어 있지 않은 26개 항목과 채팅에서 확정한 관리자 계정 발급·출결 정정 정책입니다. 전체 설계 결정과 컬럼은 [DOMAIN_PLAN.md](DOMAIN_PLAN.md), 실제 생성 스키마는 [MariaDB SQL](../erd/lms-mariadb.sql)을 확인하세요.
 
-AI·영상·Discord 신규 기능의 결과물은 **스키마·ERD·도메인 모델·저장소 인터페이스 기반**입니다. 해당 기능의 API, 서비스, JDBC 저장소 구현, AI 요청, Discord 전송은 각 담당자가 구현합니다. 기존 JDBC API에는 공개 회원가입 제거·관리자 발급, 출결 단위·정정·논리 삭제, 과제 담당 강사·논리 삭제, 제출 파일 업로드 시각 갱신을 반영했습니다. 전체 테스트 32개와 실제 MariaDB API 흐름 25개 검증을 통과했습니다. 신규 도메인 모델은 기존 JDBC API에 자동 연결되지 않습니다.
+AI·영상·Discord 신규 기능의 결과물은 **스키마·ERD·도메인 모델·저장소 인터페이스 기반**입니다. 해당 기능의 API, 서비스, JDBC 저장소 구현, AI 요청, Discord 전송은 각 담당자가 구현합니다. 기존 JDBC API에는 공개 회원가입 제거·관리자 발급, 출결 단위·정정·논리 삭제, 과제 담당 강사·논리 삭제를 반영했습니다. 현재 과제 화면에 맞춘 본인 카드·제출/첨부 재조회·배포 URL·multipart 제출·평가자 이름 반환도 백엔드에 추가했습니다. 프런트엔드 화면과 호출 코드는 변경하지 않았으므로 실제 API 연결은 화면 담당자의 작업입니다. 신규 도메인 모델은 기존 JDBC API에 자동 연결되지 않습니다.
 
 ## 명세와 도메인 연결
 
@@ -31,11 +31,11 @@ AI·영상·Discord 신규 기능의 결과물은 **스키마·ERD·도메인 �
 | 19 | 평가 문제 과목·단원·핵심 개념 | `assessment_questions`, `learning_topics`, `learning_units`, `learning_subjects` | `assessment`, `curriculum`: nullable topic 연결 조회, 미분류 표시, 본인 평가 결과 조회 |
 | 20 | 평가 해설의 복습 영상 연결 | `assessment_question_review_links`, `lecture_chapters`, `lecture_videos` / AssessmentQuestionReviewLink | `assessment`, `lecture`: 공개된 정답·해설에 한해 날짜·교시·소단원·링크 조회 |
 | 21 | 관련 영상 구간 바로 재생 | `lecture_chapters` / LectureChapter | `lecture`: start_seconds로 재생 링크 생성, 0초 기본값, 자동재생·재생 불가 안내 |
-| 22 | 과제 제목·강사·기한 관리 | `assignments`, `users` / Assignment | 기존 `learning/AssignmentController`에 instructorId/instructorName·논리 삭제 코드 반영. 관리자 폼·삭제 상태 연결 |
-| 23 | 과제 탭 목록·상세 | `assignments` / Assignment | 기존 API에 담당 강사 필드·삭제 제외를 코드 반영하고 기수 접근 검사 재사용. 제목·강사 이름·제출 기한을 화면/DTO에 연결 |
-| 24 | 과제 제출·파일 재업로드 | `submissions`, `files` / Submission, 파일 모델 | 기존 `attachment/FileController`에 성공한 제출 파일 업로드 후 submitted_at 갱신 코드 반영. 제출 생성→파일 업로드 및 최종 시각 표시 연결 |
-| 25 | 강사 점수·평가 등록·수정 | `submission_reviews`, `submissions` / SubmissionReview | 기존 평가 API의 기수 강사/운영 권한·배점 검증·등록/수정 재사용. 평가 폼과 본인 상세 재조회 연결 |
-| 26 | 본인 제출 내역·평가 조회 | `submissions`, `submission_reviews`, `files` | 기존 학생 소유자 SQL 조건과 첨부 조회·다운로드 권한 재사용. 본인 제출물·최종 시각·점수·평가 화면 연결 |
+| 22 | 과제 제목·강사·기한 관리 | `assignments`, `users` / Assignment | CRUD·담당 강사·논리 삭제 구현. 선택 subject로 과목 뱃지 표시명 저장. 관리자 폼의 기존 API 연결 확인 |
+| 23 | 과제 탭 목록·상세 | `assignments` / Assignment | 카드 표시 필드·본인 제출/첨부/평가·제출 가능 상태를 함께 반환. 샘플 데이터 대신 실제 목록/상세 API 호출 연결 |
+| 24 | 과제 제출·파일 재업로드 | `submissions`, `files` / Submission, 파일 모델 | repoUrl/deployUrl/submitMemo 별칭, 최대50MiB 제출 첨부, JSON 또는 단일 multipart 저장 구현. 실제 파일 선택·저장 호출·서버 시각 재조회 연결 |
+| 25 | 강사 점수·평가 등록·수정 | `submission_reviews`, `submissions` / SubmissionReview | 점수·평가 등록/수정·평가자 이름·첨부 목록/다운로드 경로 반환. 관리자/기수 강사/매니저의 채점 폼 연결 |
+| 26 | 본인 제출 내역·평가 조회 | `submissions`, `submission_reviews`, `files` | 본인 제출·파일·최종 시각·점수·평가와 채점 전 null 피드백 반환. 기존 학생 소유자 및 첨부 접근 검사를 유지하고 화면에 실제 결과 표시 |
 
 ## 담당자들이 함께 지켜야 할 계약
 
@@ -69,9 +69,11 @@ AI·영상·Discord 신규 기능의 결과물은 **스키마·ERD·도메인 �
 
 - `author_id`는 등록자이며 담당 강사는 `instructor_id`·`instructor_name`으로 표현합니다. 둘이 동일하다고 가정하지 않습니다. 기존 과제 생성·수정 API의 `instructorId`·`instructorName` 처리와 목록·상세 조회에 코드 반영합니다.
 - 과제 삭제는 `deleted_at`을 기록하며 제출물·평가·첨부 이력을 보존합니다. 목록·상세·대시보드와 과제에 연결된 제출·파일 경로에서 삭제 과제를 제외하는 동작을 코드 반영합니다.
-- `submissions.submitted_at`은 **마지막으로 성공한 제출/파일 업로드 시각**입니다. 제출 파일 저장과 메타데이터 저장이 성공한 뒤 이 값을 갱신하도록 기존 파일 업로드 API에 코드 반영합니다. 실패한 업로드는 제출 시각을 바꾸지 않습니다. 과제 안내 첨부 업로드는 학생 제출 시각을 바꾸지 않습니다.
+- `submissions.submitted_at`은 **마지막으로 성공한 제출/파일 업로드 시각**입니다. 제출 파일 저장과 메타데이터 저장이 성공한 뒤 갱신합니다. 파일이 이미 있는 제출물은 메모·URL만 바꾸면 최종 업로드 시각을 유지합니다. 실패한 업로드는 제출 시각을 바꾸지 않고 과제 안내 첨부 업로드도 학생 제출 시각을 바꾸지 않습니다.
 - 학생 조회는 기존 API의 로그인 `user_id` SQL 조건과 첨부 조회·다운로드 소유자 검사를 재사용합니다. 다른 학생의 제출 시간·제출물·점수·강사 평가·첨부파일은 학생에게 노출하지 않습니다. 기존 평가 경로는 기수 강사/운영 권한과 배점을 확인합니다.
-- 기존 마감 후 제출 제한과 검토 후 수정 잠금은 유지합니다. 프런트엔드는 제출 생성 후 파일 업로드, 재업로드 후 최종 시각 재조회, 본인 제출·평가 표시를 연결해야 합니다. 기존 API 변경의 최종 회귀·통합 검증은 루트 작업에서 수행합니다.
+- V4는 `assignments.subject`와 `submissions.deployment_url`만 추가합니다. 과목은 단순 표시 문자열이며 별도 분류 관리 기능은 만들지 않습니다. 제출 팝업의 `repoUrl`, `deployUrl`, `submitMemo`는 각각 `repositoryUrl`, `deploymentUrl`, `body`의 별칭입니다. 별칭과 원래 필드를 함께 보내면 값이 같아야 합니다.
+- 같은 PUT 제출 경로에서 JSON과 multipart/form-data를 지원합니다. 파일을 함께 보낼 때는 `file` 파트를 사용하고 본문·첨부를 한 트랜잭션으로 저장합니다. 기존 제출 생성 후 파일 업로드 방식도 유지합니다. 제출 첨부 한도는50MiB, 공지/과제 안내 첨부는10MiB입니다.
+- 기존 마감 후 제출 제한과 검토 후 수정 잠금은 유지합니다. 프런트엔드는 실제 파일 선택·저장 호출과 재조회, 카드의 `canSubmit`/`canResubmit`/`feedback` 표시를 연결해야 합니다. 제출 파일 목록은 `mySubmission.files`, 제출물 목록의 `files`, `GET /api/submissions/{submissionId}/files`에서 조회하고 `downloadUrl`에 Bearer 인증으로 접근합니다.
 
 ### 영상과 평가 복습
 

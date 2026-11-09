@@ -5,7 +5,6 @@ import java.time.Instant;
 /**
  * JDBC domain state for {@code submissions}.
  * submittedAt is the last successful submission/file upload time.
- * The feature owner must connect upload metadata updates to this timestamp.
  * Timestamp components use UTC instants.
  * Persistence mapping and business operations are implemented by the feature owner.
  */
@@ -16,6 +15,7 @@ public record Submission(
         String body,
         String repositoryUrl,
         Instant submittedAt,
-        Instant updatedAt
+        Instant updatedAt,
+        String deploymentUrl
 ) {
 }

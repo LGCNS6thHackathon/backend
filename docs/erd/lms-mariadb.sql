@@ -109,7 +109,7 @@ CREATE INDEX ix_comment_post ON comments(post_id,created_at);
 CREATE TABLE assignments (
  id BIGINT AUTO_INCREMENT PRIMARY KEY, cohort_id BIGINT NOT NULL, author_id BIGINT NOT NULL,
  title VARCHAR(160) NOT NULL, description TEXT NOT NULL, due_at DATETIME(6) NOT NULL, max_score INT NOT NULL DEFAULT 100,
- created_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL, instructor_id BIGINT, instructor_name VARCHAR(80), deleted_at DATETIME(6),
+ created_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL, instructor_id BIGINT, instructor_name VARCHAR(80), deleted_at DATETIME(6), subject VARCHAR(100),
  CONSTRAINT fk_assignment_cohort FOREIGN KEY(cohort_id) REFERENCES cohorts(id),
  CONSTRAINT fk_assignment_author FOREIGN KEY(author_id) REFERENCES users(id),
  CONSTRAINT fk_assignment_instructor FOREIGN KEY(instructor_id) REFERENCES users(id),
@@ -118,7 +118,7 @@ CREATE TABLE assignments (
 CREATE INDEX ix_assignment_cohort ON assignments(cohort_id,due_at);
 CREATE TABLE submissions (
  id BIGINT AUTO_INCREMENT PRIMARY KEY, assignment_id BIGINT NOT NULL, user_id BIGINT NOT NULL,
- body TEXT NOT NULL, repository_url VARCHAR(2000), submitted_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL,
+ body TEXT NOT NULL, repository_url VARCHAR(2000), submitted_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL, deployment_url VARCHAR(2000),
  CONSTRAINT uq_submission UNIQUE(assignment_id,user_id),
  CONSTRAINT fk_submission_assignment FOREIGN KEY(assignment_id) REFERENCES assignments(id),
  CONSTRAINT fk_submission_user FOREIGN KEY(user_id) REFERENCES users(id)

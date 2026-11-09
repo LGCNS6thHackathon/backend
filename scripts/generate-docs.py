@@ -149,18 +149,21 @@ def setup_models():
         model(NAMES[table["name"]], props, props.keys())
         SCHEMAS[NAMES[table["name"]]]["required"] = [k for k in props if k != "deletedAt"]
     for name, props in {
+        "File":dict(downloadUrl=string(description="Bearer 인증이 필요한 다운로드 API의 상대 경로")),
         "Cohort":dict(courseTitle=string(), totalHours=integer()),
         "Enrollment":dict(name=string(), email=string(format="email"), phone=nullable(string())),
         "Post":dict(authorName=string(), commentCount=integer(0)),
         "Comment":dict(authorName=string()),
         "Attendance":dict(userId=ID, userName=string()),
         "AttendanceCorrection":dict(userId=ID, userName=string(), attendanceDate=DATE, unitType=enum("DATE","SESSION"), sessionNo=integer(0)),
-        "Submission":dict(userName=string(), score=nullable(integer()), feedback=nullable(string()), reviewerId=nullable(ID)),
+        "Submission":dict(userName=string(), score=nullable(integer()), feedback=nullable(string()), reviewerId=nullable(ID), reviewerName=nullable(string()), repoUrl=nullable(string(maximum=2000)), deployUrl=nullable(string(maximum=2000)), submitMemo=string(maximum=20000), files=array("SubmissionFile"), fileName=nullable(string()), status=enum("SUBMITTED","REVIEWED")),
+        "SubmissionReview":dict(reviewerName=string()),
         "StudyGroup":dict(ownerName=string(), memberCount=integer(0), joined=BOOL),
         "StudyGroupMember":dict(name=string(), email=string(format="email")),
     }.items(): SCHEMAS[name]["properties"].update(props)
     # Projection endpoints may omit base-row fields. Distinct detailed schemas document nesting.
     model("FileSummary", {k:SCHEMAS["File"]["properties"][k] for k in ("id","originalName","contentType","sizeBytes","createdAt")}, ["id","originalName","contentType","sizeBytes","createdAt"])
+    model("SubmissionFile", dict(**SCHEMAS["FileSummary"]["properties"], downloadUrl=string(description="Bearer 인증이 필요한 다운로드 API의 상대 경로")), SCHEMAS["FileSummary"]["required"] + ["downloadUrl"])
     model("PostListItem",{k:v for k,v in SCHEMAS["Post"]["properties"].items() if k not in ("body","deletedAt","commentCount")},["id","cohortId","authorId","authorName","category","title","pinned","views","createdAt","updatedAt"])
     model("PostDetail",dict(**SCHEMAS["Post"]["properties"],files=array("FileSummary")),SCHEMAS["Post"]["required"] + ["files"])
     model("StudyGroupMemberView",dict(id=ID,userId=ID,name=string(),joinedAt=TIME),["id","userId","name","joinedAt"])
@@ -171,7 +174,12 @@ def setup_models():
     SCHEMAS["Question"]["description"] = "수강생은 응시 시작 후 문항을 조회합니다. 해설과 선택지 isCorrect는 본인 응시 종료와 평가 전체 종료(또는 CLOSED)가 모두 충족된 뒤 공개합니다. 스태프는 항상 조회 가능합니다."
     SCHEMAS["RoadmapPhase"]["properties"].update(status=enum("UPCOMING","IN_PROGRESS","COMPLETED"), modules=array("RoadmapModule"))
     SCHEMAS["RoadmapModule"]["properties"]["status"] = enum("UPCOMING","IN_PROGRESS","COMPLETED")
-    model("AssignmentDetail", dict(**SCHEMAS["Assignment"]["properties"], mySubmission=nullable(ref("Submission")), myReview=nullable(ref("SubmissionReview")), files=array("FileSummary")), SCHEMAS["Assignment"]["required"])
+    model("AssignmentFeedback", dict(mentor=string(), score=string(description="점수 / 만점. 예: 90 / 100"), comment=string()), ["mentor","score","comment"])
+    card = dict(**SCHEMAS["Assignment"]["properties"])
+    card.update(subject=string(description="과목 표시명. 미지정 과제는 과제로 표시"), author=string(description="화면 담당 강사 표시명"), dueDate=string(description="한국 시각 yyyy-MM-dd HH:mm"), dDay=string(description="오늘 마감, D-N, 마감 또는 제출완료"), status=enum("미제출","제출완료"), submissionDate=nullable(string(description="본인 최종 제출 시각, 한국 시각 yyyy-MM-dd HH:mm")), feedback=nullable(ref("AssignmentFeedback")), reviewStatus=enum("NOT_SUBMITTED","SUBMITTED","REVIEWED"), canSubmit=BOOL, canResubmit=BOOL, submissionLocked=BOOL, lockReason=nullable(enum("DEADLINE_PASSED","REVIEWED")), mySubmission=nullable(ref("Submission")), myReview=nullable(ref("SubmissionReview")))
+    card_required = SCHEMAS["Assignment"]["required"] + ["author","dueDate","dDay","status","submissionDate","feedback","reviewStatus","canSubmit","canResubmit","submissionLocked","lockReason","mySubmission","myReview"]
+    model("AssignmentCard",card,card_required)
+    model("AssignmentDetail", dict(**card, files=array("FileSummary")), card_required + ["files"])
     model("AssessmentDetail", dict(**SCHEMAS["Assessment"]["properties"], questionCount=integer(0), myAttempt=nullable(ref("Attempt")), questions=array("Question")), SCHEMAS["Assessment"]["required"] + ["questionCount", "myAttempt"])
     SCHEMAS["Attempt"]["properties"].update(expiresAt=TIME, remainingSeconds=integer(0,format="int64"), expired=BOOL, questions=array("Question"), answers=array("Answer"))
     model("Error", dict(code=string(), message=string(), timestamp=TIME), ["code","message","timestamp"])
@@ -275,16 +283,19 @@ def learning_endpoints():
     PATHS["/api/attendance/{attendanceId}/corrections"]["post"]["requestBody"]["required"] = False
     endpoint("get","/api/cohorts/{cohortId}/attendance/corrections","출결 정정 목록",paged("AttendanceCorrection"),tag="출결",access=MEMBER,params=page_params(),description="수강생은 본인 요청만 조회합니다.")
     endpoint("patch","/api/attendance/corrections/{id}","출결 정정 승인·반려","AttendanceCorrection",dict(status=enum("APPROVED","REJECTED"),reviewNote=string(maximum=2000,default="")),["status"],tag="출결",access=STAFF,description="PENDING만 처리 가능. 원본 상태·version·삭제 여부를 재검증합니다. 달라졌다면 INVALIDATED를 저장하고409를 반환합니다. 승인과 실제 출결 변경은 한 트랜잭션입니다.")
-    assignment=dict(title=string(2,160),description=string(2,20000),dueAt=TIME,maxScore=integer(1,1000,default=100),instructorId=nullable(ID),instructorName=nullable(string(2,80)))
-    endpoint("get","/api/cohorts/{cohortId}/assignments","과제 목록",paged("Assignment"),tag="과제",access=MEMBER,params=page_params()+[query("q",string(maximum=200,default=""),"제목 검색")])
+    assignment=dict(title=string(2,160),description=string(2,20000),dueAt=TIME,maxScore=integer(1,1000,default=100),instructorId=nullable(ID),instructorName=nullable(string(2,80)),subject=nullable(string(maximum=100,description="과목 뱃지에 쓸 단순 표시명. 별도 학습 분류 관리 불필요")))
+    endpoint("get","/api/cohorts/{cohortId}/assignments","과제 목록",paged("AssignmentCard"),tag="과제",access=MEMBER,params=page_params()+[query("q",string(maximum=200,default=""),"제목 검색")],description="카드 표시 필드와 로그인 본인의 제출·첨부·평가를 함께 반환합니다. 학생에게 다른 회원의 제출 내역을 노출하지 않습니다.")
     endpoint("post","/api/cohorts/{cohortId}/assignments","과제 생성","Assignment",assignment,["title","description","dueAt"],status=201,tag="과제",access=STAFF,description="담당 강사 ID는 해당 기수의 ACTIVE INSTRUCTOR 등록이어야 합니다. ID 없이 강사 이름만 저장할 수 있습니다. 등록자와 담당 강사는 별개입니다.")
-    endpoint("get","/api/assignments/{id}","과제 상세·내 제출·피드백","AssignmentDetail",tag="과제",access=MEMBER)
+    endpoint("get","/api/assignments/{id}","과제 상세·내 제출·피드백","AssignmentDetail",tag="과제",access=MEMBER,description="files는 과제 안내 첨부, mySubmission.files는 본인 제출 첨부입니다. feedback은 실제 채점 전 null입니다.")
     endpoint("patch","/api/assignments/{id}","과제 수정","Assignment",assignment,tag="과제",access=STAFF,description="이미 부여한 점수보다 낮은 maxScore로 변경할 수 없습니다.")
     endpoint("delete","/api/assignments/{id}","과제 논리 삭제",status=204,tag="과제",access=STAFF,description="제출물·첨부 기록을 보존하고 과제를 논리 삭제합니다. 삭제 후 목록·상세·제출·평가·첨부 접근에서 제외합니다.")
-    submission=dict(body=string(2,30000),repositoryUrl=string(maximum=2000,description="빈 문자열 또는 인증정보 없는 HTTPS URL"))
-    endpoint("get","/api/assignments/{assignmentId}/submissions","제출물 목록",paged("Submission"),tag="과제",access=MEMBER,params=page_params(),description="수강생은 본인 제출만, 스태프는 전체 제출을 조회합니다.")
-    endpoint("post","/api/assignments/{assignmentId}/submissions","과제 최초 제출","Submission",submission,["body"],status=201,tag="과제",access="해당 기수 ACTIVE 등록 회원",description="중복 제출은409. 기한 전만 가능합니다.")
-    endpoint("put","/api/assignments/{assignmentId}/submission","내 과제 제출·재제출","Submission",submission,["body"],tag="과제",access="해당 기수 ACTIVE 등록 회원",description="없으면 생성, 있으면 수정. 기한 만료 또는 채점 완료 시409.")
+    submission=dict(body=nullable(string(maximum=20000,description="제출 메모. 저장소 URL이 있으면 비워도 됨")),repositoryUrl=nullable(string(maximum=2000,description="빈 문자열 또는 인증정보 없는 HTTPS URL")),deploymentUrl=nullable(string(maximum=2000,description="선택 배포 URL. 빈 문자열 또는 인증정보 없는 HTTPS URL")),repoUrl=nullable(string(maximum=2000,description="화면 필드명. repositoryUrl의 별칭")),deployUrl=nullable(string(maximum=2000,description="화면 필드명. deploymentUrl의 별칭")),submitMemo=nullable(string(maximum=20000,description="화면 필드명. body의 별칭")))
+    endpoint("get","/api/assignments/{assignmentId}/submissions","제출물 목록",paged("Submission"),tag="과제",access=MEMBER,params=page_params(),description="수강생은 본인 제출만, 스태프는 전체 제출을 조회합니다. 제출 파일·다운로드 경로·리뷰어 이름을 함께 반환합니다.")
+    endpoint("post","/api/assignments/{assignmentId}/submissions","과제 최초 제출","Submission",submission,status=201,tag="과제",access="해당 기수 ACTIVE 등록 회원",description="저장소 URL 또는 제출 메모 중 하나는 필요합니다. 중복 제출은409. 기한 전만 가능합니다.")
+    endpoint("put","/api/assignments/{assignmentId}/submission","내 과제 제출·재제출","Submission",submission,tag="과제",access="해당 기수 ACTIVE 등록 회원",description="없으면 생성, 있으면 수정. JSON 또는 multipart/form-data를 받습니다. multipart의 file은 선택이며 내용·첨부를 하나의 트랜잭션으로 저장합니다. 생략한 필드는 기존값을 보존하고 명시적 null은 빈 값으로 지웁니다. canonical/별칭을 함께 보냈을 때 공백 제거 후 다르면400입니다. 저장소 URL 또는 제출 메모 중 하나는 필요합니다. 기존 제출 파일이 있으면 JSON 수정만으로 최종 업로드 시각을 바꾸지 않습니다. 기한 만료 또는 채점 완료 시409.")
+    multipart_submission = model("MultipartSubmissionRequest",dict(**submission,file=dict(type="string",format="binary",description="선택 첨부. 1바이트~50MiB")))
+    PATHS["/api/assignments/{assignmentId}/submission"]["put"]["requestBody"]["content"]["multipart/form-data"] = dict(schema=ref(multipart_submission))
+    PATHS["/api/assignments/{assignmentId}/submission"]["put"]["responses"]["413"] = dict(description="업로드 크기 초과",content={"application/json":dict(schema=ref("Error"))})
     endpoint("patch","/api/submissions/{submissionId}/review","과제 채점·피드백","SubmissionReview",dict(score=integer(0,1000,description="실제 상한은 과제 maxScore"),feedback=string(2,10000)),["score","feedback"],tag="과제",access=STAFF,description="피드백을 생성하거나 갱신하고 제출자에게 알림을 생성합니다.")
     assessment=dict(title=string(2,160),description=string(maximum=20000,default=""),domain=string(1,100),startAt=TIME,endAt=TIME,durationMinutes=integer(1,480,default=40))
     endpoint("get","/api/cohorts/{cohortId}/assessments","평가 목록",paged("Assessment"),tag="평가",access=MEMBER,params=page_params(),description="수강생에게 DRAFT는 노출하지 않습니다.")
@@ -327,8 +338,10 @@ def community_endpoints():
     endpoint("patch","/api/notifications/{id}/read","알림 읽음 처리","Notification",tag="알림",access="본인",description="다른 사용자의 알림은404입니다. 이미 읽은 시각은 유지합니다.")
     endpoint("post","/api/notifications/read-all","전체 알림 읽음 처리",obj(dict(updated=integer(0)),["updated"]),tag="알림",access="본인")
     for kind, id_name, access in [("posts","postId","게시글 작성자 또는 기수 스태프"),("assignments","assignmentId",STAFF),("submissions","submissionId","제출자 본인(ADMIN 예외); 기한 전·검토 전")]:
-        endpoint("post",f"/api/{kind}/{{{id_name}}}/files","첨부파일 업로드","File",dict(file=dict(type="string",format="binary",description="1바이트~10MiB, 단일 파일")),["file"],status=201,tag="첨부파일",access=access,multipart=True,description="multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.")
+        limit = 50 if kind == "submissions" else 10
+        endpoint("post",f"/api/{kind}/{{{id_name}}}/files","첨부파일 업로드","File",dict(file=dict(type="string",format="binary",description=f"1바이트~{limit}MiB, 단일 파일")),["file"],status=201,tag="첨부파일",access=access,multipart=True,description=f"multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자, 크기는 {limit}MiB 이하입니다. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.")
         PATHS[f"/api/{kind}/{{{id_name}}}/files"]["post"]["responses"]["413"] = dict(description="업로드 크기 초과",content={"application/json":dict(schema=ref("Error"))})
+    endpoint("get","/api/submissions/{submissionId}/files","제출 파일 목록",array("SubmissionFile"),tag="첨부파일",access="제출자 본인 또는 해당 기수 스태프",description="삭제되지 않은 제출 파일의 이름·크기·다운로드 경로를 반환합니다. 삭제된 과제는404입니다.")
     endpoint("get","/api/files/{fileId}","첨부파일 메타데이터","File",tag="첨부파일",access="기수 회원; 제출물 첨부는 제출자 또는 기수 스태프")
     endpoint("get","/api/files/{fileId}/download","첨부파일 다운로드",tag="첨부파일",access="기수 회원; 제출물 첨부는 제출자 또는 기수 스태프")
     PATHS["/api/files/{fileId}/download"]["get"]["responses"]["200"] = dict(description="원본 파일; Content-Disposition: attachment; X-Content-Type-Options: nosniff",headers={"Content-Disposition":dict(description="UTF-8 파일 이름을 포함한 attachment",schema=string()),"Content-Length":dict(schema=integer(1))},content={"application/octet-stream":dict(schema=dict(type="string",format="binary"))})
@@ -389,6 +402,17 @@ def api_docs():
                 lines.append(f"| {method.upper()} | `{path}` | {operation['summary']} | {success} | {description} |")
         lines.append("")
     lines += ["## 연결 예시", "", "### 로그인 → 기수 → 대시보드", "", "```http", "POST /api/auth/login", "Content-Type: application/json", "", '{"email":"student@example.com","password":"your-password"}', "```", "", "응답의 `accessToken`을 다음 요청의 Bearer 헤더로 전달합니다.", "", "```http", "GET /api/cohorts?page=0&size=20", "Authorization: Bearer <accessToken>", "```", "", "선택한 기수 ID로 `GET /api/cohorts/{cohortId}/dashboard`를 호출합니다. 아직 수강 등록이 없으면 기수 목록이 비어 있으므로 ADMIN/MANAGER가 수강 등록을 먼저 생성해야 합니다.", "", "### 과제 제출 → 첨부 → 피드백", "", "```http", "PUT /api/assignments/1/submission", "Authorization: Bearer <accessToken>", "Content-Type: application/json", "", '{"body":"과제 구현 내용입니다.","repositoryUrl":"https://github.com/example/project"}', "```", "", "반환된 제출 ID를 사용해 `POST /api/submissions/{submissionId}/files`에 파일을 첨부합니다. 스태프는 `PATCH /api/submissions/{submissionId}/review`에 `{\"score\":90,\"feedback\":\"구현과 검증이 완료되었습니다.\"}`를 전달합니다. 기한이 지나거나 채점되면 재제출·첨부 변경이 제한됩니다.", "", "### 평가 생성 → 게시 → 응시 → 채점", "", "1. 스태프가 평가를 생성합니다(DRAFT).", "2. 문항과2~10개 선택지를 등록합니다. 선택지마다 `label`, `isCorrect`를 지정하고 정답은 정확히 하나입니다.", "3. `PATCH /api/assessments/{id}`에 `{\"status\":\"PUBLISHED\"}`를 보냅니다.", "4. 학생이 `POST /api/assessments/{assessmentId}/attempts`로 응시를 시작합니다. 학생당 한 번입니다.", "5. `PUT /api/assessment-attempts/{id}/answers`에 `{\"answers\":[{\"questionId\":1,\"optionId\":2}]}`를 보냅니다.", "6. `POST /api/assessment-attempts/{id}/submit`로 저장한 답안을 채점합니다. 반복 제출은 같은 결과를 반환합니다.", "7. 본인 응시 완료 후 점수·본인 답안의 채점 결과가 보입니다. 정답 선택지·해설은 평가 전체 종료 또는 CLOSED 이후에 공개합니다.", "", "응시 마감은 전체 종료 시각과 개인 제한 시간 중 빠른 시각입니다. 만료 뒤 답안 저장은 거부되고, 제출을 호출하면 기존 저장 답안을 EXPIRED 상태로 채점합니다. 자동 스케줄러로 만료 상태를 확정하지 않으므로 프론트는 `expiresAt`, `remainingSeconds`, `expired`를 함께 사용해야 합니다.", "", "## 구현 범위", "", "실제 DB CRUD, JWT 인증·권한, 출결 정정 승인, 과제 제출·채점, 객관식 평가 자동 채점, 파일 저장·권한별 다운로드, 스터디 정원 제어, 서비스 이벤트 알림을 포함합니다. 메일·문자 발송, 비밀번호 찾기, 실시간 강의/채팅, 바이러스 검사, 외부 LMS 데이터 이전은 포함하지 않습니다.", "", "## 재생성 및 검증", "", "```powershell", "python scripts/generate-docs.py", "```", "", "생성기는 실제 컨트롤러의 메서드·경로와 문서의1:1 일치를 검사하고, path parameter 선언, operationId 중복, 컴포넌트 참조를 검증합니다. 소스 변경 시 계약 정의도 함께 갱신해야 합니다.", ""]
+    lines += [
+        "## 현재 과제 화면 연결", "",
+        "- 학생 카드 목록은 `GET /api/cohorts/{cohortId}/assignments`로 조회합니다. `subject`, `author`, `dueDate`, `dDay`, `status`, `submissionDate`, `feedback`은 현재 화면 표시용 필드이며 `mySubmission`·`myReview`는 본인 원본 데이터입니다. 날짜 표시 문자열은 한국 시각이고 `dueAt`·`submittedAt` 원본은 UTC입니다.",
+        "- `feedback`은 실제 채점 전 null입니다. `reviewStatus`는 NOT_SUBMITTED/SUBMITTED/REVIEWED이며 제출된 과제의 화면 `status`는 채점 여부와 무관하게 제출완료입니다. `canSubmit`·`canResubmit`·`submissionLocked`·`lockReason`으로 버튼 상태를 연결합니다.",
+        "- 제출 팝업의 `repoUrl`, `deployUrl`, `submitMemo`를 그대로 JSON 또는 multipart 필드로 보낼 수 있습니다. 각각 기존 `repositoryUrl`, 신규 `deploymentUrl`, 기존 `body`와 같습니다. 저장소 URL이 있으면 메모는 비워도 됩니다. canonical/별칭을 같이 보내면 공백 제거 후 같은 값이어야 합니다. 생략값은 보존하고 null은 해당 값을 지웁니다.",
+        "- 파일을 함께 제출하려면 같은 PUT 경로에 multipart/form-data로 필드와 `file`을 보냅니다. 파일이 없으면 JSON을 사용할 수 있습니다. multipart 내용·파일은 함께 저장되며 파일 검증·저장 실패 시 제출 변경도 롤백합니다. 기존 제출 생성 → 개별 파일 업로드 방식도 유지합니다.",
+        "- 제출 첨부는 50MiB, 공지·과제 안내 첨부는 10MiB입니다. `mySubmission.files` 또는 `GET /api/submissions/{submissionId}/files`로 재조회할 수 있고 `downloadUrl`에는 Bearer 인증이 필요합니다. 제출물 목록에도 첨부·점수·평가·평가자 이름을 제공합니다.",
+        "- 제출 파일 업로드 성공 시 최종 제출 시각을 갱신합니다. 파일이 이미 있는 제출물의 메모·URL만 수정하면 최종 업로드 시각을 유지합니다. 링크/메모만 제출하는 과제는 저장 성공 시 최종 제출 시각을 갱신합니다.",
+        "- 관리자 과제 폼의 기존 API는 그대로 사용합니다. 과목 뱃지는 선택 `subject` 문자열로 저장하며 별도 과목 관리 기능은 필요하지 않습니다. 현재 채점 권한은 관리자 또는 해당 기수 강사·매니저입니다.",
+        "- 이번 변경은 백엔드 계약만 준비합니다. 현재 프런트엔드의 로컬 샘플 상태·업로드 시뮬레이션은 변경하지 않았으므로 프런트엔드 담당자가 실제 호출을 연결해야 합니다.", "",
+    ]
     (DOCS / "API_SPEC.md").write_text("\n".join(lines),encoding="utf-8")
     print(f"Generated OpenAPI: {count} operations, {len(PATHS)} paths, {len(SCHEMAS)} schemas")
 
@@ -476,11 +500,11 @@ def database_docs():
     purposes.update({"learning_subjects":"기수별 과목", "learning_units":"과목별 단원", "learning_topics":"단원별 핵심 개념·복습 주제", "lecture_videos":"날짜·교시별 YouTube 강의", "lecture_chapters":"강의 소단원·시작 시각", "assessment_question_review_links":"평가 문항과 복습 구간 연결", "review_sessions":"개인 AI 복습의 공통 부모", "blank_reviews":"백지 복습 내용·세 부분 피드백", "review_quizzes":"객관식 복습 세션·순차 문제 번호", "review_quiz_questions":"4개 보기·단일 선택·채점 결과", "notice_deliveries":"Discord 공지 전송 스냅샷·처리 이력"})
     lines = [
         "# MariaDB 데이터베이스와 ERD", "",
-        f"실행 기준은 `src/main/resources/db/migration`의 V1 + V2 + V3입니다. `{schema['source']['path']}`는 세 마이그레이션 적용 후의 전체 스키마입니다. {len(TABLES)}개 테이블과 {count}개 외래 키를 ERD Cloud 스냅샷 JSON으로 제공합니다.", "",
-        "V2는 추가 기능의 DB 기반이고, V3는 관리자 계정 발급 이력입니다. 관리자 계정 발급·출결 소명·과제 업로드 시각 등 기존 API의 명세 변경을 반영했습니다. 신규 Java 모델·저장소 인터페이스를 제공하며 서비스·컨트롤러·AI/Discord 호출 구현은 담당자 작업 범위입니다. [설계 범위](foundation/DOMAIN_PLAN.md)와 [팀 인수인계](foundation/TEAM_HANDOFF.md)를 먼저 확인하세요.", "",
+        f"실행 기준은 `src/main/resources/db/migration`의 V1 + V2 + V3 + V4입니다. `{schema['source']['path']}`는 네 마이그레이션 적용 후의 전체 스키마입니다. {len(TABLES)}개 테이블과 {count}개 외래 키를 ERD Cloud 스냅샷 JSON으로 제공합니다.", "",
+        "V2는 추가 기능의 DB 기반이고, V3는 관리자 계정 발급 이력입니다. V4는 현재 과제 화면의 과목 표시명과 제출 배포 URL을 저장하며 기존 행은 NULL을 유지합니다. 관리자 계정 발급·출결 소명·과제 제출/첨부/평가 API를 구현했습니다. AI·영상·Discord의 신규 Java 모델·저장소 인터페이스는 기반이며 서비스·컨트롤러·외부 호출 구현은 각 담당자 작업 범위입니다. [설계 범위](foundation/DOMAIN_PLAN.md)와 [팀 인수인계](foundation/TEAM_HANDOFF.md)를 먼저 확인하세요.", "",
         "## 제공 파일", "", "| 파일 | 용도 |", "|---|---|",
         f"| [erd/lms.erdcloud.json](erd/lms.erdcloud.json) | **ERD Cloud Upload Snapshot용**. {len(TABLES)}개 엔티티·{count}개 관계·화면 배치 포함 |",
-        "| [erd/lms-mariadb.sql](erd/lms-mariadb.sql) | V1+V2+V3 통합 스키마. 새 DB 생성·ERD Cloud SQL Import용. 기존 DB에는 Flyway 후속 마이그레이션 적용 |",
+        "| [erd/lms-mariadb.sql](erd/lms-mariadb.sql) | V1+V2+V3+V4 통합 스키마. 새 DB 생성·ERD Cloud SQL Import용. 기존 DB에는 Flyway 후속 마이그레이션 적용 |",
         "| [erd/lms-schema.json](erd/lms-schema.json) | 컬럼·타입·널 허용·PK·FK·유니크·CHECK·인덱스를 담은 자체 JSON |",
         "| [erd/erdcloud-format-source.json](erd/erdcloud-format-source.json) | 공식 형식의 출처·검증 범위 |", "",
         "## ERD Cloud JSON 가져오기", "",
@@ -503,7 +527,7 @@ def database_docs():
             parent = "|o" if optional else "||"
             child = "o|" if unique else "o{"
             lines.append(f'    {fk["referencedTable"]} {parent}--{child} {table["name"]} : "{",".join(fk["columns"])}"')
-    lines += ["```", "", "## 주요 제약과 저장 규칙", "", "- 사용자와 기수는 `enrollments`로 연결합니다. 전역 `users.role`과 기수별 `enrollments.role`을 구분합니다.", "- 회원·기수, 수강 등록·출결 날짜·회차 번호, 과제·회원, 평가·회원, 응시·문항, 스터디·회원은 각각 유니크입니다.", "- DATE 출결은 session_no=0, SESSION 출결은 양수입니다. 기존 출결 API도 일자·회차를 구분하고 삭제 기록은 조회·대시보드에서 제외합니다.", "- 출결 정정은 요청 당시 상태·version 스냅샷과 INVALIDATED 상태를 담습니다. 승인 시 원본 상태·version을 검사하고 변경·삭제된 요청은 INVALIDATED로 무효화합니다. ABSENT→LATE/PRESENT, LATE/EXCUSED/LEAVE/EARLY→PRESENT를 허용합니다. 소명자료 파일 저장용 테이블은 추가하지 않습니다.", "- 제출물당 피드백은 하나입니다. 제출물 파일 업로드 성공 시 submitted_at을 갱신합니다. 학생은 본인 제출·평가·첨부에만 접근합니다.", "- AI 복습은 review_sessions와 blank_reviews/review_quizzes의 공유 PK·FK로 IS-A를 표현합니다. 부모 mode와 자식 종류 일치·배타성은 서비스 트랜잭션에서 보장해야 합니다.", "- AI 퀴즈 한 문제는 필수 보기4개와 단일 선택 번호(1~4)를 가집니다. 동일 세션·문제 순번은 유니크입니다. 정답 공개 시점·다음 문제 동의·본인 접근은 담당자 구현 범위입니다.", "- 과목→단원→핵심 개념이 복습 주제입니다. 영상은 날짜·교시, 소단원은 시작 초를 저장하며 평가 문항에서 연결합니다. 같은 기수인지와 해설 공개 여부는 서비스에서 확인해야 합니다.", "- 파일은 게시글·과제·제출물 중 정확히 하나에 속하도록 CHECK로 제한합니다. 디스크 파일과 files 메타데이터를 함께 사용합니다.", "- 출결·과제의 deleted_at을 기존 API에 연결했으며 원본·제출물·첨부 이력은 보존합니다. FK는 기본 RESTRICT이며 일괄 연쇄 삭제를 하지 않습니다.", "- Discord 전송 이력은 notice_deliveries에 저장하며 Webhook URL과 AI 키는 서버 비밀 설정에서만 관리합니다.", "- 비밀번호는 BCrypt, 갱신 토큰은 SHA-256 해시로 저장합니다. 토큰 원문은 JSON 스키마/ERD/문서에 포함하지 않습니다.", "- DATETIME(6)은 UTC 기준으로 저장하고 API는 오프셋이 포함된 ISO 8601 문자열을 반환합니다. 교육 날짜와 월별 필터는 한국 시간 기준입니다.", "", "## 재생성", "", "```powershell", "python scripts/generate-docs.py", "```", "", "테이블 구조는 V1+V2+V3 통합 SQL을 읽어 재생성하고, API 계약은 실제 컨트롤러 경로와 대조합니다. 스키마 변경 시 마이그레이션·통합 SQL·도메인 모델을 함께 맞추고 마이그레이션 테스트로 일치 여부를 확인하세요.", ""]
+    lines += ["```", "", "## 주요 제약과 저장 규칙", "", "- 사용자와 기수는 `enrollments`로 연결합니다. 전역 `users.role`과 기수별 `enrollments.role`을 구분합니다.", "- 회원·기수, 수강 등록·출결 날짜·회차 번호, 과제·회원, 평가·회원, 응시·문항, 스터디·회원은 각각 유니크입니다.", "- DATE 출결은 session_no=0, SESSION 출결은 양수입니다. 기존 출결 API도 일자·회차를 구분하고 삭제 기록은 조회·대시보드에서 제외합니다.", "- 출결 정정은 요청 당시 상태·version 스냅샷과 INVALIDATED 상태를 담습니다. 승인 시 원본 상태·version을 검사하고 변경·삭제된 요청은 INVALIDATED로 무효화합니다. ABSENT→LATE/PRESENT, LATE/EXCUSED/LEAVE/EARLY→PRESENT를 허용합니다. 소명자료 파일 저장용 테이블은 추가하지 않습니다.", "- 제출물당 피드백은 하나입니다. 제출물 파일 업로드 성공 시 submitted_at을 갱신합니다. 학생은 본인 제출·평가·첨부에만 접근합니다.", "- AI 복습은 review_sessions와 blank_reviews/review_quizzes의 공유 PK·FK로 IS-A를 표현합니다. 부모 mode와 자식 종류 일치·배타성은 서비스 트랜잭션에서 보장해야 합니다.", "- AI 퀴즈 한 문제는 필수 보기4개와 단일 선택 번호(1~4)를 가집니다. 동일 세션·문제 순번은 유니크입니다. 정답 공개 시점·다음 문제 동의·본인 접근은 담당자 구현 범위입니다.", "- 과목→단원→핵심 개념이 복습 주제입니다. 영상은 날짜·교시, 소단원은 시작 초를 저장하며 평가 문항에서 연결합니다. 같은 기수인지와 해설 공개 여부는 서비스에서 확인해야 합니다.", "- 파일은 게시글·과제·제출물 중 정확히 하나에 속하도록 CHECK로 제한합니다. 디스크 파일과 files 메타데이터를 함께 사용합니다.", "- 출결·과제의 deleted_at을 기존 API에 연결했으며 원본·제출물·첨부 이력은 보존합니다. FK는 기본 RESTRICT이며 일괄 연쇄 삭제를 하지 않습니다.", "- Discord 전송 이력은 notice_deliveries에 저장하며 Webhook URL과 AI 키는 서버 비밀 설정에서만 관리합니다.", "- 비밀번호는 BCrypt, 갱신 토큰은 SHA-256 해시로 저장합니다. 토큰 원문은 JSON 스키마/ERD/문서에 포함하지 않습니다.", "- DATETIME(6)은 UTC 기준으로 저장하고 API는 오프셋이 포함된 ISO 8601 문자열을 반환합니다. 교육 날짜와 월별 필터는 한국 시간 기준입니다.", "", "## 재생성", "", "```powershell", "python scripts/generate-docs.py", "```", "", "테이블 구조는 V1+V2+V3+V4 통합 SQL을 읽어 재생성하고, API 계약은 실제 컨트롤러 경로와 대조합니다. 스키마 변경 시 마이그레이션·통합 SQL·도메인 모델을 함께 맞추고 마이그레이션 테스트로 일치 여부를 확인하세요.", ""]
     (DOCS / "DATABASE.md").write_text("\n".join(lines), encoding="utf-8")
     erdcloud_snapshot()
 
