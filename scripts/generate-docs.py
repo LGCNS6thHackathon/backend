@@ -397,6 +397,9 @@ def write_json(path, obj):
 
 ERD_BUNDLE_URL = "https://www.erdcloud.com/5047fbca2ec9ce8539d8b7739ab250f2f1850d14.js?meteor_js_resource=true"
 ERD_BUNDLE_SHA256 = "8463e6fdb22028aa85893b88f2bc58fe39b4cfa92a7e825c8e9df75ecd38ee46"
+# ERD Cloud resolves entity colors through a fixed palette keyed by these exact
+# strings. Arbitrary CSS colors parse as JSON but crash its canvas renderer.
+ERD_ENTITY_COLOR = "rgba(178, 69, 0, 0.5)"
 
 
 def erdcloud_snapshot():
@@ -417,7 +420,7 @@ def erdcloud_snapshot():
     }
     for table in TABLES:
         x,y = positions[table["name"]]
-        entity = dict(_id=stable_id("table:"+table["name"]), _diagramId=None, position=dict(x=x,y=y), name=table["name"], pName=table["name"], fields=[], keys=dict(pks=[], fks=[]), color="#2D5A73")
+        entity = dict(_id=stable_id("table:"+table["name"]), _diagramId=None, position=dict(x=x,y=y), name=table["name"], pName=table["name"], fields=[], keys=dict(pks=[], fks=[]), color=ERD_ENTITY_COLOR)
         field_maps[table["name"]] = {}
         for col in table["columns"]:
             notes = []
@@ -445,6 +448,7 @@ def erdcloud_snapshot():
     assert len(entity_ids)==24
     for entity in entities:
         assert isinstance(entity["name"],str) and isinstance(entity["pName"],str)
+        assert entity["color"] == ERD_ENTITY_COLOR
         rows = entity["keys"]["pks"] + entity["keys"]["fks"] + entity["fields"]
         assert len({r["_id"] for r in rows})==len(rows)
         for row in rows:
