@@ -32,10 +32,10 @@ public class FileService {
         if(type.equals("post")) {
             p=db.one("SELECT cohort_id,author_id AS owner_id FROM posts WHERE id=? AND deleted_at IS NULL",id);
             actor.cohort(Db.id(p,"cohortId"));
-            if(write&&Db.id(p,"ownerId")!=actor.id())actor.staff(Db.id(p,"cohortId"));
+            if(write&&Db.id(p,"ownerId")!=actor.id())actor.requireAdmin(Db.id(p,"cohortId"));
         } else if(type.equals("assignment")) {
             p=db.one("SELECT cohort_id,author_id AS owner_id FROM assignments WHERE id=? AND deleted_at IS NULL"+(write?" FOR UPDATE":""),id);
-            if(write)actor.staff(Db.id(p,"cohortId"));else actor.cohort(Db.id(p,"cohortId"));
+            if(write)actor.requireAdmin(Db.id(p,"cohortId"));else actor.cohort(Db.id(p,"cohortId"));
         } else {
             long assignment=Db.id(db.one("SELECT assignment_id FROM submissions WHERE id=?",id),"assignmentId");
             // Use the same parent -> submission lock order as submission editing and grading.
@@ -49,7 +49,7 @@ public class FileService {
                     throw AppException.conflict("제출 기한이 지났습니다.");
                 if(db.count("SELECT COUNT(*) FROM submission_reviews WHERE submission_id=?",id)>0)
                     throw AppException.conflict("검토가 완료된 제출물은 수정할 수 없습니다.");
-            } else if(Db.id(p,"ownerId")!=actor.id())actor.staff(cohort);
+            } else if(Db.id(p,"ownerId")!=actor.id())actor.requireAdmin(cohort);
         }
         return p;
     }
@@ -62,7 +62,7 @@ public class FileService {
         String type=file.get("postId")!=null?"post":file.get("assignmentId")!=null?"assignment":"submission";
         var p=parent(type,Db.id(file,type+"Id"),write);
         if(Db.id(p,"cohortId")!=Db.id(file,"cohortId"))throw AppException.notFound();
-        if(write&&Db.id(file,"uploaderId")!=actor.id())actor.staff(Db.id(file,"cohortId"));
+        if(write&&Db.id(file,"uploaderId")!=actor.id())actor.requireAdmin(Db.id(file,"cohortId"));
     }
 
     public List<Map<String,Object>> submissionFiles(long submissionId) {

@@ -78,7 +78,7 @@ public class CatalogService {
 
     @Transactional
     public Map<String, Object> updateCohort(long cohortId, Map<String, Object> input) {
-        requireManager(cohortId);
+        actor.requireAdmin(cohortId);
         Map<String, Object> merged = new LinkedHashMap<>(db.one("SELECT * FROM cohorts WHERE id=?", cohortId)); merged.putAll(input);
         LocalDate start = Input.date(merged, "startDate"), end = Input.date(merged, "endDate");
         if (end.isBefore(start)) throw AppException.bad("과정 종료일은 시작일 이후여야 합니다.");
@@ -94,19 +94,18 @@ public class CatalogService {
     }
 
     public Map<String, Object> enrollments(long cohortId, int page, int size) {
-        actor.staff(cohortId);
+        actor.requireAdmin(cohortId);
         return db.page("SELECT e.*,u.name,u.email,u.phone FROM enrollments e JOIN users u ON u.id=e.user_id WHERE e.cohort_id=? ORDER BY e.id",
                 "SELECT COUNT(*) FROM enrollments WHERE cohort_id=?", page, size, cohortId);
     }
 
     @Transactional
     public Map<String, Object> enroll(long cohortId, Map<String, Object> input) {
-        requireManager(cohortId);
+        actor.requireAdmin(cohortId);
         long userId = Input.id(input, "userId");
-        Map<String, Object> user = db.one("SELECT id,status FROM users WHERE id=?", userId);
+        Map<String, Object> user = db.one("SELECT id,role,status FROM users WHERE id=? FOR UPDATE", userId);
         if (!"ACTIVE".equals(user.get("status"))) throw AppException.bad("활성 계정만 등록할 수 있습니다.");
-        String role = input.containsKey("role") ? Input.choice(input, "role", "STUDENT", "INSTRUCTOR", "MANAGER") : "STUDENT";
-        if (!actor.admin() && !"STUDENT".equals(role)) throw AppException.forbidden();
+        String role = enrollmentRole(input, (String) user.get("role"));
         if (db.count("SELECT COUNT(*) FROM enrollments WHERE cohort_id=? AND user_id=?", cohortId, userId) > 0) throw AppException.conflict("이미 등록된 수강생입니다. 기존 등록 정보를 수정해주세요.");
         long id = db.insert("INSERT INTO enrollments(cohort_id,user_id,role,status,created_at,updated_at) VALUES(?,?,?,'ACTIVE',?,?)", cohortId, userId, role, Db.now(), Db.now());
         return enrollment(cohortId, id);
@@ -114,21 +113,24 @@ public class CatalogService {
 
     @Transactional
     public Map<String, Object> updateEnrollment(long cohortId, long enrollmentId, Map<String, Object> input) {
-        requireManager(cohortId);
+        actor.requireAdmin(cohortId);
+        Map<String, Object> initial = db.one("SELECT user_id FROM enrollments WHERE id=? AND cohort_id=?", enrollmentId, cohortId);
+        // Account-role changes also lock the user before updating their enrollments.
+        Map<String, Object> user = db.one("SELECT role FROM users WHERE id=? FOR UPDATE", Db.id(initial, "userId"));
         Map<String, Object> current = db.one("SELECT * FROM enrollments WHERE id=? AND cohort_id=? FOR UPDATE", enrollmentId, cohortId);
         Map<String, Object> merged = new LinkedHashMap<>(current); merged.putAll(input);
-        String role = Input.choice(merged, "role", "STUDENT", "INSTRUCTOR", "MANAGER");
+        String role = enrollmentRole(input, (String) user.get("role"));
         String status = Input.choice(merged, "status", "ACTIVE", "WITHDRAWN");
-        if (!actor.admin() && (!"STUDENT".equals(current.get("role")) || !"STUDENT".equals(role))) throw AppException.forbidden();
         db.update("UPDATE enrollments SET role=?,status=?,updated_at=? WHERE id=? AND cohort_id=?", role, status, Db.now(), enrollmentId, cohortId);
         return enrollment(cohortId, enrollmentId);
     }
 
     private Map<String, Object> enrollment(long cohortId, long id) { return db.one("SELECT e.*,u.name,u.email,u.phone FROM enrollments e JOIN users u ON u.id=e.user_id WHERE e.id=? AND e.cohort_id=?", id, cohortId); }
 
-    private void requireManager(long cohortId) {
-        var membership = actor.staff(cohortId);
-        if (!actor.admin() && !"MANAGER".equals(membership.get("role"))) throw AppException.forbidden();
+    private String enrollmentRole(Map<String, Object> input, String accountRole) {
+        String role = input.containsKey("role") ? Input.choice(input, "role", "ADMIN", "STUDENT") : accountRole;
+        if (!accountRole.equals(role)) throw AppException.bad("기수 역할은 계정 역할과 같아야 합니다. 역할은 회원 관리에서 변경해주세요.");
+        return role;
     }
 
     public Map<String, Object> dashboard(long cohortId) {

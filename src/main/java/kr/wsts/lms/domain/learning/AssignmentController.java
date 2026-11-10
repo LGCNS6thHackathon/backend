@@ -45,9 +45,9 @@ public class AssignmentController {
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public Map<String,Object> create(@PathVariable long cohortId,@RequestBody Map<String,Object> body) {
-        actor.staff(cohortId);LocalDateTime due=Input.dateTime(body,"dueAt");
+        actor.requireAdmin(cohortId);LocalDateTime due=Input.dateTime(body,"dueAt");
         support.withinCohort(cohortId,due.plusHours(9).toLocalDate(),due.plusHours(9).toLocalDate());
-        Instructor instructor=instructor(cohortId,body,Map.of());
+        Instructor instructor=instructor(body,Map.of());
         long id=db.insert("INSERT INTO assignments(cohort_id,author_id,instructor_id,instructor_name,title,description,due_at,max_score,subject,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                 cohortId,actor.id(),instructor.id(),instructor.name(),Input.str(body,"title",2,160),Input.str(body,"description",2,20000),due,Input.integer(body,"maxScore",100,1,1000),subject(body),Db.now(),Db.now());
         return db.one("SELECT * FROM assignments WHERE id=?",id);
@@ -63,9 +63,9 @@ public class AssignmentController {
     @PatchMapping("/assignments/{id}")
     @Transactional
     public Map<String,Object> update(@PathVariable long id,@RequestBody Map<String,Object> body) {
-        Map<String,Object> old=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);long cohortId=Db.id(old,"cohortId");actor.staff(cohortId);
+        Map<String,Object> old=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);long cohortId=Db.id(old,"cohortId");actor.requireAdmin(cohortId);
         Map<String,Object> merged=LearningSupport.merged(old,body);
-        Instructor instructor=instructor(cohortId,body,old);
+        Instructor instructor=instructor(body,old);
         LocalDateTime due=LearningSupport.dateTime(body,"dueAt",old);
         support.withinCohort(cohortId,due.plusHours(9).toLocalDate(),due.plusHours(9).toLocalDate());
         int maxScore=Input.integer(merged,"maxScore",100,1,1000);
@@ -79,7 +79,7 @@ public class AssignmentController {
     @DeleteMapping("/assignments/{id}")
     @Transactional
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        Map<String,Object> row=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);actor.staff(Db.id(row,"cohortId"));
+        Map<String,Object> row=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",id);actor.requireAdmin(Db.id(row,"cohortId"));
         var now=Db.now();
         db.update("UPDATE assignments SET deleted_at=?,updated_at=? WHERE id=?",now,now,id);
         return ResponseEntity.noContent().build();
@@ -87,10 +87,10 @@ public class AssignmentController {
 
     @GetMapping("/assignments/{assignmentId}/submissions")
     public Map<String,Object> submissions(@PathVariable long assignmentId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
-        Map<String,Object> assignment=support.assignment(assignmentId);boolean staff=support.staff(Db.id(assignment,"cohortId"));
+        Map<String,Object> assignment=support.assignment(assignmentId);boolean administrator=support.admin(Db.id(assignment,"cohortId"));
         LearningSupport.page(page);LearningSupport.size(size);
         String where=" WHERE s.assignment_id=?";List<Object> args=new ArrayList<>(List.of(assignmentId));
-        if(!staff) {where+=" AND s.user_id=?";args.add(actor.id());}
+        if(!administrator) {where+=" AND s.user_id=?";args.add(actor.id());}
         String from=" FROM submissions s JOIN users u ON u.id=s.user_id LEFT JOIN submission_reviews r ON r.submission_id=s.id";
         var result=new LinkedHashMap<>(db.page("SELECT s.id"+from+where+" ORDER BY s.submitted_at DESC,s.id DESC",
                 "SELECT COUNT(*)"+from+where,page,size,args.toArray()));
@@ -152,7 +152,7 @@ public class AssignmentController {
     @Transactional
     public Map<String,Object> review(@PathVariable long submissionId,@RequestBody Map<String,Object> body) {
         Map<String,Object> initial=db.one("SELECT * FROM submissions WHERE id=?",submissionId);
-        Map<String,Object> assignment=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",Db.id(initial,"assignmentId"));long cohortId=Db.id(assignment,"cohortId");actor.staff(cohortId);
+        Map<String,Object> assignment=db.one("SELECT * FROM assignments WHERE id=? AND deleted_at IS NULL FOR UPDATE",Db.id(initial,"assignmentId"));long cohortId=Db.id(assignment,"cohortId");actor.requireAdmin(cohortId);
         Map<String,Object> submission=db.one("SELECT * FROM submissions WHERE id=? FOR UPDATE",submissionId);
         int score=Input.integer(body,"score",-1,0,((Number)assignment.get("maxScore")).intValue());
         if(score<0) throw AppException.bad("score를 입력해주세요.");
@@ -224,14 +224,14 @@ public class AssignmentController {
         return subject.isBlank()?null:subject;
     }
 
-    private Instructor instructor(long cohortId,Map<String,Object> changes,Map<String,Object> existing) {
+    private Instructor instructor(Map<String,Object> changes,Map<String,Object> existing) {
         Long id=existing.get("instructorId")==null?null:Db.id(existing,"instructorId");
         String name=(String)existing.get("instructorName");
         if(changes.containsKey("instructorId")) {
             id=changes.get("instructorId")==null?null:Input.id(changes,"instructorId");
             if(id==null) name=null;
-            else name=(String)db.find("SELECT u.name FROM users u JOIN enrollments e ON e.user_id=u.id WHERE u.id=? AND u.status='ACTIVE' AND e.cohort_id=? AND e.status='ACTIVE' AND e.role='INSTRUCTOR'",id,cohortId)
-                    .orElseThrow(()->AppException.bad("해당 기수의 활성 강사를 지정해주세요.")).get("name");
+            else name=(String)db.find("SELECT name FROM users WHERE id=? AND status='ACTIVE' AND role='ADMIN'",id)
+                    .orElseThrow(()->AppException.bad("활성 관리자 계정을 담당자로 지정해주세요.")).get("name");
         }
         if(changes.containsKey("instructorName")) name=changes.get("instructorName")==null?null:Input.str(changes,"instructorName",2,80);
         return new Instructor(id,name);

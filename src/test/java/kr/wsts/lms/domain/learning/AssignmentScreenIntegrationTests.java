@@ -54,13 +54,13 @@ class AssignmentScreenIntegrationTests {
 
     @BeforeEach
     void fixture() throws Exception {
-        admin=account("ADMIN","과제 관리자");teacher=account("INSTRUCTOR","화면 담당 강사");
+        admin=account("ADMIN","과제 관리자");teacher=account("ADMIN","화면 담당 강사");
         student=account("STUDENT","과제 제출 학생");other=account("STUDENT","다른 학생");
         LocalDate today=LocalDate.now(SEOUL);
         long course=id(call(admin,post("/api/courses"),Map.of("title","과제 화면 검증 과정","totalHours",80),201));
         cohortId=id(call(admin,post("/api/courses/"+course+"/cohorts"),Map.of("name","과제 화면 검증 기수","startDate",today.minusDays(20).toString(),"endDate",today.plusDays(100).toString()),201));
         for(User user:List.of(teacher,student,other))
-            call(admin,post("/api/cohorts/"+cohortId+"/enrollments"),Map.of("userId",user.id,"role",user==teacher?"INSTRUCTOR":"STUDENT"),201);
+            call(admin,post("/api/cohorts/"+cohortId+"/enrollments"),Map.of("userId",user.id,"role",user==teacher?"ADMIN":"STUDENT"),201);
     }
 
     @Test

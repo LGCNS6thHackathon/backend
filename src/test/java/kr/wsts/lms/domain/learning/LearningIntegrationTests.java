@@ -48,13 +48,12 @@ class LearningIntegrationTests {
     }
 
     @Test
-    void onlyAdminCanManageAttendanceEvenWhenCohortRoleIsStaff() throws Exception {
+    void onlyGlobalAdminCanManageAttendanceRegardlessOfEnrollmentRole() throws Exception {
         long record=attendance("ABSENT",1);
         long correction=id(call(first,post("/api/attendance/"+record+"/corrections"),null,201));
-        for(String role:List.of("INSTRUCTOR","MANAGER")) {
+        for(String role:List.of("ADMIN","STUDENT")) {
             User staff=account(false);
-            // MANAGER is a cohort role; only INSTRUCTOR also exists as a global role.
-            if(role.equals("INSTRUCTOR")) db.update("UPDATE users SET role=? WHERE id=?",role,staff.id);
+            // Even an inconsistent ADMIN enrollment must not grant a student management rights.
             db.insert("INSERT INTO enrollments(cohort_id,user_id,role,status,created_at,updated_at) VALUES(?,?,?,'ACTIVE',?,?)",cohortId,staff.id,role,Db.now(),Db.now());
             call(staff,put("/api/cohorts/"+cohortId+"/attendance"),attendanceBody("PRESENT",2),403);
             call(staff,put("/api/cohorts/"+cohortId+"/attendance"),attendanceBody("EXCUSED",1),403);
@@ -73,6 +72,40 @@ class LearningIntegrationTests {
         assertEquals(1,number(call(admin,get("/api/cohorts/"+cohortId+"/attendance/corrections"),null,200),"$.total"));
         call(admin,patch("/api/attendance/corrections/"+correction),Map.of("status","APPROVED"),200);
         call(admin,delete("/api/attendance/"+record),null,204);
+    }
+
+    @Test
+    void enrollmentAdminValueCannotGrantStudentManagementOrOtherStudentsData() throws Exception {
+        // users.role is authoritative even if a legacy/direct SQL write left inconsistent membership data.
+        db.update("UPDATE enrollments SET role='ADMIN' WHERE cohort_id=? AND user_id=?",cohortId,first.id);
+        long assignmentId=assignment(Db.now().plusDays(2));
+        long submissionId=id(call(second,put("/api/assignments/"+assignmentId+"/submission"),Map.of("body","다른 학생의 제출 자료"),200));
+        long assessmentId=assessment();
+        call(first,get("/api/cohorts/"+cohortId+"/enrollments"),null,403);
+        call(first,post("/api/cohorts/"+cohortId+"/enrollments"),Map.of("userId",second.id),403);
+        call(first,patch("/api/cohorts/"+cohortId),Map.of("name","권한 없는 수정"),403);
+        call(first,post("/api/cohorts/"+cohortId+"/assignments"),Map.of(),403);
+        call(first,patch("/api/assignments/"+assignmentId),Map.of("title","권한 없는 수정"),403);
+        call(first,delete("/api/assignments/"+assignmentId),null,403);
+        call(first,patch("/api/submissions/"+submissionId+"/review"),Map.of("score",100,"feedback","권한 없는 평가"),403);
+        assertEquals(0,number(call(first,get("/api/assignments/"+assignmentId+"/submissions"),null,200),"$.total"));
+        call(first,get("/api/submissions/"+submissionId+"/files"),null,403);
+        call(first,post("/api/cohorts/"+cohortId+"/events"),Map.of(),403);
+        call(first,post("/api/cohorts/"+cohortId+"/assessments"),Map.of(),403);
+        call(first,patch("/api/assessments/"+assessmentId),Map.of("title","권한 없는 수정"),403);
+        call(first,get("/api/assessments/"+assessmentId),null,404);
+        call(first,post("/api/assessments/"+assessmentId+"/questions"),Map.of(),403);
+        call(first,get("/api/assessments/"+assessmentId+"/review-guide"),null,404);
+        call(first,post("/api/admin/cohorts/"+cohortId+"/lecture-videos"),Map.of(),403);
+        long postId=id(call(admin,post("/api/cohorts/"+cohortId+"/posts"),Map.of("category","COURSE","title","권한 검증 공지","body","댓글 접근 검증 공지"),201));
+        call(first,post("/api/posts/"+postId+"/discord-delivery"),null,403);
+        long commentId=id(call(second,post("/api/posts/"+postId+"/comments"),Map.of("body","다른 학생 댓글"),201));
+        call(first,patch("/api/comments/"+commentId),Map.of("body","권한 없는 수정"),403);
+        call(first,delete("/api/comments/"+commentId),null,403);
+        long ownComment=id(call(first,post("/api/posts/"+postId+"/comments"),Map.of("body","학생 본인 댓글"),201));
+        call(first,patch("/api/comments/"+ownComment),Map.of("body","본인 댓글 수정"),200);
+        call(admin,patch("/api/submissions/"+submissionId+"/review"),Map.of("score",90,"feedback","관리자 평가"),200);
+        call(admin,patch("/api/comments/"+commentId),Map.of("body","관리자 댓글 수정"),200);
     }
 
     @Test

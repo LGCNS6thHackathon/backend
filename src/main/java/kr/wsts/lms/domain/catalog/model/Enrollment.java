@@ -5,6 +5,7 @@ import java.time.Instant;
 /**
  * JDBC domain state for {@code enrollments}.
  * Timestamp components use UTC instants.
+ * role mirrors users.role for compatibility; authorization uses the account role only.
  * Persistence mapping and business operations are implemented by the feature owner.
  */
 public record Enrollment(
@@ -17,7 +18,7 @@ public record Enrollment(
         Instant updatedAt
 ) {
     public enum Role {
-        STUDENT, INSTRUCTOR, MANAGER
+        ADMIN, STUDENT
     }
 
     public enum Status {

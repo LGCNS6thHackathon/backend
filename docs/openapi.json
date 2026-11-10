@@ -3,7 +3,7 @@
   "info": {
     "title": "WSTS LMS Backend API",
     "version": "1.0.0",
-    "description": "Spring Boot LMS의 실제 컨트롤러·입력 검증·DB 스키마를 기준으로 작성했습니다. 날짜는 한국 달력, 시각은 ISO8601 오프셋 필수이며 UTC로 저장/반환합니다. 응답은 data 래퍼 없이 직접 반환합니다. 전역 역할과 기수별 역할을 구분합니다."
+    "description": "Spring Boot LMS의 실제 컨트롤러·입력 검증·DB 스키마를 기준으로 작성했습니다. 날짜는 한국 달력, 시각은 ISO8601 오프셋 필수이며 UTC로 저장/반환합니다. 응답은 data 래퍼 없이 직접 반환합니다. 권한은 계정 역할 ADMIN/STUDENT를 기준으로 판단합니다."
   },
   "servers": [
     {
@@ -760,7 +760,7 @@
     "/api/users/{userId}": {
       "patch": {
         "summary": "회원 권한·상태 변경",
-        "description": "권한: 전역 ADMIN. 마지막 활성 ADMIN의 권한은 제거할 수 없습니다. 변경 시 사용자의 모든 토큰을 무효화합니다.",
+        "description": "권한: 전역 ADMIN. 마지막 활성 ADMIN의 권한은 제거할 수 없습니다. 변경 시 사용자의 모든 토큰을 무효화합니다. 계정 역할 변경은 모든 기수 배정 역할에도 반영됩니다.",
         "operationId": "patch_api_users_userId",
         "tags": [
           "회원"
@@ -1585,7 +1585,7 @@
       },
       "patch": {
         "summary": "기수 수정",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE MANAGER. 기존 일정·과제 마감·평가·출결 기록을 포함하는 교육 기간이어야 합니다.",
+        "description": "권한: 전역 ADMIN. 기존 일정·과제 마감·평가·출결 기록을 포함하는 교육 기간이어야 합니다.",
         "operationId": "patch_api_cohorts_cohortId",
         "tags": [
           "과정·기수"
@@ -1679,7 +1679,7 @@
     "/api/cohorts/{cohortId}/enrollments": {
       "get": {
         "summary": "수강 등록 목록",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER.",
+        "description": "권한: 전역 ADMIN.",
         "operationId": "get_api_cohorts_cohortId_enrollments",
         "tags": [
           "과정·기수"
@@ -1784,7 +1784,7 @@
       },
       "post": {
         "summary": "수강 등록",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE MANAGER. INSTRUCTOR/MANAGER 배정은 전역 ADMIN만 가능합니다. 중복 등록은409입니다.",
+        "description": "권한: 전역 ADMIN. 관리자만 등록합니다. role 생략 시 계정 역할을 사용하며 지정 시 계정 역할과 같아야 합니다. 불일치는400, 중복 등록은409입니다.",
         "operationId": "post_api_cohorts_cohortId_enrollments",
         "tags": [
           "과정·기수"
@@ -1878,7 +1878,7 @@
     "/api/cohorts/{cohortId}/enrollments/{enrollmentId}": {
       "patch": {
         "summary": "수강 등록 수정",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE MANAGER. 기수 MANAGER는 STUDENT 등록만 수정할 수 있습니다.",
+        "description": "권한: 전역 ADMIN. 관리자만 수정합니다. role은 계정 역할과 같아야 하며 별도 권한을 부여하지 않습니다. 계정 역할은 회원 관리에서 변경합니다.",
         "operationId": "patch_api_cohorts_cohortId_enrollments_enrollmentId",
         "tags": [
           "과정·기수"
@@ -2181,7 +2181,7 @@
       },
       "post": {
         "summary": "일정 생성",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. endAt > startAt. 한국 날짜 기준 기수 교육 기간 안에 있어야 합니다.",
+        "description": "권한: 전역 ADMIN. endAt > startAt. 한국 날짜 기준 기수 교육 기간 안에 있어야 합니다.",
         "operationId": "post_api_cohorts_cohortId_events",
         "tags": [
           "일정"
@@ -2275,7 +2275,7 @@
     "/api/events/{id}": {
       "patch": {
         "summary": "일정 수정",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER.",
+        "description": "권한: 전역 ADMIN.",
         "operationId": "patch_api_events_id",
         "tags": [
           "일정"
@@ -2367,7 +2367,7 @@
       },
       "delete": {
         "summary": "일정 삭제",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER.",
+        "description": "권한: 전역 ADMIN.",
         "operationId": "delete_api_events_id",
         "tags": [
           "일정"
@@ -3246,7 +3246,7 @@
       },
       "post": {
         "summary": "과제 생성",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 담당 강사 ID는 해당 기수의 ACTIVE INSTRUCTOR 등록이어야 합니다. ID 없이 강사 이름만 저장할 수 있습니다. 등록자와 담당 강사는 별개입니다.",
+        "description": "권한: 전역 ADMIN. 담당자 ID는 ACTIVE ADMIN 계정이어야 하며 기수 배정은 필요하지 않습니다. ID 없이 강사 이름만 저장할 수 있습니다. 등록자와 담당 강사는 별개입니다.",
         "operationId": "post_api_cohorts_cohortId_assignments",
         "tags": [
           "과제"
@@ -3422,7 +3422,7 @@
       },
       "patch": {
         "summary": "과제 수정",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 이미 부여한 점수보다 낮은 maxScore로 변경할 수 없습니다.",
+        "description": "권한: 전역 ADMIN. 이미 부여한 점수보다 낮은 maxScore로 변경할 수 없습니다.",
         "operationId": "patch_api_assignments_id",
         "tags": [
           "과제"
@@ -3514,7 +3514,7 @@
       },
       "delete": {
         "summary": "과제 논리 삭제",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 제출물·첨부 기록을 보존하고 과제를 논리 삭제합니다. 삭제 후 목록·상세·제출·평가·첨부 접근에서 제외합니다.",
+        "description": "권한: 전역 ADMIN. 제출물·첨부 기록을 보존하고 과제를 논리 삭제합니다. 삭제 후 목록·상세·제출·평가·첨부 접근에서 제외합니다.",
         "operationId": "delete_api_assignments_id",
         "tags": [
           "과제"
@@ -3591,7 +3591,7 @@
     "/api/assignments/{assignmentId}/submissions": {
       "get": {
         "summary": "제출물 목록",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 수강생은 본인 제출만, 스태프는 전체 제출을 조회합니다. 제출 파일·다운로드 경로·리뷰어 이름을 함께 반환합니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 수강생은 본인 제출만, 관리자는 전체 제출을 조회합니다. 제출 파일·다운로드 경로·리뷰어 이름을 함께 반환합니다.",
         "operationId": "get_api_assignments_assignmentId_submissions",
         "tags": [
           "과제"
@@ -3899,7 +3899,7 @@
     "/api/submissions/{submissionId}/review": {
       "patch": {
         "summary": "과제 채점·피드백",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 피드백을 생성하거나 갱신하고 제출자에게 알림을 생성합니다.",
+        "description": "권한: 전역 ADMIN. 피드백을 생성하거나 갱신하고 제출자에게 알림을 생성합니다.",
         "operationId": "patch_api_submissions_submissionId_review",
         "tags": [
           "과제"
@@ -4098,7 +4098,7 @@
       },
       "post": {
         "summary": "평가 초안 생성",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER.",
+        "description": "권한: 전역 ADMIN.",
         "operationId": "post_api_cohorts_cohortId_assessments",
         "tags": [
           "평가"
@@ -4192,7 +4192,7 @@
     "/api/assessments/{id}": {
       "get": {
         "summary": "평가 상세",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생에게 DRAFT는404. questions는 스태프 또는 본인 응시 시작 후 제공됩니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생에게 DRAFT는404. questions는 관리자 또는 본인 응시 시작 후 제공됩니다.",
         "operationId": "get_api_assessments_id",
         "tags": [
           "평가"
@@ -4274,7 +4274,7 @@
       },
       "patch": {
         "summary": "평가 수정·게시·종료",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 게시에는 유효한 문항이 필요합니다. 응시 후 일정·시간·영역 변경과 DRAFT 전환 불가. CLOSED 재개 불가.",
+        "description": "권한: 전역 ADMIN. 게시에는 유효한 문항이 필요합니다. 응시 후 일정·시간·영역 변경과 DRAFT 전환 불가. CLOSED 재개 불가.",
         "operationId": "patch_api_assessments_id",
         "tags": [
           "평가"
@@ -4366,7 +4366,7 @@
       },
       "delete": {
         "summary": "평가 초안 삭제",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 응시 기록이 없는 DRAFT만 가능합니다.",
+        "description": "권한: 전역 ADMIN. 응시 기록이 없는 DRAFT만 가능합니다.",
         "operationId": "delete_api_assessments_id",
         "tags": [
           "평가"
@@ -4443,7 +4443,7 @@
     "/api/assessments/{assessmentId}/questions": {
       "post": {
         "summary": "객관식 문항 생성",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 응시 없는 DRAFT만. 선택지2~10개, 정확히 하나의 정답.",
+        "description": "권한: 전역 ADMIN. 응시 없는 DRAFT만. 선택지2~10개, 정확히 하나의 정답.",
         "operationId": "post_api_assessments_assessmentId_questions",
         "tags": [
           "평가"
@@ -4537,7 +4537,7 @@
     "/api/assessment-questions/{id}": {
       "patch": {
         "summary": "객관식 문항 수정",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 응시 없는 DRAFT만. options 제공 시 선택지를 모두 교체합니다.",
+        "description": "권한: 전역 ADMIN. 응시 없는 DRAFT만. options 제공 시 선택지를 모두 교체합니다.",
         "operationId": "patch_api_assessment_questions_id",
         "tags": [
           "평가"
@@ -4629,7 +4629,7 @@
       },
       "delete": {
         "summary": "객관식 문항 삭제",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. 응시 없는 DRAFT만.",
+        "description": "권한: 전역 ADMIN. 응시 없는 DRAFT만.",
         "operationId": "delete_api_assessment_questions_id",
         "tags": [
           "평가"
@@ -4790,7 +4790,7 @@
     "/api/assessment-attempts/{id}": {
       "get": {
         "summary": "응시 상세·남은 시간",
-        "description": "권한: 응시자 본인 또는 해당 기수 스태프. 시간 경과 자체는 상태를 변경하지 않습니다. 제출 시 만료 여부에 따라 EXPIRED로 확정합니다.",
+        "description": "권한: 응시자 본인 또는 해당 기수 관리자. 시간 경과 자체는 상태를 변경하지 않습니다. 제출 시 만료 여부에 따라 EXPIRED로 확정합니다.",
         "operationId": "get_api_assessment_attempts_id",
         "tags": [
           "평가"
@@ -5052,7 +5052,7 @@
     "/api/cohorts/{cohortId}/assessment-report": {
       "get": {
         "summary": "평가 결과·영역별 통계",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 완료·만료 응시만 집계. 본인 또는 스태프가 지정한 회원. cohortAverage는 동일 평가의 기수 평균입니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 완료·만료 응시만 집계. 본인 또는 관리자가 지정한 회원. cohortAverage는 동일 평가의 기수 평균입니다.",
         "operationId": "get_api_cohorts_cohortId_assessment_report",
         "tags": [
           "평가"
@@ -5139,7 +5139,7 @@
               "format": "int64",
               "minimum": 1
             },
-            "description": "스태프는 특정 회원 선택 가능. 수강생은 본인만 조회"
+            "description": "관리자는 특정 회원 선택 가능. 수강생은 본인만 조회"
           }
         ]
       }
@@ -6302,7 +6302,7 @@
     "/api/comments/{commentId}": {
       "patch": {
         "summary": "댓글 수정",
-        "description": "권한: 댓글 작성자 또는 기수 스태프.",
+        "description": "권한: 댓글 작성자 또는 기수 관리자.",
         "operationId": "patch_api_comments_commentId",
         "tags": [
           "게시판"
@@ -6394,7 +6394,7 @@
       },
       "delete": {
         "summary": "댓글 삭제",
-        "description": "권한: 댓글 작성자 또는 기수 스태프. 논리 삭제합니다.",
+        "description": "권한: 댓글 작성자 또는 기수 관리자. 논리 삭제합니다.",
         "operationId": "delete_api_comments_commentId",
         "tags": [
           "게시판"
@@ -6743,7 +6743,7 @@
     "/api/posts/{postId}/files": {
       "post": {
         "summary": "첨부파일 업로드",
-        "description": "권한: 게시글 작성자 또는 기수 스태프. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자, 크기는 10MiB 이하입니다. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
+        "description": "권한: 게시글 작성자 또는 관리자. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자, 크기는 10MiB 이하입니다. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
         "operationId": "post_api_posts_postId_files",
         "tags": [
           "첨부파일"
@@ -6847,7 +6847,7 @@
     "/api/assignments/{assignmentId}/files": {
       "post": {
         "summary": "첨부파일 업로드",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자, 크기는 10MiB 이하입니다. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
+        "description": "권한: 전역 ADMIN. multipart/form-data의 file 파트로 전송합니다. 파일 이름은 최대255자, 크기는 10MiB 이하입니다. 파일 크기 제한은 요청 파싱 시413, 서비스 검증 시400입니다.",
         "operationId": "post_api_assignments_assignmentId_files",
         "tags": [
           "첨부파일"
@@ -7053,7 +7053,7 @@
       },
       "get": {
         "summary": "제출 파일 목록",
-        "description": "권한: 제출자 본인 또는 해당 기수 스태프. 삭제되지 않은 제출 파일의 이름·크기·다운로드 경로를 반환합니다. 삭제된 과제는404입니다.",
+        "description": "권한: 제출자 본인 또는 해당 기수 관리자. 삭제되지 않은 제출 파일의 이름·크기·다운로드 경로를 반환합니다. 삭제된 과제는404입니다.",
         "operationId": "get_api_submissions_submissionId_files",
         "tags": [
           "첨부파일"
@@ -7140,7 +7140,7 @@
     "/api/files/{fileId}": {
       "get": {
         "summary": "첨부파일 메타데이터",
-        "description": "권한: 기수 회원; 제출물 첨부는 제출자 또는 기수 스태프.",
+        "description": "권한: 기수 회원; 제출물 첨부는 제출자 또는 기수 관리자.",
         "operationId": "get_api_files_fileId",
         "tags": [
           "첨부파일"
@@ -7222,7 +7222,7 @@
       },
       "delete": {
         "summary": "첨부파일 삭제",
-        "description": "권한: 부모 리소스 수정 권한 및 업로더/스태프 권한. 논리 삭제. 제출물 첨부는 기한 전·검토 전만 변경할 수 있습니다. 물리 파일 정리는 별도 운영 정책이 필요합니다.",
+        "description": "권한: 부모 리소스 수정 권한 및 업로더/관리자 권한. 논리 삭제. 제출물 첨부는 기한 전·검토 전만 변경할 수 있습니다. 물리 파일 정리는 별도 운영 정책이 필요합니다.",
         "operationId": "delete_api_files_fileId",
         "tags": [
           "첨부파일"
@@ -7299,7 +7299,7 @@
     "/api/files/{fileId}/download": {
       "get": {
         "summary": "첨부파일 다운로드",
-        "description": "권한: 기수 회원; 제출물 첨부는 제출자 또는 기수 스태프.",
+        "description": "권한: 기수 회원; 제출물 첨부는 제출자 또는 기수 관리자.",
         "operationId": "get_api_files_fileId_download",
         "tags": [
           "첨부파일"
@@ -8532,7 +8532,7 @@
     "/api/assessments/{assessmentId}/review-guide": {
       "get": {
         "summary": "평가 문항별 학습 범위·복습 영상",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생은 본인 응시가 있어야 하며, 제출 후 평가 종료 또는 CLOSED일 때 복습 링크를 공개합니다. 스태프는 즉시 조회 가능합니다. 미분류와 연결 없음은 별도로 표시합니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생은 본인 응시가 있어야 하며, 제출 후 평가 종료 또는 CLOSED일 때 복습 링크를 공개합니다. 관리자는 즉시 조회 가능합니다. 미분류와 연결 없음은 별도로 표시합니다.",
         "operationId": "get_api_assessments_assessmentId_review_guide",
         "tags": [
           "평가"
@@ -8991,7 +8991,6 @@
             "maxLength": 20,
             "enum": [
               "ADMIN",
-              "INSTRUCTOR",
               "STUDENT"
             ]
           },
@@ -9156,9 +9155,8 @@
             "type": "string",
             "maxLength": 20,
             "enum": [
-              "STUDENT",
-              "INSTRUCTOR",
-              "MANAGER"
+              "ADMIN",
+              "STUDENT"
             ]
           },
           "status": {
@@ -10108,7 +10106,7 @@
           "topicId",
           "options"
         ],
-        "description": "수강생은 응시 시작 후 문항을 조회합니다. 해설과 선택지 isCorrect는 본인 응시 종료와 평가 전체 종료(또는 CLOSED)가 모두 충족된 뒤 공개합니다. 스태프는 항상 조회 가능합니다."
+        "description": "수강생은 응시 시작 후 문항을 조회합니다. 해설과 선택지 isCorrect는 본인 응시 종료와 평가 전체 종료(또는 CLOSED)가 모두 충족된 뒤 공개합니다. 관리자는 항상 조회 가능합니다."
       },
       "Option": {
         "type": "object",
@@ -11702,7 +11700,6 @@
             "type": "string",
             "enum": [
               "ADMIN",
-              "INSTRUCTOR",
               "STUDENT"
             ]
           },
@@ -11925,11 +11922,9 @@
           "role": {
             "type": "string",
             "enum": [
-              "STUDENT",
-              "INSTRUCTOR",
-              "MANAGER"
-            ],
-            "default": "STUDENT"
+              "ADMIN",
+              "STUDENT"
+            ]
           }
         },
         "required": [
@@ -11942,9 +11937,8 @@
           "role": {
             "type": "string",
             "enum": [
-              "STUDENT",
-              "INSTRUCTOR",
-              "MANAGER"
+              "ADMIN",
+              "STUDENT"
             ]
           },
           "status": {

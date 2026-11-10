@@ -25,7 +25,7 @@ public class AssessmentController {
     public Map<String,Object> assessments(@PathVariable long cohortId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
         actor.cohort(cohortId);LearningSupport.page(page);LearningSupport.size(size);
         String where=" WHERE a.cohort_id=?";
-        if(!support.staff(cohortId)) where+=" AND a.status<>'DRAFT'";
+        if(!support.admin(cohortId)) where+=" AND a.status<>'DRAFT'";
         return db.page("SELECT a.* FROM assessments a"+where+" ORDER BY a.start_at DESC,a.id DESC","SELECT COUNT(*) FROM assessments a"+where,page,size,cohortId);
     }
 
@@ -33,7 +33,7 @@ public class AssessmentController {
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public Map<String,Object> create(@PathVariable long cohortId,@RequestBody Map<String,Object> body) {
-        actor.staff(cohortId);LocalDateTime start=Input.dateTime(body,"startAt"),end=Input.dateTime(body,"endAt");
+        actor.requireAdmin(cohortId);LocalDateTime start=Input.dateTime(body,"startAt"),end=Input.dateTime(body,"endAt");
         LearningSupport.validRange(start,end);support.withinCohort(cohortId,start.plusHours(9).toLocalDate(),end.plusHours(9).toLocalDate());
         long id=db.insert("INSERT INTO assessments(cohort_id,title,description,domain,start_at,end_at,duration_minutes,status,created_by,created_at) VALUES(?,?,?,?,?,?,?,'DRAFT',?,?)",
                 cohortId,Input.str(body,"title",2,160),Input.optional(body,"description","",20000),Input.str(body,"domain",1,100),start,end,
@@ -43,20 +43,20 @@ public class AssessmentController {
 
     @GetMapping("/assessments/{id}")
     public Map<String,Object> get(@PathVariable long id) {
-        Map<String,Object> assessment=support.assessment(id);long cohortId=Db.id(assessment,"cohortId");boolean staff=support.staff(cohortId);
-        if(!staff && "DRAFT".equals(assessment.get("status"))) throw AppException.notFound();
+        Map<String,Object> assessment=support.assessment(id);long cohortId=Db.id(assessment,"cohortId");boolean administrator=support.admin(cohortId);
+        if(!administrator && "DRAFT".equals(assessment.get("status"))) throw AppException.notFound();
         Map<String,Object> response=new LinkedHashMap<>(assessment);
         response.put("questionCount",db.count("SELECT COUNT(*) FROM assessment_questions WHERE assessment_id=?",id));
         Optional<Map<String,Object>> attempt=db.find("SELECT * FROM assessment_attempts WHERE assessment_id=? AND user_id=?",id,actor.id());
         response.put("myAttempt",attempt.orElse(null));
-        if(staff || attempt.isPresent()) response.put("questions",questions(id,staff || (attempt.map(this::finished).orElse(false) && answersReleased(assessment))));
+        if(administrator || attempt.isPresent()) response.put("questions",questions(id,administrator || (attempt.map(this::finished).orElse(false) && answersReleased(assessment))));
         return response;
     }
 
     @PatchMapping("/assessments/{id}")
     @Transactional
     public Map<String,Object> update(@PathVariable long id,@RequestBody Map<String,Object> body) {
-        Map<String,Object> old=db.one("SELECT * FROM assessments WHERE id=? FOR UPDATE",id);long cohortId=Db.id(old,"cohortId");actor.staff(cohortId);
+        Map<String,Object> old=db.one("SELECT * FROM assessments WHERE id=? FOR UPDATE",id);long cohortId=Db.id(old,"cohortId");actor.requireAdmin(cohortId);
         Map<String,Object> merged=LearningSupport.merged(old,body);
         LocalDateTime start=LearningSupport.dateTime(body,"startAt",old),end=LearningSupport.dateTime(body,"endAt",old);
         LearningSupport.validRange(start,end);support.withinCohort(cohortId,start.plusHours(9).toLocalDate(),end.plusHours(9).toLocalDate());
@@ -143,7 +143,7 @@ public class AssessmentController {
     }
 
     private Map<String,Object> editable(long assessmentId) {
-        Map<String,Object> assessment=db.one("SELECT * FROM assessments WHERE id=? FOR UPDATE",assessmentId);actor.staff(Db.id(assessment,"cohortId"));
+        Map<String,Object> assessment=db.one("SELECT * FROM assessments WHERE id=? FOR UPDATE",assessmentId);actor.requireAdmin(Db.id(assessment,"cohortId"));
         if(!"DRAFT".equals(assessment.get("status"))||db.count("SELECT COUNT(*) FROM assessment_attempts WHERE assessment_id=?",assessmentId)>0)
             throw AppException.conflict("문항은 응시 기록이 없는 초안 평가에서만 변경할 수 있습니다.");
         return assessment;
@@ -263,7 +263,7 @@ public class AssessmentController {
     @GetMapping("/cohorts/{cohortId}/assessment-report")
     public Map<String,Object> report(@PathVariable long cohortId,@RequestParam(required=false) Long userId) {
         actor.cohort(cohortId);long target=userId==null?actor.id():userId;
-        if(target!=actor.id()&&!support.staff(cohortId))throw AppException.forbidden();
+        if(target!=actor.id()&&!support.admin(cohortId))throw AppException.forbidden();
         if(target!=actor.id())support.enrollment(cohortId,target);
         List<Map<String,Object>> results=db.list("SELECT a.id,a.title,a.domain,a.start_at,t.id AS attempt_id,t.status,t.score,t.submitted_at,(SELECT AVG(other.score) FROM assessment_attempts other WHERE other.assessment_id=a.id AND other.status IN ('SUBMITTED','EXPIRED')) AS cohort_average FROM assessments a JOIN assessment_attempts t ON t.assessment_id=a.id WHERE a.cohort_id=? AND t.user_id=? AND t.status IN ('SUBMITTED','EXPIRED') ORDER BY a.start_at,a.id",cohortId,target);
         List<Map<String,Object>> domains=db.list("SELECT a.domain,AVG(t.score) AS average_score,COUNT(*) AS completed_count FROM assessments a JOIN assessment_attempts t ON t.assessment_id=a.id WHERE a.cohort_id=? AND t.user_id=? AND t.status IN ('SUBMITTED','EXPIRED') GROUP BY a.domain ORDER BY a.domain",cohortId,target);
@@ -272,7 +272,7 @@ public class AssessmentController {
 
     private void permitAttempt(Map<String,Object> attempt,Map<String,Object> assessment,boolean write) {
         long cohortId=Db.id(assessment,"cohortId");actor.cohort(cohortId);
-        if(Db.id(attempt,"userId")!=actor.id()&&(write||!support.staff(cohortId)))throw AppException.forbidden();
+        if(Db.id(attempt,"userId")!=actor.id()&&(write||!support.admin(cohortId)))throw AppException.forbidden();
     }
 
     private LocalDateTime deadline(Map<String,Object> attempt,Map<String,Object> assessment) {
@@ -286,7 +286,7 @@ public class AssessmentController {
         response.put("expiresAt",deadline.toInstant(ZoneOffset.UTC).toString());
         response.put("remainingSeconds",done?0:Math.max(0,Duration.between(Db.now(),deadline).getSeconds()));
         response.put("expired",!Db.now().isBefore(deadline));
-        response.put("questions",questions(Db.id(assessment,"id"),support.staff(Db.id(assessment,"cohortId"))||(done&&answersReleased(assessment))));
+        response.put("questions",questions(Db.id(assessment,"id"),support.admin(Db.id(assessment,"cohortId"))||(done&&answersReleased(assessment))));
         List<Map<String,Object>> answers=db.list("SELECT * FROM assessment_answers WHERE attempt_id=? ORDER BY question_id",Db.id(attempt,"id"));
         if(!done)for(Map<String,Object> answer:answers){answer.remove("isCorrect");answer.remove("earnedPoints");}
         response.put("answers",answers);return response;

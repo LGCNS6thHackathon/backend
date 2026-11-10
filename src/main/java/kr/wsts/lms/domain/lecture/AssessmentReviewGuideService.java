@@ -44,12 +44,12 @@ public class AssessmentReviewGuideService {
     public ReviewGuide guide(long assessmentId) {
         Map<String, Object> assessment = support.assessment(assessmentId);
         long cohortId = Db.id(assessment, "cohortId");
-        boolean staff = support.staff(cohortId);
-        if (!staff && "DRAFT".equals(assessment.get("status"))) throw AppException.notFound();
+        boolean administrator = support.admin(cohortId);
+        if (!administrator && "DRAFT".equals(assessment.get("status"))) throw AppException.notFound();
         Optional<Map<String, Object>> attempt = db.find("SELECT status FROM assessment_attempts WHERE assessment_id=? AND user_id=?", assessmentId, actor.id());
-        if (!staff && attempt.isEmpty()) throw AppException.forbidden();
+        if (!administrator && attempt.isEmpty()) throw AppException.forbidden();
         boolean finished = attempt.map(a -> !"IN_PROGRESS".equals(a.get("status"))).orElse(false);
-        boolean released = staff || (finished && answersReleased(assessment));
+        boolean released = administrator || (finished && answersReleased(assessment));
 
         List<QuestionGuide> questions = new ArrayList<>();
         for (Map<String, Object> q : db.list("SELECT q.id,q.position,s.id AS subject_id,s.title AS subject_title,u.id AS unit_id,u.title AS unit_title,t.id AS topic_id,t.title AS topic_title"
@@ -66,8 +66,8 @@ public class AssessmentReviewGuideService {
                     : classification.subject() + " > " + classification.unit() + " > " + classification.topic();
             List<ReviewLink> links = null;
             if (released) {
-                links = links(cohortId, questionId, staff);
-                if (links.isEmpty() && classification != null) links = topicDefault(cohortId, classification.topicId(), staff);
+                links = links(cohortId, questionId, administrator);
+                if (links.isEmpty() && classification != null) links = topicDefault(cohortId, classification.topicId(), administrator);
             }
             String message = released && links.isEmpty() ? NO_REVIEW_VIDEO : null;
             questions.add(new QuestionGuide(questionId, ((Number) q.get("position")).intValue(), classification, label, links, message));
@@ -82,7 +82,7 @@ public class AssessmentReviewGuideService {
     public Recommendations recommendations(long assessmentId) {
         Map<String, Object> assessment = support.assessment(assessmentId);
         long cohortId = Db.id(assessment, "cohortId");
-        if (!support.staff(cohortId) && "DRAFT".equals(assessment.get("status"))) throw AppException.notFound();
+        if (!support.admin(cohortId) && "DRAFT".equals(assessment.get("status"))) throw AppException.notFound();
         Map<String, Object> attempt = db.find("SELECT id,status FROM assessment_attempts WHERE assessment_id=? AND user_id=?", assessmentId, actor.id())
                 .orElseThrow(AppException::forbidden);
         boolean released = !"IN_PROGRESS".equals(attempt.get("status")) && answersReleased(assessment);
@@ -130,11 +130,11 @@ public class AssessmentReviewGuideService {
     private static final String LINK_COLUMNS = "SELECT c.id AS chapter_id,c.title AS chapter_title,c.start_seconds,v.id AS video_id,v.title AS video_title,v.lecture_date,v.period_no,v.youtube_video_id";
 
     /** Chapters the author linked to this question (matchType=QUESTION). */
-    private List<ReviewLink> links(long cohortId, long questionId, boolean staff) {
+    private List<ReviewLink> links(long cohortId, long questionId, boolean administrator) {
         return toLinks(db.list(LINK_COLUMNS
                 + " FROM assessment_question_review_links l"
                 + " JOIN lecture_chapters c ON c.id=l.chapter_id"
-                + " JOIN lecture_videos v ON v.id=c.video_id AND v.cohort_id=? AND v.deleted_at IS NULL" + visibility(staff)
+                + " JOIN lecture_videos v ON v.id=c.video_id AND v.cohort_id=? AND v.deleted_at IS NULL" + visibility(administrator)
                 + " WHERE l.question_id=? ORDER BY l.position", cohortId, questionId), MATCH_QUESTION);
     }
 
@@ -142,15 +142,15 @@ public class AssessmentReviewGuideService {
      * Fallback when a question has no direct link: the earliest chapter of the same core concept
      * (rule: the place the concept was first explained). Returns at most one link (matchType=TOPIC).
      */
-    private List<ReviewLink> topicDefault(long cohortId, long topicId, boolean staff) {
+    private List<ReviewLink> topicDefault(long cohortId, long topicId, boolean administrator) {
         return toLinks(db.list(LINK_COLUMNS
                 + " FROM lecture_chapters c"
-                + " JOIN lecture_videos v ON v.id=c.video_id AND v.cohort_id=? AND v.deleted_at IS NULL" + visibility(staff)
+                + " JOIN lecture_videos v ON v.id=c.video_id AND v.cohort_id=? AND v.deleted_at IS NULL" + visibility(administrator)
                 + " WHERE c.topic_id=? ORDER BY v.lecture_date,v.period_no,c.start_seconds,c.id LIMIT 1", cohortId, topicId), MATCH_TOPIC);
     }
 
-    private static String visibility(boolean staff) {
-        return staff ? "" : " AND v.visibility='PUBLIC'";
+    private static String visibility(boolean administrator) {
+        return administrator ? "" : " AND v.visibility='PUBLIC'";
     }
 
     private static List<ReviewLink> toLinks(List<Map<String, Object>> rows, String matchType) {

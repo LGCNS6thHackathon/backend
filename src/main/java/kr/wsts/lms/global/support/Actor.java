@@ -17,11 +17,11 @@ public class Actor {
     public Map<String,Object> user() { var row=db.one("SELECT id,email,name,phone,role,status,created_at,updated_at FROM users WHERE id=?",id()); if(!"ACTIVE".equals(row.get("status")))throw AppException.forbidden(); return row; }
     public boolean admin() { return "ADMIN".equals(user().get("role")); }
     public void requireAdmin() { if(!admin())throw AppException.forbidden(); }
+    public void requireAdmin(long cohortId) { requireAdmin(); db.one("SELECT id FROM cohorts WHERE id=?",cohortId); }
     public Map<String,Object> cohort(long cohortId) {
         db.one("SELECT id FROM cohorts WHERE id=?",cohortId);
-        if(admin())return Map.of("id",0L,"cohortId",cohortId,"userId",id(),"role","MANAGER","status","ACTIVE");
+        if(admin())return Map.of("id",0L,"cohortId",cohortId,"userId",id(),"role","ADMIN","status","ACTIVE");
         return db.find("SELECT * FROM enrollments WHERE cohort_id=? AND user_id=? AND status='ACTIVE'",cohortId,id()).orElseThrow(AppException::forbidden);
     }
-    public Map<String,Object> staff(long cohortId) { var enrollment=cohort(cohortId); if(!admin()&&!java.util.Set.of("INSTRUCTOR","MANAGER").contains(enrollment.get("role")))throw AppException.forbidden(); return enrollment; }
     public void requireOwner(long userId) { if(id()!=userId&&!admin())throw AppException.forbidden(); }
 }

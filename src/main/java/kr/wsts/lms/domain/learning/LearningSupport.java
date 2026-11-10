@@ -16,9 +16,9 @@ public class LearningSupport {
 
     public LearningSupport(Db db, Actor actor) { this.db = db; this.actor = actor; }
 
-    public boolean staff(long cohortId) {
-        if (actor.admin()) return true;
-        return Set.of("INSTRUCTOR", "MANAGER").contains(String.valueOf(actor.cohort(cohortId).get("role")));
+    public boolean admin(long cohortId) {
+        actor.cohort(cohortId);
+        return actor.admin();
     }
 
     public Map<String, Object> assignment(long id) {

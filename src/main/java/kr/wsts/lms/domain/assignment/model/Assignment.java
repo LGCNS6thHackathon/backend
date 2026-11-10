@@ -4,7 +4,7 @@ import java.time.Instant;
 
 /**
  * JDBC domain state for {@code assignments}.
- * authorId identifies the author; instructorId/instructorName identify the assigned instructor.
+ * authorId identifies the author; instructorId links an active ADMIN and instructorName is the display label.
  * Nullable instructor fields preserve existing assignments until a feature owner supplies them.
  * Timestamp components use UTC instants.
  * Persistence mapping and business operations are implemented by the feature owner.
