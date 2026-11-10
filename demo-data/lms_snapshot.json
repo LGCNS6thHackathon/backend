@@ -1,0 +1,492 @@
+{
+  "sourceUrl": "https://lms.wsts.kr/",
+  "capturedDate": "2026-11-10",
+  "courseTitle": "LG CNS AM Inspire Camp 6기",
+  "startDate": "2026-07-24",
+  "endDate": "2027-01-27",
+  "totalHours": 960,
+  "events": [
+    {
+      "title": "미니 PJT - 2",
+      "startDate": "2026-11-02",
+      "endDate": "2026-11-05",
+      "type": "PROJECT"
+    },
+    {
+      "title": "해커톤",
+      "startDate": "2026-11-09",
+      "endDate": "2026-11-10",
+      "type": "PROJECT"
+    },
+    {
+      "title": "Digital Insight 3 CNS AM Agile",
+      "startDate": "2026-11-11",
+      "endDate": "2026-11-12",
+      "type": "SPECIAL"
+    },
+    {
+      "title": "최종 프로젝트 (프로젝트 워크샵)",
+      "startDate": "2026-11-13",
+      "endDate": "2026-11-13",
+      "type": "PROJECT"
+    },
+    {
+      "title": "멘토링",
+      "startDate": "2026-11-14",
+      "endDate": "2026-11-14",
+      "type": "SPECIAL"
+    },
+    {
+      "title": "최종 프로젝트",
+      "startDate": "2026-11-17",
+      "endDate": "2026-11-27",
+      "type": "PROJECT"
+    },
+    {
+      "title": "멘토링",
+      "startDate": "2026-11-28",
+      "endDate": "2026-11-28",
+      "type": "SPECIAL"
+    },
+    {
+      "title": "휴강 (광복절 대체 휴무)",
+      "startDate": "2026-08-17",
+      "endDate": "2026-08-17",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (휴강)",
+      "startDate": "2026-09-07",
+      "endDate": "2026-09-07",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (휴강)",
+      "startDate": "2026-09-14",
+      "endDate": "2026-09-14",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (휴강)",
+      "startDate": "2026-09-23",
+      "endDate": "2026-09-23",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (추석연휴)",
+      "startDate": "2026-09-24",
+      "endDate": "2026-09-24",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (추석연휴)",
+      "startDate": "2026-09-25",
+      "endDate": "2026-09-25",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (개천절 대체공휴일)",
+      "startDate": "2026-10-05",
+      "endDate": "2026-10-05",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (한글날)",
+      "startDate": "2026-10-09",
+      "endDate": "2026-10-09",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (휴강)",
+      "startDate": "2026-10-12",
+      "endDate": "2026-10-12",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (휴강)",
+      "startDate": "2026-10-19",
+      "endDate": "2026-10-19",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (자체 휴강)",
+      "startDate": "2026-11-06",
+      "endDate": "2026-11-06",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (멘토링 대체)",
+      "startDate": "2026-11-16",
+      "endDate": "2026-11-16",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (멘토링 대체)",
+      "startDate": "2026-11-30",
+      "endDate": "2026-11-30",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (멘토링 대체)",
+      "startDate": "2026-12-14",
+      "endDate": "2026-12-14",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (멘토링 대체)",
+      "startDate": "2026-12-21",
+      "endDate": "2026-12-21",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (크리스마스)",
+      "startDate": "2026-12-25",
+      "endDate": "2026-12-25",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (자체 휴강)",
+      "startDate": "2026-12-31",
+      "endDate": "2026-12-31",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (신정)",
+      "startDate": "2027-01-01",
+      "endDate": "2027-01-01",
+      "type": "HOLIDAY"
+    },
+    {
+      "title": "휴강 (멘토링 대체)",
+      "startDate": "2027-01-18",
+      "endDate": "2027-01-18",
+      "type": "HOLIDAY"
+    }
+  ],
+  "notices": [
+    {
+      "sourceId": "264",
+      "date": "2026-11-09",
+      "title": "[CNS 6기]_에자일 특강 자료 공유",
+      "bodySummary": "11월 11~12일 09:00~18:00 애자일 특강에 앞서 자료를 공유하고 사전 확인을 안내하는 공지입니다."
+    },
+    {
+      "sourceId": "262",
+      "date": "2026-11-09",
+      "title": "[CNS 6기]_해커톤 자료 공유",
+      "bodySummary": "11월 9~10일 해커톤의 교안과 진행 절차·팀별 실습 참고 자료를 공유하는 공지입니다."
+    },
+    {
+      "sourceId": "261",
+      "date": "2026-11-08",
+      "title": "[LG CNS AM INSPIRE CAMP 6기] 해커톤 애자일 팀 편성 및 도메인 배정 안내",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "253",
+      "date": "2026-11-04",
+      "title": "📢 [CNS 6기] 미니프로젝트 2 발표회 및 리허설 안내",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "243",
+      "date": "2026-11-02",
+      "title": "📢 [필독] [LG CNS 6기] AWS 사용 안내",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "231",
+      "date": "2026-10-30",
+      "title": "[CNS 6기] 미니프로젝트2 공통 질문 안내사항",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "229",
+      "date": "2026-10-30",
+      "title": "[CNS 6기] 미니프로젝트2 수강생 안내",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "212",
+      "date": "2026-10-20",
+      "title": "수업자료 - AM 기반의 MSA 기술 II 강의 교안",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "210",
+      "date": "2026-10-20",
+      "title": "수업자료 - MSA I (10일차) Monitoring",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "207",
+      "date": "2026-10-16",
+      "title": "수업자료 - MSA I (9일차) Resilience4j",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "205",
+      "date": "2026-10-15",
+      "title": "수업자료 - MSA I (8일차) Kafka 데이터 동기화",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "203",
+      "date": "2026-10-14",
+      "title": "수업자료 - MSA I (7일차) 마이크로서비스 통신",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "201",
+      "date": "2026-10-13",
+      "title": "수업자료 - MSA I (6일차) 암호화/복호화",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "196",
+      "date": "2026-10-08",
+      "title": "수업자료 - MSA I (5일차) Configueration service",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "194",
+      "date": "2026-10-06",
+      "title": "수업자료 - MSA I (4일차) 사용자/상품/주문 서비스",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "193",
+      "date": "2026-10-02",
+      "title": "수업자료 - MSA I (3일차) API Gateway",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "192",
+      "date": "2026-10-02",
+      "title": "수업자료 - MSA I (2일차) Service Discovery",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "191",
+      "date": "2026-10-01",
+      "title": "수업자료 - MSA I (1일차) 마이크로서비스 개요",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "188",
+      "date": "2026-09-29",
+      "title": "[CNS 6기]_미니프로젝트 1 산출물 안내",
+      "bodySummary": ""
+    },
+    {
+      "sourceId": "140",
+      "date": "2026-07-29",
+      "title": "[CNS 6기]_출결 정정 안내",
+      "bodySummary": "출결 정정 증빙은 PDF로 제출하고, 면접은 최대 1주일·병가/시험/예비군 등은 다음날까지 제출하도록 안내합니다. 휴가는 사용일 최소 1주일 전 신청하도록 안내합니다. (실제 LMS 공지 요약이며 프로토타입의 처리 규칙을 변경하지 않습니다.)"
+    },
+    {
+      "sourceId": "136",
+      "date": "2026-07-28",
+      "title": "[출결 이슈 발생 시 처리 절차 안내]",
+      "bodySummary": ""
+    }
+  ],
+  "assignment": {
+    "title": "0917",
+    "description": "0917",
+    "createdAt": "2026-09-17T06:34:00",
+    "dueAt": "2026-09-20T15:34:00",
+    "sourceAttachmentNames": [
+      "react_0917.zip",
+      "spring_0917.zip"
+    ]
+  },
+  "roadmap": [
+    {
+      "title": "OT",
+      "description": "Camp 소개",
+      "hours": 8,
+      "modules": [
+        {
+          "title": "OT 및 Ice Break (8H)",
+          "startDate": "2026-07-24",
+          "endDate": "2026-07-24",
+          "hours": 8
+        }
+      ]
+    },
+    {
+      "title": "기본 역량",
+      "description": "풀스택 AI 서비스 개발",
+      "hours": 328,
+      "modules": [
+        {
+          "title": "Digital Insight 2 - DevOps 이해와 활용",
+          "startDate": "2026-09-10",
+          "endDate": "2026-09-10",
+          "hours": 8
+        },
+        {
+          "title": "AI 서비스 개발을 위한 프론트엔드",
+          "startDate": "2026-07-28",
+          "endDate": "2026-08-10",
+          "hours": 80
+        },
+        {
+          "title": "AI 서비스 개발을 위한 백엔드 I",
+          "startDate": "2026-08-11",
+          "endDate": "2026-08-21",
+          "hours": 64
+        },
+        {
+          "title": "AI 서비스 개발을 위한 백엔드 II",
+          "startDate": "2026-08-24",
+          "endDate": "2026-09-09",
+          "hours": 96
+        },
+        {
+          "title": "코드 퀄리티 플랫폼기반의 생성형 AI를 활용한 REST API 개발",
+          "startDate": "2026-09-11",
+          "endDate": "2026-09-18",
+          "hours": 40
+        },
+        {
+          "title": "미니 프로젝트 1",
+          "startDate": "2026-09-21",
+          "endDate": "2026-09-30",
+          "hours": 40
+        }
+      ]
+    },
+    {
+      "title": "핵심 역량",
+      "description": "AM 기술 - MSA, Cloud, Agile",
+      "hours": 208,
+      "modules": [
+        {
+          "title": "AM 기반의 MSA 기술 I",
+          "startDate": "2026-10-01",
+          "endDate": "2026-10-20",
+          "hours": 80
+        },
+        {
+          "title": "AM 기반의 MSA 기술 II",
+          "startDate": "2026-10-21",
+          "endDate": "2026-10-29",
+          "hours": 56
+        },
+        {
+          "title": "미니 프로젝트 2",
+          "startDate": "2026-10-30",
+          "endDate": "2026-11-05",
+          "hours": 40
+        },
+        {
+          "title": "해커톤",
+          "startDate": "2026-11-09",
+          "endDate": "2026-11-10",
+          "hours": 16
+        },
+        {
+          "title": "Digital Insight 3 - CNS AM Agile",
+          "startDate": "2026-11-11",
+          "endDate": "2026-11-12",
+          "hours": 16
+        }
+      ]
+    },
+    {
+      "title": "최종 프로젝트",
+      "description": "최종 실무 프로젝트",
+      "hours": 392,
+      "modules": [
+        {
+          "title": "프로젝트 워크샵 및 팀빌딩",
+          "startDate": "2026-11-13",
+          "endDate": "2026-11-13",
+          "hours": 8
+        },
+        {
+          "title": "최종실무 프로젝트",
+          "startDate": "2026-11-17",
+          "endDate": "2027-01-25",
+          "hours": 344
+        },
+        {
+          "title": "프로젝트 멘토링",
+          "hours": 40,
+          "dates": [
+            "2026-11-14",
+            "2026-11-28",
+            "2026-12-12",
+            "2026-12-19",
+            "2027-01-16"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "최종 프로젝트 발표회",
+      "description": "프로젝트 발표회",
+      "hours": 8,
+      "modules": [
+        {
+          "title": "프로젝트 발표회 및 수료식",
+          "startDate": "2027-01-27",
+          "endDate": "2027-01-27",
+          "hours": 8
+        }
+      ]
+    }
+  ],
+  "studies": [
+    {
+      "title": "WWL(What We Learned)",
+      "description": "이전 강의 내용에 대한 복습 및 TIL 보완",
+      "capacity": 8
+    },
+    {
+      "title": "테스트",
+      "description": "테스트",
+      "capacity": 6
+    }
+  ],
+  "notes": [
+    "브라우저 화면에서 읽은 정적 스냅샷입니다. 서버 내부 API·DB를 추정한 결과가 아닙니다.",
+    "원문 작성자·학생 이름·연락처·개인 성적·출결·제출물은 수집 파일에서 제외했습니다.",
+    "본문 요약은 264/262/140만 확인했습니다. 나머지 공지는 제목과 날짜만 수집했습니다.",
+    "프로젝트 멘토링은 표시된 범위 사이 매일이 아니라 2026-11-14, 11-28, 12-12, 12-19, 2027-01-16의 5회입니다.",
+    "기본 역량·핵심 역량의 모듈 순서는 화면 표시 순서입니다.",
+    "시간 미표시 일정은 날짜 범위로만 수집합니다. 과제 표시 시각은 한국 시간으로 정규화합니다."
+  ],
+  "assessments": [
+    {
+      "title": "1차 사전평가",
+      "domain": "풀스택(Full-Stack) AI서비스 개발",
+      "startAt": "2026-07-28T17:00:00",
+      "endAt": "2026-07-28T17:40:00",
+      "sourceQuestionCount": 60
+    },
+    {
+      "title": "1차 사후 평가",
+      "domain": "풀스택(Full-Stack) AI서비스 개발",
+      "startAt": "2026-10-28T17:00:00",
+      "endAt": "2026-10-28T17:40:00",
+      "sourceQuestionCount": 80
+    },
+    {
+      "title": "2차 사전 평가",
+      "domain": "AM(Application Modernization) 기술 - MSA, Cloud, Agile",
+      "startAt": "2026-10-06T17:00:00",
+      "endAt": "2026-10-06T17:40:00",
+      "sourceQuestionCount": 60
+    },
+    {
+      "title": "2차 사후 평가",
+      "domain": "AM(Application Modernization) 기술 - MSA, Cloud, Agile",
+      "startAt": "2026-10-30T17:10:00",
+      "endAt": "2026-10-30T17:50:00",
+      "sourceQuestionCount": 80
+    }
+  ]
+}
