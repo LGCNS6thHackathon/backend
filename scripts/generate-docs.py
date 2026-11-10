@@ -309,10 +309,10 @@ def learning_endpoints():
 def community_endpoints():
     post=dict(category=enum("COURSE","SYSTEM","QUESTION","FAQ"),title=string(1,160),body=string(1,20000),pinned=dict(type="boolean",default=False))
     endpoint("get","/api/cohorts/{cohortId}/posts","게시글 목록",paged("PostListItem"),tag="게시판",access=MEMBER,params=page_params()+[query("category",enum("","COURSE","SYSTEM","QUESTION","FAQ",default=""),"빈 값은 전체"),query("q",string(maximum=100,default=""),"제목·본문 검색")])
-    endpoint("post","/api/cohorts/{cohortId}/posts","게시글 작성","Post",post,["category","title","body"],status=201,tag="게시판",access=ADMIN,description="관리자만 작성 가능. 공지 작성 시 기수 회원에게 알림 생성.")
+    endpoint("post","/api/cohorts/{cohortId}/posts","게시글 작성","Post",post,["category","title","body"],status=201,tag="게시판",access=MEMBER,description="학생은 해당 기수의 QUESTION만 작성 가능하며 상단 고정은 불가합니다. 공지·FAQ 작성은 ADMIN 전용이며 공지 작성 시 기수 회원에게 알림을 생성합니다.")
     endpoint("get","/api/posts/{postId}","게시글 상세","PostDetail",tag="게시판",access=MEMBER,description="조회 시 views가 증가합니다.")
-    endpoint("patch","/api/posts/{postId}","게시글 수정","Post",post,tag="게시판",access=ADMIN,description="생략한 필드는 유지하고 빈 값은 거부합니다.")
-    endpoint("delete","/api/posts/{postId}","게시글 삭제",status=204,tag="게시판",access=ADMIN,description="논리 삭제합니다.")
+    endpoint("patch","/api/posts/{postId}","게시글 수정","Post",post,tag="게시판",access="ADMIN 또는 해당 기수 ACTIVE 회원인 QUESTION 작성자",description="학생은 본인 질문의 제목·본문만 수정하며 분류·상단 고정 변경은 불가합니다. 생략한 필드는 유지하고 빈 값은 거부합니다.")
+    endpoint("delete","/api/posts/{postId}","게시글 삭제",status=204,tag="게시판",access="ADMIN 또는 해당 기수 ACTIVE 회원인 QUESTION 작성자",description="논리 삭제합니다.")
     for path in ("/api/cohorts/{cohortId}/posts", "/api/posts/{postId}"):
         admin_path=path.replace("/api/", "/api/admin/", 1)
         PATHS[admin_path]=copy.deepcopy(PATHS[path])

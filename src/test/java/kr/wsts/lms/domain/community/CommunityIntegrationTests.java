@@ -79,7 +79,7 @@ class CommunityIntegrationTests {
         var c=context();String base="/api/admin/cohorts/"+c.cohort+"/posts";
         send(get(base),null,null,401);
         send(get(base),c.student,null,403);
-        send(post("/api/cohorts/"+c.cohort+"/posts"),c.student,Map.of("category","QUESTION","title","질문","body","내용"),403);
+        send(post(base),c.student,Map.of("category","QUESTION","title","질문","body","내용"),403);
         for(String category:List.of("COURSE","SYSTEM","FAQ","QUESTION")) {
             send(post(base),c.admin,Map.of("category",category,"body","내용"),400);
             send(post(base),c.admin,Map.of("category",category,"title"," ","body","내용"),400);
@@ -100,6 +100,33 @@ class CommunityIntegrationTests {
             send(get("/api/posts/"+post),c.student,null,404);
             assertEquals(0,((Number)JsonPath.read(send(get("/api/cohorts/"+c.cohort+"/posts").param("category",category),c.student,null,200),"$.total")).intValue());
         }
+    }
+    @Test void studentsCanManageOnlyTheirOwnQuestionsInAnActiveCohort()throws Exception{
+        var c=context();String base="/api/cohorts/"+c.cohort+"/posts";
+        var question=Map.of("category","QUESTION","title","학생 질문","body","학습 중 질문입니다.");
+        send(post(base),null,question,401);
+        send(post(base),c.outsider,question,403);
+        for(String category:List.of("COURSE","SYSTEM","FAQ"))
+            send(post(base),c.student,Map.of("category",category,"title","공지 시도","body","권한 확인"),403);
+        send(post(base),c.student,Map.of("category","QUESTION","title","고정 시도","body","권한 확인","pinned",true),403);
+        long post=id(send(post(base),c.student,question,201));String path="/api/posts/"+post;
+        send(patch(path),c.student,Map.of("category","QUESTION","title","수정한 학생 질문","body","수정 내용"),200);
+        assertEquals("수정한 학생 질문",JsonPath.read(send(get(path),c.other,null,200),"$.title"));
+        for(User other:List.of(c.other,c.outsider)) {
+            send(patch(path),other,Map.of("body","다른 사람 수정"),403);
+            send(delete(path),other,null,403);
+        }
+        send(patch(path),c.student,Map.of("category","COURSE"),403);
+        send(patch(path),c.student,Map.of("pinned",true),403);
+        send(patch("/api/admin/posts/"+post),c.student,Map.of("body","관리자 경로 시도"),403);
+        send(patch(path),c.student,Map.of("authorId",c.other.id,"body","작성자 변경 시도"),200);
+        assertEquals(c.student.id,((Number)JsonPath.read(send(get(path),c.student,null,200),"$.authorId")).longValue());
+        db.update("UPDATE enrollments SET status='WITHDRAWN' WHERE cohort_id=? AND user_id=?",c.cohort,c.student.id);
+        send(patch(path),c.student,Map.of("body","탈퇴 후 수정"),403);
+        send(delete(path),c.student,null,403);
+        db.update("UPDATE enrollments SET status='ACTIVE' WHERE cohort_id=? AND user_id=?",c.cohort,c.student.id);
+        send(delete(path),c.student,null,204);
+        send(get(path),c.other,null,404);
     }
     @Test void attachmentRoundTripUsesSafeFilenameAndChecksMembership()throws Exception{
         var c=context();long post=id(send(post("/api/cohorts/"+c.cohort+"/posts"),c.admin,Map.of("category","QUESTION","title","첨부파일 테스트","body","파일 권한을 확인합니다."),201));

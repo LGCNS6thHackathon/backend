@@ -101,10 +101,10 @@
 | 메서드 | 경로 | 기능 | 성공 | 권한·동작 |
 |---|---|---|---|---|
 | GET | `/api/cohorts/{cohortId}/posts` | 게시글 목록 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. |
-| POST | `/api/cohorts/{cohortId}/posts` | 게시글 작성 | 201 | 권한: 전역 ADMIN. 관리자만 작성 가능. 공지 작성 시 기수 회원에게 알림 생성. |
+| POST | `/api/cohorts/{cohortId}/posts` | 게시글 작성 | 201 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생은 해당 기수의 QUESTION만 작성 가능하며 상단 고정은 불가합니다. 공지·FAQ 작성은 ADMIN 전용이며 공지 작성 시 기수 회원에게 알림을 생성합니다. |
 | GET | `/api/posts/{postId}` | 게시글 상세 | 200 | 권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 조회 시 views가 증가합니다. |
-| PATCH | `/api/posts/{postId}` | 게시글 수정 | 200 | 권한: 전역 ADMIN. 생략한 필드는 유지하고 빈 값은 거부합니다. |
-| DELETE | `/api/posts/{postId}` | 게시글 삭제 | 204 | 권한: 전역 ADMIN. 논리 삭제합니다. |
+| PATCH | `/api/posts/{postId}` | 게시글 수정 | 200 | 권한: ADMIN 또는 해당 기수 ACTIVE 회원인 QUESTION 작성자. 학생은 본인 질문의 제목·본문만 수정하며 분류·상단 고정 변경은 불가합니다. 생략한 필드는 유지하고 빈 값은 거부합니다. |
+| DELETE | `/api/posts/{postId}` | 게시글 삭제 | 204 | 권한: ADMIN 또는 해당 기수 ACTIVE 회원인 QUESTION 작성자. 논리 삭제합니다. |
 | GET | `/api/admin/cohorts/{cohortId}/posts` | 관리자 게시글 목록 | 200 | 권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다. |
 | POST | `/api/admin/cohorts/{cohortId}/posts` | 관리자 게시글 작성 | 201 | 권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다. |
 | GET | `/api/admin/posts/{postId}` | 관리자 게시글 상세 | 200 | 권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다. |

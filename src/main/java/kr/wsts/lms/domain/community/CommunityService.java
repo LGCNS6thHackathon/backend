@@ -21,7 +21,8 @@ public class CommunityService {
     }
     @Transactional
     public Map<String,Object> create(long cohortId,Map<String,Object> input){
-        actor.requireAdmin();actor.cohort(cohortId);String category=Input.choice(input,"category","COURSE","SYSTEM","QUESTION","FAQ");boolean pinned=Input.bool(input,"pinned",false);
+        actor.cohort(cohortId);String category=Input.choice(input,"category","COURSE","SYSTEM","QUESTION","FAQ");boolean pinned=Input.bool(input,"pinned",false);
+        if(!actor.admin() && (!category.equals("QUESTION") || pinned)) throw AppException.forbidden();
 
         long id=db.insert("INSERT INTO posts(cohort_id,author_id,category,title,body,pinned,views,created_at,updated_at) VALUES(?,?,?,?,?,?,0,?,?)",cohortId,actor.id(),category,Input.str(input,"title",1,160),Input.str(input,"body",1,20000),pinned,Db.now(),Db.now());
         if(!category.equals("QUESTION"))notices.cohort(cohortId,actor.id(),"POST","새 공지사항",Input.str(input,"title",1,160),"POST",id);
@@ -31,14 +32,22 @@ public class CommunityService {
     public Map<String,Object> get(long postId){var p=post(postId);actor.cohort(Db.id(p,"cohortId"));db.update("UPDATE posts SET views=views+1 WHERE id=?",postId);var result=post(postId);result.put("files",db.list("SELECT id,original_name,content_type,size_bytes,created_at FROM files WHERE post_id=? AND deleted_at IS NULL ORDER BY id",postId));return result;}
     @Transactional
     public Map<String,Object> update(long postId,Map<String,Object> input){
-        actor.requireAdmin();var p=post(postId);String category=input.containsKey("category")?Input.choice(input,"category","COURSE","SYSTEM","QUESTION","FAQ"):(String)p.get("category");
+        var p=editablePost(postId);String category=input.containsKey("category")?Input.choice(input,"category","COURSE","SYSTEM","QUESTION","FAQ"):(String)p.get("category");
         boolean pinned=Input.bool(input,"pinned",Boolean.TRUE.equals(p.get("pinned")));
+        if(!actor.admin() && (!category.equals("QUESTION") || pinned!=Boolean.TRUE.equals(p.get("pinned")))) throw AppException.forbidden();
 
         db.update("UPDATE posts SET title=?,body=?,category=?,pinned=?,updated_at=? WHERE id=?",input.containsKey("title")?Input.str(input,"title",1,160):p.get("title"),input.containsKey("body")?Input.str(input,"body",1,20000):p.get("body"),category,pinned,Db.now(),postId);
         return post(postId);
     }
     @Transactional
-    public void delete(long postId){actor.requireAdmin();var p=post(postId);db.update("UPDATE posts SET deleted_at=?,updated_at=? WHERE id=?",Db.now(),Db.now(),postId);}
+    public void delete(long postId){editablePost(postId);db.update("UPDATE posts SET deleted_at=?,updated_at=? WHERE id=?",Db.now(),Db.now(),postId);}
+
+    private Map<String,Object> editablePost(long postId){
+        var p=db.one("SELECT * FROM posts WHERE id=? AND deleted_at IS NULL FOR UPDATE",postId);
+        actor.cohort(Db.id(p,"cohortId"));
+        if(!actor.admin() && (!"QUESTION".equals(p.get("category")) || Db.id(p,"authorId")!=actor.id())) throw AppException.forbidden();
+        return p;
+    }
 
     public Map<String,Object> comments(long postId,int page,int size){var p=post(postId);actor.cohort(Db.id(p,"cohortId"));return db.page("SELECT c.id,c.post_id,c.author_id,u.name AS author_name,c.body,c.created_at,c.updated_at FROM comments c JOIN users u ON u.id=c.author_id WHERE c.post_id=? AND c.deleted_at IS NULL ORDER BY c.id","SELECT COUNT(*) FROM comments WHERE post_id=? AND deleted_at IS NULL",page,size,postId);}
     @Transactional
