@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import kr.wsts.lms.domain.schedule.model.ScheduleEvent;
 
-/** Cohort-scoped persistence contract; staff authorization belongs to the service. */
+/** Cohort-scoped persistence contract; administrator authorization belongs to the service. */
 public interface ScheduleRepository {
     List<ScheduleEvent> findOverlappingEvents(long cohortId, Instant fromInclusive, Instant toExclusive);
     Optional<ScheduleEvent> findEvent(long cohortId, long eventId);

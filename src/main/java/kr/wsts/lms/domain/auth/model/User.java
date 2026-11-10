@@ -24,7 +24,7 @@ public record User(
         Instant provisionedAt
 ) {
     public enum Role {
-        ADMIN, INSTRUCTOR, STUDENT
+        ADMIN, STUDENT
     }
 
     public enum Status {

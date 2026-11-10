@@ -10,7 +10,6 @@ public class CommunityService {
     private final Db db; private final Actor actor; private final Notices notices;
     public CommunityService(Db db,Actor actor,Notices notices){this.db=db;this.actor=actor;this.notices=notices;}
     private Map<String,Object> post(long id){return db.one("SELECT p.*,u.name AS author_name FROM posts p JOIN users u ON u.id=p.author_id WHERE p.id=? AND p.deleted_at IS NULL",id);}
-    private boolean staff(long cohort){var e=actor.cohort(cohort);return actor.admin()||Set.of("INSTRUCTOR","MANAGER").contains(e.get("role"));}
 
 
     public Map<String,Object> posts(long cohortId,String category,String q,int page,int size){
@@ -44,7 +43,7 @@ public class CommunityService {
     public Map<String,Object> comments(long postId,int page,int size){var p=post(postId);actor.cohort(Db.id(p,"cohortId"));return db.page("SELECT c.id,c.post_id,c.author_id,u.name AS author_name,c.body,c.created_at,c.updated_at FROM comments c JOIN users u ON u.id=c.author_id WHERE c.post_id=? AND c.deleted_at IS NULL ORDER BY c.id","SELECT COUNT(*) FROM comments WHERE post_id=? AND deleted_at IS NULL",page,size,postId);}
     @Transactional
     public Map<String,Object> comment(long postId,Map<String,Object> input){var p=post(postId);long cohort=Db.id(p,"cohortId");actor.cohort(cohort);long id=db.insert("INSERT INTO comments(post_id,author_id,body,created_at,updated_at) VALUES(?,?,?,?,?)",postId,actor.id(),Input.str(input,"body",1,5000),Db.now(),Db.now());if(Db.id(p,"authorId")!=actor.id())notices.user(Db.id(p,"authorId"),cohort,"COMMENT","게시글에 댓글이 달렸습니다.",(String)p.get("title"),"POST",postId);return db.one("SELECT id,post_id,author_id,body,created_at,updated_at FROM comments WHERE id=?",id);}
-    private Map<String,Object> ownComment(long id){var c=db.one("SELECT * FROM comments WHERE id=? AND deleted_at IS NULL",id);var p=post(Db.id(c,"postId"));long cohort=Db.id(p,"cohortId");actor.cohort(cohort);if(Db.id(c,"authorId")!=actor.id()&&!staff(cohort))throw AppException.forbidden();return c;}
+    private Map<String,Object> ownComment(long id){var c=db.one("SELECT * FROM comments WHERE id=? AND deleted_at IS NULL",id);var p=post(Db.id(c,"postId"));long cohort=Db.id(p,"cohortId");actor.cohort(cohort);if(Db.id(c,"authorId")!=actor.id()&&!actor.admin())throw AppException.forbidden();return c;}
     @Transactional
     public Map<String,Object> editComment(long commentId,Map<String,Object> input){ownComment(commentId);db.update("UPDATE comments SET body=?,updated_at=? WHERE id=?",Input.str(input,"body",1,5000),Db.now(),commentId);return db.one("SELECT id,post_id,author_id,body,created_at,updated_at FROM comments WHERE id=?",commentId);}
     @Transactional

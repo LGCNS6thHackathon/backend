@@ -9,7 +9,7 @@
   },
   "source": {
     "path": "docs/erd/lms-mariadb.sql",
-    "sha256": "1259dd88ba81bacad733eb30815ae05a27d491fd6e7610207a69c2e343697da7",
+    "sha256": "0b1be2aa8320114edf13b5eb4808f2aea6145a2e5efeb0ec7e5a70c7cd7dabbe",
     "migrations": [
       {
         "path": "src/main/resources/db/migration/V1__lms_schema.sql",
@@ -30,6 +30,10 @@
       {
         "path": "src/main/resources/db/migration/V5__remove_unused_study_and_roadmap.sql",
         "sha256": "581c3536365d334a9e65e71f91c488b42888163b96cb17c3b5f96dc417dadd6b"
+      },
+      {
+        "path": "src/main/resources/db/migration/V6__unify_admin_and_student_roles.sql",
+        "sha256": "8f139868cfeed35eab6e848d9a8e39d36753a1e2a200af87754cf26846e3f2c3"
       }
     ]
   },
@@ -87,7 +91,6 @@
           "defaultSql": "'STUDENT'",
           "enum": [
             "ADMIN",
-            "INSTRUCTOR",
             "STUDENT"
           ]
         },
@@ -168,7 +171,7 @@
       "checks": [
         {
           "name": "ck_users_role",
-          "expression": "role IN ('ADMIN','INSTRUCTOR','STUDENT')"
+          "expression": "role IN ('ADMIN','STUDENT')"
         },
         {
           "name": "ck_users_status",
@@ -464,9 +467,8 @@
           "autoIncrement": false,
           "defaultSql": "'STUDENT'",
           "enum": [
-            "STUDENT",
-            "INSTRUCTOR",
-            "MANAGER"
+            "ADMIN",
+            "STUDENT"
           ]
         },
         {
@@ -537,7 +539,7 @@
       "checks": [
         {
           "name": "ck_enrollment_role",
-          "expression": "role IN ('STUDENT','INSTRUCTOR','MANAGER')"
+          "expression": "role IN ('ADMIN','STUDENT')"
         },
         {
           "name": "ck_enrollment_status",

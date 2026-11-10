@@ -45,7 +45,7 @@ public class AdminUsersController {
         db.list("SELECT id FROM users WHERE role='ADMIN' AND status='ACTIVE' ORDER BY id FOR UPDATE");
         Map<String, Object> current = db.one("SELECT " + COLUMNS + " FROM users WHERE id=? FOR UPDATE", userId);
         Map<String, Object> merged = new LinkedHashMap<>(current); merged.putAll(input);
-        String role = Input.choice(merged, "role", "ADMIN", "INSTRUCTOR", "STUDENT");
+        String role = Input.choice(merged, "role", "ADMIN", "STUDENT");
         String status = Input.choice(merged, "status", "ACTIVE", "DISABLED");
         if ("ADMIN".equals(current.get("role")) && "ACTIVE".equals(current.get("status"))
                 && (!"ADMIN".equals(role) || !"ACTIVE".equals(status))
@@ -54,6 +54,9 @@ public class AdminUsersController {
         }
         if (!role.equals(current.get("role")) || !status.equals(current.get("status"))) {
             db.update("UPDATE users SET role=?,status=?,token_version=token_version+1,updated_at=? WHERE id=?", role, status, Db.now(), userId);
+            if (!role.equals(current.get("role"))) {
+                db.update("UPDATE enrollments SET role=?,updated_at=? WHERE user_id=?", role, Db.now(), userId);
+            }
             db.update("UPDATE refresh_tokens SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL", Db.now(), userId);
         }
         return db.one("SELECT " + COLUMNS + " FROM users WHERE id=?", userId);

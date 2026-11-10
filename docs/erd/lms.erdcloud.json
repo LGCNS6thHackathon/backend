@@ -74,7 +74,7 @@
           "type": "VARCHAR(20)",
           "defaultValue": "'STUDENT'",
           "isAllowNull": false,
-          "comment": "허용값: ADMIN, INSTRUCTOR, STUDENT",
+          "comment": "허용값: ADMIN, STUDENT",
           "relEntity": null,
           "relFieldId": null,
           "relType": null,
@@ -594,7 +594,7 @@
           "type": "VARCHAR(20)",
           "defaultValue": "'STUDENT'",
           "isAllowNull": false,
-          "comment": "허용값: STUDENT, INSTRUCTOR, MANAGER",
+          "comment": "허용값: ADMIN, STUDENT",
           "relEntity": null,
           "relFieldId": null,
           "relType": null,
@@ -4397,7 +4397,7 @@
   ],
   "memoData": [],
   "domainData": [],
-  "createdAt": "2026-11-10T00:24:21.521Z",
+  "createdAt": "2026-11-10T00:48:24.876Z",
   "creatorName": "",
   "creatorThumb": ""
 }

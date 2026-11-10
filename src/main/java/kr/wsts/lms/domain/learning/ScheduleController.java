@@ -40,7 +40,7 @@ public class ScheduleController {
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public Map<String,Object> createEvent(@PathVariable long cohortId,@RequestBody Map<String,Object> body) {
-        actor.staff(cohortId);
+        actor.requireAdmin(cohortId);
         LocalDateTime start = Input.dateTime(body,"startAt"), end=Input.dateTime(body,"endAt");
         LearningSupport.validRange(start,end);
         support.withinCohort(cohortId,start.plusHours(9).toLocalDate(),end.plusHours(9).toLocalDate());
@@ -54,7 +54,7 @@ public class ScheduleController {
     @Transactional
     public Map<String,Object> updateEvent(@PathVariable long id,@RequestBody Map<String,Object> body) {
         Map<String,Object> old=db.one("SELECT * FROM schedule_events WHERE id=? FOR UPDATE",id);
-        long cohortId=Db.id(old,"cohortId"); actor.staff(cohortId);
+        long cohortId=Db.id(old,"cohortId"); actor.requireAdmin(cohortId);
         Map<String,Object> merged=LearningSupport.merged(old,body);
         LocalDateTime start=LearningSupport.dateTime(body,"startAt",old),end=LearningSupport.dateTime(body,"endAt",old);
         LearningSupport.validRange(start,end);
@@ -68,7 +68,7 @@ public class ScheduleController {
     @DeleteMapping("/events/{id}")
     @Transactional
     public ResponseEntity<Void> deleteEvent(@PathVariable long id) {
-        Map<String,Object> event=db.one("SELECT * FROM schedule_events WHERE id=? FOR UPDATE",id); actor.staff(Db.id(event,"cohortId"));
+        Map<String,Object> event=db.one("SELECT * FROM schedule_events WHERE id=? FOR UPDATE",id); actor.requireAdmin(Db.id(event,"cohortId"));
         db.update("DELETE FROM schedule_events WHERE id=?",id);
         return ResponseEntity.noContent().build();
     }

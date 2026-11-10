@@ -8,7 +8,7 @@ import kr.wsts.lms.domain.attachment.model.StoredFile;
 /**
  * Metadata persistence contract, not disk/object-storage implementation.
  * Services must authorize the referenced parent before reading or mutating.
- * Submission attachments are private to their owner and authorized staff.
+ * Submission attachments are private to their owner and authorized administrators.
  */
 public interface AttachmentRepository {
     Optional<StoredFile> findPostFile(long fileId, long cohortId);

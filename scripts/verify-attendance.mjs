@@ -27,15 +27,16 @@ const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
 const month = today.slice(0, 7);
 const course = await api('POST', '/api/courses', admin, { title: `출결 API 검증 ${run}`, totalHours: 8 }, 201);
 const cohort = await api('POST', `/api/courses/${course.id}/cohorts`, admin, { name: `출결 검증 ${run}`, startDate: today, endDate: today }, 201);
-async function member(label, cohortRole = 'STUDENT') {
+async function member(label) {
   const email = `attendance-${run}-${label}@example.test`;
   const user = await api('POST', '/api/users', admin, { email, password: studentPassword, name: `검증 ${label}` }, 201);
-  if (cohortRole === 'INSTRUCTOR') await api('PATCH', `/api/users/${user.id}`, admin, { role: 'INSTRUCTOR' });
-  await api('POST', `/api/cohorts/${cohort.id}/enrollments`, admin, { userId: user.id, role: cohortRole }, 201);
+  await api('POST', `/api/cohorts/${cohort.id}/enrollments`, admin, { userId: user.id, role: 'STUDENT' }, 201);
   return { id: user.id, token: await login(email, studentPassword) };
 }
 const student = await member('student'), other = await member('other');
-const instructor = await member('instructor', 'INSTRUCTOR'), manager = await member('manager', 'MANAGER');
+for (const legacyRole of ['INSTRUCTOR', 'MANAGER']) {
+  await api('PATCH', `/api/users/${other.id}`, admin, { role: legacyRole }, 400);
+}
 const recordsPath = `/api/cohorts/${cohort.id}/attendance`;
 const calendarPath = `${recordsPath}/calendar?month=${month}`;
 const correctionsPath = `${recordsPath}/corrections`;
@@ -52,13 +53,13 @@ const correction = await api('POST', `/api/attendance/${record.id}/corrections`,
 await api('POST', `/api/attendance/${record.id}/corrections`, student.token, {}, 409);
 calendar = await api('GET', calendarPath, student.token);
 check(calendar.attendance[0].latestCorrection.id === correction.id && calendar.attendance[0].availableRequestedStatuses.length === 0, 'Pending request disables another request');
-for (const role of [student, instructor, manager]) {
+for (const role of [student, other]) {
   await api('PUT', recordsPath, role.token, body('PRESENT', 2), 403);
   await api('DELETE', `/api/attendance/${record.id}`, role.token, undefined, 403);
   await api('PATCH', `/api/attendance/corrections/${correction.id}`, role.token, { status: 'APPROVED' }, 403);
 }
-check(true, 'Student, instructor and manager cannot manage attendance or approve requests');
-check((await api('GET', correctionsPath, other.token)).total === 0 && (await api('GET', correctionsPath, manager.token)).total === 0, 'Correction lists enforce ownership');
+check(true, 'Students cannot manage attendance or approve requests; legacy roles are rejected');
+check((await api('GET', correctionsPath, other.token)).total === 0, 'Correction lists enforce ownership');
 await api('PATCH', `/api/attendance/corrections/${correction.id}`, admin, { status: 'APPROVED' });
 calendar = await api('GET', calendarPath, student.token);
 check(calendar.attendance[0].status === 'PRESENT' && calendar.attendance[0].latestCorrection.status === 'APPROVED', 'Approval updates student calendar');

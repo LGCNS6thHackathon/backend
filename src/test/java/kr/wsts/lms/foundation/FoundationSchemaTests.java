@@ -27,6 +27,50 @@ class FoundationSchemaTests {
     }
 
     @Test
+    void roleUpgradePreservesAccountsAndHistoryAndRevokesOnlyPromotedAccountsTokens() {
+        var dataSource = database();
+        migration(dataSource, "5").migrate();
+        var jdbc = new JdbcTemplate(dataSource);
+        seedEnrollment(jdbc);
+        String[] globalRoles = {"INSTRUCTOR", "STUDENT", "STUDENT", "STUDENT", "ADMIN", "STUDENT", "INSTRUCTOR", "STUDENT"};
+        String[] cohortRoles = {"INSTRUCTOR", "MANAGER", "MANAGER", "STUDENT", "MANAGER", "INSTRUCTOR", "INSTRUCTOR", "MANAGER"};
+        for (int i = 0; i < globalRoles.length; i++) {
+            int id = i + 2;
+            jdbc.update("INSERT INTO users(id,email,password_hash,name,role,status,token_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
+                    id, "legacy-" + id + "@example.test", "preserved-password-" + id, "Legacy " + id, globalRoles[i], id >= 8 ? "DISABLED" : "ACTIVE", id);
+            jdbc.update("INSERT INTO enrollments(cohort_id,user_id,role,status,created_at,updated_at) VALUES(1,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
+                    id, cohortRoles[i], (id == 4 || id == 8) ? "WITHDRAWN" : "ACTIVE");
+            jdbc.update("INSERT INTO refresh_tokens(user_id,token_hash,family_id,expires_at,created_at) VALUES(?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
+                    id, String.valueOf(id).repeat(64), "legacy-family-" + id);
+        }
+        jdbc.update("INSERT INTO assignments(id,cohort_id,author_id,instructor_id,instructor_name,title,description,due_at,created_at,updated_at) VALUES(1,1,6,2,'Preserved instructor','Legacy assignment','Instructions',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO submissions(id,assignment_id,user_id,body,submitted_at,updated_at) VALUES(1,1,1,'Preserved submission',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO submission_reviews(submission_id,reviewer_id,score,feedback,created_at,updated_at) VALUES(1,2,90,'Preserved feedback',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+
+        migration(dataSource, null).migrate();
+
+        Set<Integer> promoted = Set.of(2, 3, 7, 8, 9);
+        for (int id = 2; id <= 9; id++) {
+            String expectedRole = promoted.contains(id) || id == 6 ? "ADMIN" : "STUDENT";
+            assertEquals(expectedRole, jdbc.queryForObject("SELECT role FROM users WHERE id=?", String.class, id));
+            assertEquals(expectedRole, jdbc.queryForObject("SELECT role FROM enrollments WHERE user_id=?", String.class, id));
+            assertEquals(id + (promoted.contains(id) ? 1 : 0), jdbc.queryForObject("SELECT token_version FROM users WHERE id=?", Integer.class, id));
+            assertEquals(promoted.contains(id), jdbc.queryForObject("SELECT revoked_at IS NOT NULL FROM refresh_tokens WHERE user_id=?", Boolean.class, id));
+            assertEquals("preserved-password-" + id, jdbc.queryForObject("SELECT password_hash FROM users WHERE id=?", String.class, id));
+            assertEquals(id >= 8 ? "DISABLED" : "ACTIVE", jdbc.queryForObject("SELECT status FROM users WHERE id=?", String.class, id));
+        }
+        assertEquals("WITHDRAWN", jdbc.queryForObject("SELECT status FROM enrollments WHERE user_id=4", String.class));
+        assertEquals(2L, jdbc.queryForObject("SELECT instructor_id FROM assignments WHERE id=1", Long.class));
+        assertEquals("Preserved instructor", jdbc.queryForObject("SELECT instructor_name FROM assignments WHERE id=1", String.class));
+        assertEquals(2L, jdbc.queryForObject("SELECT reviewer_id FROM submission_reviews WHERE submission_id=1", Long.class));
+        assertEquals(90, jdbc.queryForObject("SELECT score FROM submission_reviews WHERE submission_id=1", Integer.class));
+        for (String retired : List.of("INSTRUCTOR", "MANAGER")) {
+            assertThrows(DataIntegrityViolationException.class, () -> jdbc.update("UPDATE users SET role=? WHERE id=1", retired));
+            assertThrows(DataIntegrityViolationException.class, () -> jdbc.update("UPDATE enrollments SET role=? WHERE user_id=1", retired));
+        }
+    }
+
+    @Test
     void frontendScopeUpgradeRemovesUnusedFeaturesAndPreservesActiveScreenData() {
         var dataSource = database();
         migration(dataSource, "4").migrate();

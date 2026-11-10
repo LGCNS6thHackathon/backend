@@ -5,7 +5,7 @@ CREATE TABLE users (
  token_version INT NOT NULL DEFAULT 0, created_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL,
  provisioned_by BIGINT, provisioned_at DATETIME(6),
  CONSTRAINT fk_users_provisioner FOREIGN KEY(provisioned_by) REFERENCES users(id),
- CONSTRAINT ck_users_role CHECK (role IN ('ADMIN','INSTRUCTOR','STUDENT')),
+ CONSTRAINT ck_users_role CHECK (role IN ('ADMIN','STUDENT')),
  CONSTRAINT ck_users_status CHECK (status IN ('ACTIVE','DISABLED'))
 );
 CREATE INDEX ix_users_provisioner ON users(provisioned_by);
@@ -35,7 +35,7 @@ CREATE TABLE enrollments (
  CONSTRAINT uq_enrollment UNIQUE(cohort_id,user_id),
  CONSTRAINT fk_enrollment_cohort FOREIGN KEY(cohort_id) REFERENCES cohorts(id),
  CONSTRAINT fk_enrollment_user FOREIGN KEY(user_id) REFERENCES users(id),
- CONSTRAINT ck_enrollment_role CHECK(role IN ('STUDENT','INSTRUCTOR','MANAGER')),
+ CONSTRAINT ck_enrollment_role CHECK(role IN ('ADMIN','STUDENT')),
  CONSTRAINT ck_enrollment_status CHECK(status IN ('ACTIVE','WITHDRAWN'))
 );
 CREATE INDEX ix_enrollment_user ON enrollments(user_id,status);

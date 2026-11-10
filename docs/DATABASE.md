@@ -1,15 +1,15 @@
 # MariaDB 데이터베이스와 ERD
 
-실행 기준은 `src/main/resources/db/migration`의 V1 + V2 + V3 + V4 + V5입니다. `docs/erd/lms-mariadb.sql`는 다섯 마이그레이션 적용 후의 전체 스키마입니다. 31개 테이블과 55개 외래 키를 ERD Cloud 스냅샷 JSON으로 제공합니다.
+실행 기준은 `src/main/resources/db/migration`의 V1 + V2 + V3 + V4 + V5 + V6입니다. `docs/erd/lms-mariadb.sql`는 여섯 마이그레이션 적용 후의 전체 스키마입니다. 31개 테이블과 55개 외래 키를 ERD Cloud 스냅샷 JSON으로 제공합니다.
 
-V2는 추가 기능의 DB 기반이고, V3는 관리자 계정 발급 이력입니다. V4는 과제 화면의 과목 표시명과 제출 배포 URL을 저장합니다. V5는 사용하지 않는 스터디·기존 로드맵 네 테이블과 데이터를 삭제하고 STUDY_GROUP 알림을 정리합니다. main·develop 통합 후에는 관리자 게시판·출결 캘린더·과제 화면·강의영상·평가 복습 연결·Discord 단건 발송 API까지 구현되어 있습니다. AI 복습의 Java 모델·저장소 인터페이스는 기반 단계입니다. [설계 범위](foundation/DOMAIN_PLAN.md)와 [팀 인수인계](foundation/TEAM_HANDOFF.md)를 확인하세요.
+V2는 추가 기능의 DB 기반이고, V3는 관리자 계정 발급 이력입니다. V4는 과제 화면의 과목 표시명과 제출 배포 URL을 저장합니다. V5는 사용하지 않는 스터디·기존 로드맵 네 테이블과 데이터를 삭제하고 STUDY_GROUP 알림을 정리합니다. V6는 계정·기수 역할을 ADMIN/STUDENT로 통합하고 기존 관리 계정을 이관합니다. 자세한 이관 기준은 [역할 정책](ADMIN_STUDENT_ROLES.md)을 확인하세요. main·develop 통합 후에는 관리자 게시판·출결 캘린더·과제 화면·강의영상·평가 복습 연결·Discord 단건 발송 API까지 구현되어 있습니다. AI 복습의 Java 모델·저장소 인터페이스는 기반 단계입니다. [설계 범위](foundation/DOMAIN_PLAN.md)와 [팀 인수인계](foundation/TEAM_HANDOFF.md)를 확인하세요.
 
 ## 제공 파일
 
 | 파일 | 용도 |
 |---|---|
 | [erd/lms.erdcloud.json](erd/lms.erdcloud.json) | **ERD Cloud Upload Snapshot용**. 31개 엔티티·55개 관계·화면 배치 포함 |
-| [erd/lms-mariadb.sql](erd/lms-mariadb.sql) | V1+V2+V3+V4+V5 통합 스키마. 새 DB 생성·ERD Cloud SQL Import용. 기존 DB에는 Flyway 후속 마이그레이션 적용 |
+| [erd/lms-mariadb.sql](erd/lms-mariadb.sql) | V1+V2+V3+V4+V5+V6 통합 스키마. 새 DB 생성·ERD Cloud SQL Import용. 기존 DB에는 Flyway 후속 마이그레이션 적용 |
 | [erd/lms-schema.json](erd/lms-schema.json) | 컬럼·타입·널 허용·PK·FK·유니크·CHECK·인덱스를 담은 자체 JSON |
 | [erd/erdcloud-format-source.json](erd/erdcloud-format-source.json) | 공식 형식의 출처·검증 범위 |
 
@@ -127,7 +127,7 @@ erDiagram
 
 ## 주요 제약과 저장 규칙
 
-- 사용자와 기수는 `enrollments`로 연결합니다. 전역 `users.role`과 기수별 `enrollments.role`을 구분합니다.
+- 사용자와 기수는 `enrollments`로 연결합니다. 권한은 `users.role`의 ADMIN/STUDENT로 결정하고 `enrollments.role`은 이를 따라갑니다.
 - 회원·기수, 수강 등록·출결 날짜·회차 번호, 과제·회원, 평가·회원, 응시·문항은 각각 유니크입니다.
 - DATE 출결은 session_no=0, SESSION 출결은 양수입니다. 기존 출결 API도 일자·회차를 구분하고 삭제 기록은 조회·대시보드에서 제외합니다.
 - 출결 정정은 요청 당시 상태·version 스냅샷과 INVALIDATED 상태를 담습니다. 승인 시 원본 상태·version을 검사하고 변경·삭제된 요청은 INVALIDATED로 무효화합니다. ABSENT→LATE/PRESENT, LATE/EXCUSED/LEAVE/EARLY→PRESENT를 허용합니다. 소명자료 파일 저장용 테이블은 추가하지 않습니다.
@@ -147,4 +147,4 @@ erDiagram
 python scripts/generate-docs.py
 ```
 
-테이블 구조는 V1+V2+V3+V4+V5 통합 SQL을 읽어 재생성하고, API 계약은 실제 컨트롤러 경로와 대조합니다. 스키마 변경 시 마이그레이션·통합 SQL·도메인 모델을 함께 맞추고 마이그레이션 테스트로 일치 여부를 확인하세요.
+테이블 구조는 V1+V2+V3+V4+V5+V6 통합 SQL을 읽어 재생성하고, API 계약은 실제 컨트롤러 경로와 대조합니다. 스키마 변경 시 마이그레이션·통합 SQL·도메인 모델을 함께 맞추고 마이그레이션 테스트로 일치 여부를 확인하세요.

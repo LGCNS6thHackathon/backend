@@ -81,10 +81,10 @@ await api('POST',`/api/attendance/${deletedAttendance.id}/corrections`,a.accessT
 const remainingAttendance=await api('GET',attendancePath,a.accessToken),deleteHistory=await api('GET',`/api/cohorts/${cohort.id}/attendance/corrections`,a.accessToken);
 check(!remainingAttendance.items.some(record=>record.id===deletedAttendance.id) && deleteHistory.items.some(request=>request.id===deletedRequest.id && request.status==='INVALIDATED'),'Soft deletion hides attendance and retains invalidated request history');
 const instructor=await createAccount('instructor',admin.accessToken);
-await api('PATCH',`/api/users/${instructor.id}`,admin.accessToken,{role:'INSTRUCTOR'});
-await api('POST',`/api/cohorts/${cohort.id}/enrollments`,admin.accessToken,{userId:instructor.id,role:'INSTRUCTOR'},201);
+await api('PATCH',`/api/users/${instructor.id}`,admin.accessToken,{role:'ADMIN'});
+await api('POST',`/api/cohorts/${cohort.id}/enrollments`,admin.accessToken,{userId:instructor.id,role:'ADMIN'},201);
 const assignment=await api('POST',`/api/cohorts/${cohort.id}/assignments`,admin.accessToken,{title:'설계 과제',description:'기능과 테이블 관계를 설명해주세요.',dueAt:at(24),maxScore:100,instructorId:instructor.id,instructorName:'검증 담당 강사'},201);
-check(assignment.instructorId===instructor.id && assignment.instructorName==='검증 담당 강사','Assignment stores active cohort instructor and displayed name');
+check(assignment.instructorId===instructor.id && assignment.instructorName==='검증 담당 강사','Assignment stores active administrator and displayed instructor name');
 const submission=await api('PUT',`/api/assignments/${assignment.id}/submission`,a.accessToken,{body:'과제 설명을 제출합니다.',repositoryUrl:'https://example.com/repository'});
 const submissionForm=new FormData();submissionForm.append('file',new Blob(['submission-verification'],{type:'text/plain'}),'submission.txt');
 const submissionUpload=await fetch(new URL(`/api/submissions/${submission.id}/files`,base),{method:'POST',headers:{Authorization:`Bearer ${a.accessToken}`},body:submissionForm});

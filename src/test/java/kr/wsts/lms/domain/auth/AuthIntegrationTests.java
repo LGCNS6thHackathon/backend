@@ -146,6 +146,54 @@ class AuthIntegrationTests {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void accountRolesControlEnrollmentRolesAndChangingRoleRevokesSessions() throws Exception {
+        var administrator = login(ADMIN_EMAIL, PASSWORD);
+        var account = createAccount();
+        var originalSession = login(account.email, PASSWORD);
+        long course = db.insert("INSERT INTO courses(title,description,created_at,updated_at) VALUES('Role test','Role test',?,?)", Db.now(), Db.now());
+        long cohort = db.insert("INSERT INTO cohorts(course_id,name,start_date,end_date,created_at,updated_at) VALUES(?,'Role test','2026-01-01','2027-12-31',?,?)", course, Db.now(), Db.now());
+        String enrollment = mvc.perform(post("/api/cohorts/" + cohort + "/enrollments")
+                .header("Authorization", "Bearer " + administrator.access).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"userId\":" + account.id + "}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("STUDENT"))
+                .andReturn().getResponse().getContentAsString();
+        long enrollmentId = ((Number) JsonPath.read(enrollment, "$.id")).longValue();
+        for (String legacyRole : new String[]{"INSTRUCTOR", "MANAGER"}) {
+            mvc.perform(patch("/api/users/" + account.id).header("Authorization", "Bearer " + administrator.access)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"" + legacyRole + "\"}"))
+                    .andExpect(status().isBadRequest());
+            mvc.perform(patch("/api/cohorts/" + cohort + "/enrollments/" + enrollmentId)
+                    .header("Authorization", "Bearer " + administrator.access).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"role\":\"" + legacyRole + "\"}"))
+                    .andExpect(status().isBadRequest());
+        }
+        mvc.perform(patch("/api/cohorts/" + cohort + "/enrollments/" + enrollmentId)
+                .header("Authorization", "Bearer " + administrator.access).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"role\":\"ADMIN\"}"))
+                .andExpect(status().isBadRequest());
+
+        mvc.perform(patch("/api/users/" + account.id).header("Authorization", "Bearer " + administrator.access)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"ADMIN\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.role").value("ADMIN"));
+        assertEquals("ADMIN", db.one("SELECT role FROM enrollments WHERE id=?", enrollmentId).get("role"));
+        mvc.perform(get("/api/me").header("Authorization", "Bearer " + originalSession.access)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/auth/refresh").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"refreshToken\":\"" + originalSession.refresh + "\"}"))
+                .andExpect(status().isUnauthorized());
+        var promotedSession = login(account.email, PASSWORD);
+        mvc.perform(get("/api/users").header("Authorization", "Bearer " + promotedSession.access)).andExpect(status().isOk());
+
+        mvc.perform(patch("/api/users/" + account.id).header("Authorization", "Bearer " + administrator.access)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"STUDENT\"}"))
+                .andExpect(status().isOk());
+        assertEquals("STUDENT", db.one("SELECT role FROM enrollments WHERE id=?", enrollmentId).get("role"));
+        mvc.perform(get("/api/users").header("Authorization", "Bearer " + promotedSession.access)).andExpect(status().isUnauthorized());
+        var demotedSession = login(account.email, PASSWORD);
+        mvc.perform(get("/api/cohorts/" + cohort + "/enrollments").header("Authorization", "Bearer " + demotedSession.access))
+                .andExpect(status().isForbidden());
+    }
+
     private Account createAccount() throws Exception {
         return createAccount(login(ADMIN_EMAIL, PASSWORD), uniqueEmail());
     }

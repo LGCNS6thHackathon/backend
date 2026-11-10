@@ -48,13 +48,13 @@ class AssignmentSpecIntegrationTests {
 
     @BeforeEach
     void fixture() throws Exception {
-        admin=account("ADMIN","과제 운영자");teacher=account("INSTRUCTOR","담당 강사");
+        admin=account("ADMIN","과제 운영자");teacher=account("ADMIN","담당 강사");
         student=account("STUDENT","제출 교육생");other=account("STUDENT","다른 교육생");
         LocalDate today=LocalDate.now(ZoneId.of("Asia/Seoul"));
         long course=id(call(admin,post("/api/courses"),Map.of("title","과제 명세 검증 과정","totalHours",80),201));
         cohortId=id(call(admin,post("/api/courses/"+course+"/cohorts"),Map.of("name","과제 명세 검증 기수","startDate",today.minusDays(20).toString(),"endDate",today.plusDays(100).toString()),201));
         for(User user:List.of(teacher,student,other))
-            call(admin,post("/api/cohorts/"+cohortId+"/enrollments"),Map.of("userId",user.id,"role",user==teacher?"INSTRUCTOR":"STUDENT"),201);
+            call(admin,post("/api/cohorts/"+cohortId+"/enrollments"),Map.of("userId",user.id,"role",user==teacher?"ADMIN":"STUDENT"),201);
     }
 
     @Test
@@ -88,10 +88,12 @@ class AssignmentSpecIntegrationTests {
         String legacy=call(admin,post("/api/cohorts/"+cohortId+"/assignments"),assignmentBody(),201);
         assertNull(JsonPath.read(legacy,"$.instructorId"));assertNull(JsonPath.read(legacy,"$.instructorName"));
 
-        db.update("UPDATE users SET role='INSTRUCTOR' WHERE id=?",other.id);
         call(admin,patch("/api/assignments/"+assignment),Map.of("instructorId",other.id),400);
+        db.update("UPDATE users SET role='ADMIN' WHERE id=?",other.id);
+        db.update("DELETE FROM enrollments WHERE cohort_id=? AND user_id=?",cohortId,other.id);
+        call(admin,patch("/api/assignments/"+assignment),Map.of("instructorId",other.id),200);
         db.update("UPDATE enrollments SET status='WITHDRAWN' WHERE cohort_id=? AND user_id=?",cohortId,teacher.id);
-        call(admin,patch("/api/assignments/"+assignment),Map.of("instructorId",teacher.id),400);
+        call(admin,patch("/api/assignments/"+assignment),Map.of("instructorId",teacher.id),200);
         db.update("UPDATE enrollments SET status='ACTIVE' WHERE cohort_id=? AND user_id=?",cohortId,teacher.id);
         db.update("UPDATE users SET status='DISABLED' WHERE id=?",teacher.id);
         call(admin,patch("/api/assignments/"+assignment),Map.of("instructorId",teacher.id),400);

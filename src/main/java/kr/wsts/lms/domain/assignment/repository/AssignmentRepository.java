@@ -9,7 +9,7 @@ import kr.wsts.lms.domain.assignment.model.SubmissionReview;
 
 /**
  * Assignment persistence contract. Student submission/review reads include owner ID.
- * Staff list/review operations require service-level staff authorization.
+ * Administrator list/review operations require service-level administrator authorization.
  * submittedAt is the last successful submission/file upload time; the upload
  * implementation must update it in the same transaction as file metadata.
  */
