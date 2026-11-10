@@ -2,9 +2,9 @@
 
 기준은 2026-11-09 재확인한 [Notion 기능명세서](https://app.notion.com/p/c4f933854d4a45d5a545bf62cd8e2045?pvs=23)의 비어 있지 않은 26개 항목과 채팅에서 확정한 관리자 계정 발급·출결 정정 정책입니다. 전체 설계 결정과 컬럼은 [DOMAIN_PLAN.md](DOMAIN_PLAN.md), 실제 생성 스키마는 [MariaDB SQL](../erd/lms-mariadb.sql)을 확인하세요.
 
-현행 범위는 2026-11-09 확인한 [프론트 main `c835066`](https://github.com/LGCNS6thHackathon/frontend/commit/c835066)의 학생·관리자 화면을 우선합니다. 대응 화면이 없는 독립 스터디와 기존 로드맵 API 13개·도메인 모델·저장소 계약을 제거했습니다. V5는 관련 네 테이블 및 그 데이터와 `STUDY_GROUP` 알림을 삭제합니다. 현재 스키마는 31개 테이블·55개 FK이며 실제 API는 74개입니다.
+현행 범위는 2026-11-09 확인한 [프론트 main `c835066`](https://github.com/LGCNS6thHackathon/frontend/commit/c835066)의 학생·관리자 화면을 우선합니다. 대응 화면이 없는 독립 스터디와 기존 로드맵 API 13개·도메인 모델·저장소 계약을 제거했습니다. V5는 관련 네 테이블 및 그 데이터와 `STUDY_GROUP` 알림을 삭제합니다. main·develop 통합 후 스키마는 31개 테이블·55개 FK이며 실제 API는 97개입니다.
 
-AI·영상·Discord 신규 기능의 결과물은 **스키마·ERD·도메인 모델·저장소 인터페이스 기반**입니다. 해당 기능의 API, 서비스, JDBC 저장소 구현, AI 요청, Discord 전송은 각 담당자가 구현합니다. 기존 JDBC API에는 공개 회원가입 제거·관리자 발급, 출결 단위·정정·논리 삭제, 과제 담당 강사·논리 삭제를 반영했습니다. 현재 과제 화면에 맞춘 본인 카드·제출/첨부 재조회·배포 URL·multipart 제출·평가자 이름 반환도 백엔드에 추가했습니다. 프런트엔드 화면과 호출 코드는 변경하지 않았으므로 실제 API 연결은 화면 담당자의 작업입니다. 신규 도메인 모델은 기존 JDBC API에 자동 연결되지 않습니다.
+2026-11-10 통합 기준으로 관리자 게시판·출결 캘린더·강의영상 CRUD·다시보기·평가 복습 연결·Discord 단건 발송 API가 구현되어 있습니다. 과제 화면용 본인 카드·제출/첨부 재조회·배포 URL·multipart 제출·평가자 이름 반환도 함께 반영했습니다. AI 백지 복습·객관식 복습은 **스키마·도메인 모델·저장소 인터페이스 기반** 단계입니다. 아래 표는 최초 명세와 도메인 분담이며, 현재 구현된 요청·응답은 [API 명세](../API_SPEC.md), Discord의 축소된 시연 범위는 [Discord MVP](../DISCORD_MVP.md)를 확인하세요. 프런트엔드 호출 연결은 화면 담당자의 작업입니다.
 
 ## 명세와 도메인 연결
 
@@ -58,6 +58,10 @@ AI·영상·Discord 신규 기능의 결과물은 **스키마·ERD·도메인 �
 - 전송 재시도는 `idempotency_key`와 전송 상태를 사용해 중복 게시를 방지합니다. 이 기반에는 실제 전송 구현이 없습니다.
 
 ### 출결
+
+- 학생 캘린더는 `GET /api/cohorts/{cohortId}/attendance/calendar?month=YYYY-MM`으로 월별 기수 일정·본인 출결·최근 소명·허용 정정 상태를 조회합니다. [응답 및 연결 계약](../attendance/STUDENT_CALENDAR.md)을 프론트 연결 시 참고하세요.
+
+- 출결·소명 관리 권한은 전역 ADMIN으로 통일합니다. 출결 생성·갱신·삭제와 정정 승인·반려는 ADMIN만 수행합니다. 목록은 ADMIN 외 사용자의 경우 기수 역할과 무관하게 본인 기록·요청만 반환합니다. 본인 소명 제출은 유지합니다.
 
 - `unit_type=DATE`는 `session_no=0`, `SESSION`은 `session_no>0`입니다. 같은 수강생·날짜·회차를 중복 저장하지 않습니다. 휴가는 `LEAVE`, 조퇴는 `EARLY`이며 둘 다 현재 기록 관리 요구입니다.
 - 채팅에서 정정 전환을 **ABSENT→LATE, ABSENT→PRESENT, LATE→PRESENT, EXCUSED→PRESENT, LEAVE→PRESENT, EARLY→PRESENT**로 확정했습니다. 명세 8번의 세 전환에 공결·휴가·조퇴→출석을 더하여 17번 캘린더 요구를 연결합니다. 접수 시 원본 출결을 유지하고 `original_status`, `original_version`을 기록하는 동작을 기존 API에 코드 반영합니다.

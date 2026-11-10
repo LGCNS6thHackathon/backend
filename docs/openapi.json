@@ -34,6 +34,12 @@
       "name": "과제"
     },
     {
+      "name": "강의영상"
+    },
+    {
+      "name": "Discord"
+    },
+    {
       "name": "평가"
     },
     {
@@ -2435,10 +2441,104 @@
         ]
       }
     },
+    "/api/cohorts/{cohortId}/attendance/calendar": {
+      "get": {
+        "summary": "본인 월별 교육일정·출결 캘린더",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 기수 일정과 로그인 본인의 미삭제 출결을 월별 전체 반환합니다(페이지 잘림 없음). ADMIN도 본인 출결만 조회합니다. 최근 소명과 요청 가능한 목표 상태를 포함하며 PENDING이면 빈 배열입니다. 날짜 기준은 출결 날짜이며 소명 생성일이 아닙니다. 빈 달은 빈 배열, 타인 userId 지정은 제공하지 않습니다. 소명 제출은 기존 POST corrections API를 사용합니다.",
+        "operationId": "get_api_cohorts_cohortId_attendance_calendar",
+        "tags": [
+          "출결"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceCalendar"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}$"
+            },
+            "description": "0001~9998년 YYYY-MM, 한국 시간 기준"
+          }
+        ]
+      }
+    },
     "/api/cohorts/{cohortId}/attendance": {
       "get": {
         "summary": "출결 목록·요약",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 수강생은 본인 기록만 조회. summary는 현재 필터 전체의 상태별 건수입니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. ADMIN 외에는 기수 역할과 무관하게 본인 기록만 조회. summary는 현재 필터 전체의 상태별 건수입니다.",
         "operationId": "get_api_cohorts_cohortId_attendance",
         "tags": [
           "출결"
@@ -2558,13 +2658,13 @@
               "format": "int64",
               "minimum": 1
             },
-            "description": "스태프는 특정 회원 선택 가능. 수강생은 본인만 조회"
+            "description": "ADMIN은 특정 회원 선택 가능. 그 외에는 본인만 조회"
           }
         ]
       },
       "put": {
         "summary": "출결 생성·갱신",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. DATE는 sessionNo=0, SESSION은 양수입니다. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜·회차는 갱신합니다. 소명 허용 대상 전환을 직접 수정으로 우회할 수 없습니다. 변경 시 version을 증가시키고 대기 요청을 무효화합니다.",
+        "description": "권한: 전역 ADMIN. DATE는 sessionNo=0, SESSION은 양수입니다. 미래 출결 불가. ABSENT는 입퇴실 시각 불가. 퇴실은 입실 이후24시간 이내. 같은 회원·날짜·회차는 갱신합니다. checkIn/checkOut 생략 시 기존 값 유지, 명시적 null은 해당 값 삭제이며 생성 시 생략은 null입니다. 병합된 시각에도 검증을 적용하므로 결석 변경 시 기존 입퇴실은 모두 명시적 null로 지워야 합니다. 소명 허용 대상 전환을 직접 수정으로 우회할 수 없습니다. 변경 시 version을 증가시키고 대기 요청을 무효화합니다.",
         "operationId": "put_api_cohorts_cohortId_attendance",
         "tags": [
           "출결"
@@ -2658,7 +2758,7 @@
     "/api/attendance/{attendanceId}": {
       "delete": {
         "summary": "출결 논리 삭제",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. deletedAt과 변경 version을 기록하고 대기 중인 정정 요청을 INVALIDATED로 처리합니다. 삭제 기록은 출결 조회·대시보드에서 제외합니다.",
+        "description": "권한: 전역 ADMIN. deletedAt과 변경 version을 기록하고 대기 중인 정정 요청을 INVALIDATED로 처리합니다. 삭제 기록은 출결 조회·대시보드에서 제외합니다.",
         "operationId": "delete_api_attendance_attendanceId",
         "tags": [
           "출결"
@@ -2829,7 +2929,7 @@
     "/api/cohorts/{cohortId}/attendance/corrections": {
       "get": {
         "summary": "출결 정정 목록",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 수강생은 본인 요청만 조회합니다.",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. ADMIN 외에는 기수 역할과 무관하게 본인 요청만 조회합니다.",
         "operationId": "get_api_cohorts_cohortId_attendance_corrections",
         "tags": [
           "출결"
@@ -2936,7 +3036,7 @@
     "/api/attendance/corrections/{id}": {
       "patch": {
         "summary": "출결 정정 승인·반려",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE INSTRUCTOR/MANAGER. PENDING만 처리 가능. 원본 상태·version·삭제 여부를 재검증합니다. 달라졌다면 INVALIDATED를 저장하고409를 반환합니다. 승인과 실제 출결 변경은 한 트랜잭션입니다.",
+        "description": "권한: 전역 ADMIN. PENDING만 처리 가능. 원본 상태·version·삭제 여부를 재검증합니다. 달라졌다면 INVALIDATED를 저장하고409를 반환합니다. 승인과 실제 출결 변경은 한 트랜잭션입니다.",
         "operationId": "patch_api_attendance_corrections_id",
         "tags": [
           "출결"
@@ -5180,7 +5280,7 @@
       },
       "post": {
         "summary": "게시글 작성",
-        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생은 QUESTION만 작성 가능. 나머지 분류와 pinned=true는 스태프만 가능. 공지 작성 시 다른 기수 회원에게 알림 생성.",
+        "description": "권한: 전역 ADMIN. 관리자만 작성 가능. 공지 작성 시 기수 회원에게 알림 생성.",
         "operationId": "post_api_cohorts_cohortId_posts",
         "tags": [
           "게시판"
@@ -5356,7 +5456,7 @@
       },
       "patch": {
         "summary": "게시글 수정",
-        "description": "권한: 작성자 또는 기수 스태프. QUESTION 이외 분류로 변경하거나 공지를 수정하거나 고정하려면 스태프 권한이 필요합니다.",
+        "description": "권한: 전역 ADMIN. 생략한 필드는 유지하고 빈 값은 거부합니다.",
         "operationId": "patch_api_posts_postId",
         "tags": [
           "게시판"
@@ -5448,8 +5548,486 @@
       },
       "delete": {
         "summary": "게시글 삭제",
-        "description": "권한: 작성자 또는 기수 스태프. 논리 삭제합니다.",
+        "description": "권한: 전역 ADMIN. 논리 삭제합니다.",
         "operationId": "delete_api_posts_postId",
+        "tags": [
+          "게시판"
+        ],
+        "responses": {
+          "204": {
+            "description": "성공, 응답 본문 없음"
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/admin/cohorts/{cohortId}/posts": {
+      "get": {
+        "summary": "관리자 게시글 목록",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
+        "operationId": "admin_get_api_cohorts_cohortId_posts",
+        "tags": [
+          "게시판"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostListItemPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "0부터 시작"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "페이지 크기"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "",
+                "COURSE",
+                "SYSTEM",
+                "QUESTION",
+                "FAQ"
+              ],
+              "default": ""
+            },
+            "description": "빈 값은 전체"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "maxLength": 100
+            },
+            "description": "제목·본문 검색"
+          }
+        ]
+      },
+      "post": {
+        "summary": "관리자 게시글 작성",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
+        "operationId": "admin_post_api_cohorts_cohortId_posts",
+        "tags": [
+          "게시판"
+        ],
+        "responses": {
+          "201": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Post"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/post_api_cohorts_cohortId_postsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/posts/{postId}": {
+      "get": {
+        "summary": "관리자 게시글 상세",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
+        "operationId": "admin_get_api_posts_postId",
+        "tags": [
+          "게시판"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "관리자 게시글 수정",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
+        "operationId": "admin_patch_api_posts_postId",
+        "tags": [
+          "게시판"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Post"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/patch_api_posts_postIdRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "관리자 게시글 삭제",
+        "description": "권한: 전역 ADMIN. 기존 사용자 게시판과 동일 데이터를 사용합니다.",
+        "operationId": "admin_delete_api_posts_postId",
         "tags": [
           "게시판"
         ],
@@ -6806,6 +7384,1561 @@
         "parameters": [
           {
             "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/admin/cohorts/{cohortId}/lecture-videos": {
+      "get": {
+        "summary": "관리자 강의영상 목록",
+        "description": "권한: 전역 ADMIN. 비공개 포함, 삭제 제외. 날짜 내림차순·교시 오름차순.",
+        "operationId": "get_api_admin_cohorts_cohortId_lecture_videos",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureVideoPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "0부터 시작"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "페이지 크기"
+          }
+        ]
+      },
+      "post": {
+        "summary": "관리자 강의영상 등록",
+        "description": "권한: 전역 ADMIN. YouTube 링크만 저장합니다. 파일 업로드는 없습니다. 같은 기수·날짜·교시는 삭제 이력까지 포함해 중복 불가(409). 날짜·교시는 필수입니다.",
+        "operationId": "post_api_admin_cohorts_cohortId_lecture_videos",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "201": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureVideo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/post_api_admin_cohorts_cohortId_lecture_videosRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lecture-videos/{videoId}": {
+      "get": {
+        "summary": "관리자 강의영상 상세",
+        "description": "권한: 전역 ADMIN.",
+        "operationId": "get_api_admin_lecture_videos_videoId",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureVideo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "videoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "관리자 강의영상 수정",
+        "description": "권한: 전역 ADMIN. YouTube 링크만 저장합니다. 파일 업로드는 없습니다. 같은 기수·날짜·교시는 삭제 이력까지 포함해 중복 불가(409). 날짜·교시는 필수입니다. 생략 필드는 유지. 필수 필드의 null·공백 거부. durationSeconds=null은 길이 정보 제거. 기수·등록자 변경 불가.",
+        "operationId": "patch_api_admin_lecture_videos_videoId",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureVideo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "videoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/patch_api_admin_lecture_videos_videoIdRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "관리자 강의영상 삭제",
+        "description": "권한: 전역 ADMIN. 논리 삭제 후 관리자·사용자 목록 및 상세에서 조회 불가.",
+        "operationId": "delete_api_admin_lecture_videos_videoId",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "204": {
+            "description": "성공, 응답 본문 없음"
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "videoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/cohorts/{cohortId}/lecture-videos": {
+      "get": {
+        "summary": "수강생 강의영상 목록",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 소속 기수 PUBLIC 영상만 조회. 날짜 내림차순·교시 오름차순. youtubeVideoId로 사용자 화면의 YouTube 플레이어 구성 가능.",
+        "operationId": "get_api_cohorts_cohortId_lecture_videos",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureVideoPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "0부터 시작"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "페이지 크기"
+          }
+        ]
+      }
+    },
+    "/api/lecture-videos/{videoId}": {
+      "get": {
+        "summary": "수강생 강의영상 상세",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 소속 기수만 접근 가능. 비공개·삭제 영상은 404. youtubeUrl 및 youtubeVideoId 제공. 외부 영상 존재·임베드 허용 여부는 확인하지 않습니다.",
+        "operationId": "get_api_lecture_videos_videoId",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureVideo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "videoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/cohorts/{cohortId}/lecture-replays/dates": {
+      "get": {
+        "summary": "다시보기 영상이 있는 날짜",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 소속 기수의 공개·미삭제 영상이 있는 날짜와 영상 수를 반환합니다. from은 to 이하여야 하며 두 날짜의 차이는 최대 62일입니다.",
+        "operationId": "get_api_cohorts_cohortId_lecture_replays_dates",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayDates"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "조회 시작 날짜"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "조회 종료 날짜"
+          }
+        ]
+      }
+    },
+    "/api/cohorts/{cohortId}/lecture-replays/recent": {
+      "get": {
+        "summary": "최근 강의 다시보기 카드",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 오늘까지의 강의 날짜별 카드와 교시 링크를 반환합니다. AI 요약은 제공하지 않습니다.",
+        "operationId": "get_api_cohorts_cohortId_lecture_replays_recent",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentReplays"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 30
+            },
+            "description": "최근 강의 날짜 수"
+          }
+        ]
+      }
+    },
+    "/api/cohorts/{cohortId}/lecture-replays": {
+      "get": {
+        "summary": "날짜별 강의·교시·소단원",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 영상이 없는 날짜는 빈 videos와 emptyMessage를 반환합니다.",
+        "operationId": "get_api_cohorts_cohortId_lecture_replays",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyReplay"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "강의 날짜"
+          }
+        ]
+      }
+    },
+    "/api/cohorts/{cohortId}/lecture-videos/{videoId}/playback": {
+      "get": {
+        "summary": "강의 영상 재생 정보",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 공개·미삭제 영상만 재생할 수 있습니다. 등록된 영상 길이를 넘는 시작 초는 0으로 보정합니다. 자동 재생하지 않습니다.",
+        "operationId": "get_api_cohorts_cohortId_lecture_videos_videoId_playback",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayPlayback"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "videoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "시작 초"
+          }
+        ]
+      }
+    },
+    "/api/cohorts/{cohortId}/lecture-chapters/{chapterId}/playback": {
+      "get": {
+        "summary": "소단원 시작 구간 재생 정보",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 소단원이 속한 공개·미삭제 영상의 시작 초와 재생 링크를 반환합니다.",
+        "operationId": "get_api_cohorts_cohortId_lecture_chapters_chapterId_playback",
+        "tags": [
+          "강의영상"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayPlayback"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "chapterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/assessments/{assessmentId}/review-guide": {
+      "get": {
+        "summary": "평가 문항별 학습 범위·복습 영상",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 학생은 본인 응시가 있어야 하며, 제출 후 평가 종료 또는 CLOSED일 때 복습 링크를 공개합니다. 스태프는 즉시 조회 가능합니다. 미분류와 연결 없음은 별도로 표시합니다.",
+        "operationId": "get_api_assessments_assessmentId_review_guide",
+        "tags": [
+          "평가"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentReviewGuide"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "assessmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/assessments/{assessmentId}/review-recommendations": {
+      "get": {
+        "summary": "본인 오답 복습 영상 추천",
+        "description": "권한: 전역 ADMIN 또는 해당 기수 ACTIVE 회원. 본인 응시를 기준으로 종료·제출 후 오답을 소단원별로 묶어 추천합니다. 미공개 상태에는 reviewReleased=false와 빈 items를 반환합니다.",
+        "operationId": "get_api_assessments_assessmentId_review_recommendations",
+        "tags": [
+          "평가"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRecommendations"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "assessmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/posts/{postId}/discord-delivery": {
+      "post": {
+        "summary": "Discord 공지 전송",
+        "description": "권한: 전역 ADMIN. 관리자가 전송 버튼을 누를 때만 전송합니다.",
+        "operationId": "post_api_posts_postId_discord_delivery",
+        "tags": [
+          "Discord"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscordDeliveryView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      },
+      "get": {
+        "summary": "Discord 전송 결과",
+        "description": "권한: 전역 ADMIN.",
+        "operationId": "get_api_posts_postId_discord_delivery",
+        "tags": [
+          "Discord"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscordDeliveryView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/cohorts/{cohortId}/discord-deliveries": {
+      "get": {
+        "summary": "기수 Discord 전송 상태",
+        "description": "권한: 전역 ADMIN. 게시글 ID별 상태. 결과 불확실 상태는 UNKNOWN으로 표시합니다.",
+        "operationId": "get_api_cohorts_cohortId_discord_deliveries",
+        "tags": [
+          "Discord"
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 검증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "권한 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "리소스 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 또는 상태 충돌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cohortId",
             "in": "path",
             "required": true,
             "schema": {
@@ -9938,6 +12071,242 @@
           }
         }
       },
+      "CalendarCorrection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "INVALIDATED"
+            ]
+          },
+          "requestedStatus": {
+            "type": "string",
+            "enum": [
+              "PRESENT",
+              "LATE",
+              "EARLY",
+              "ABSENT",
+              "EXCUSED"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reviewNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "reviewedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "requestedStatus",
+          "reason",
+          "reviewNote",
+          "createdAt",
+          "reviewedAt"
+        ]
+      },
+      "CalendarAttendance": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "attendanceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "unitType": {
+            "type": "string",
+            "enum": [
+              "DATE",
+              "SESSION"
+            ]
+          },
+          "sessionNo": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PRESENT",
+              "LATE",
+              "EARLY",
+              "ABSENT",
+              "EXCUSED",
+              "LEAVE"
+            ]
+          },
+          "note": {
+            "type": "string"
+          },
+          "checkIn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "checkOut": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latestCorrection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalendarCorrection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "availableRequestedStatuses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "LATE",
+                "PRESENT"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "attendanceDate",
+          "unitType",
+          "sessionNo",
+          "status",
+          "note",
+          "checkIn",
+          "checkOut",
+          "latestCorrection",
+          "availableRequestedStatuses"
+        ]
+      },
+      "CalendarEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "LECTURE",
+              "PROJECT",
+              "SPECIAL",
+              "HOLIDAY"
+            ]
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "location": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "type",
+          "startAt",
+          "endAt",
+          "location",
+          "description"
+        ]
+      },
+      "AttendanceCalendar": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}$"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarEvent"
+            }
+          },
+          "attendance": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarAttendance"
+            }
+          }
+        },
+        "required": [
+          "month",
+          "events",
+          "attendance"
+        ]
+      },
       "AttendancePage": {
         "type": "object",
         "properties": {
@@ -10880,12 +13249,12 @@
           },
           "title": {
             "type": "string",
-            "minLength": 2,
+            "minLength": 1,
             "maxLength": 160
           },
           "body": {
             "type": "string",
-            "minLength": 2,
+            "minLength": 1,
             "maxLength": 20000
           },
           "pinned": {
@@ -10913,12 +13282,12 @@
           },
           "title": {
             "type": "string",
-            "minLength": 2,
+            "minLength": 1,
             "maxLength": 160
           },
           "body": {
             "type": "string",
-            "minLength": 2,
+            "minLength": 1,
             "maxLength": 20000
           },
           "pinned": {
@@ -11052,6 +13421,908 @@
         },
         "required": [
           "file"
+        ]
+      },
+      "LectureVideo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cohortId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "youtubeUrl": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "youtubeVideoId": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "lectureDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "visibility": {
+            "type": "string",
+            "maxLength": 20,
+            "enum": [
+              "PUBLIC",
+              "PRIVATE"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+          },
+          "deletedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "시간대 오프셋 필수. 예: 2026-11-09T09:00:00+09:00. 응답은 UTC."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "cohortId",
+          "createdBy",
+          "title",
+          "youtubeUrl",
+          "youtubeVideoId",
+          "lectureDate",
+          "periodNo",
+          "durationSeconds",
+          "visibility",
+          "createdAt",
+          "updatedAt",
+          "deletedAt"
+        ]
+      },
+      "LectureVideoPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LectureVideo"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "size",
+          "total"
+        ]
+      },
+      "post_api_admin_cohorts_cohortId_lecture_videosRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "youtubeUrl": {
+            "type": "string",
+            "description": "HTTPS youtube.com/watch?v=ID 또는 youtu.be/ID. 영상 ID는 11자입니다.",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "lectureDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodNo": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE"
+            ],
+            "default": "PRIVATE"
+          }
+        },
+        "required": [
+          "title",
+          "youtubeUrl",
+          "lectureDate",
+          "periodNo"
+        ]
+      },
+      "patch_api_admin_lecture_videos_videoIdRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "youtubeUrl": {
+            "type": "string",
+            "description": "HTTPS youtube.com/watch?v=ID 또는 youtu.be/ID. 영상 ID는 11자입니다.",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "lectureDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodNo": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE"
+            ],
+            "default": "PRIVATE"
+          }
+        }
+      },
+      "ReplayDate": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "videoCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "date",
+          "videoCount"
+        ]
+      },
+      "ReplayDates": {
+        "type": "object",
+        "properties": {
+          "cohortId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "dates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplayDate"
+            }
+          }
+        },
+        "required": [
+          "cohortId",
+          "from",
+          "to",
+          "dates"
+        ]
+      },
+      "ReplayChapter": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "startSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "position": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startSeconds",
+          "position"
+        ]
+      },
+      "ReplayVideo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "periodNo": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "youtubeVideoId": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "embedUrl": {
+            "type": "string"
+          },
+          "watchUrl": {
+            "type": "string"
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplayChapter"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "periodNo",
+          "youtubeVideoId",
+          "durationSeconds",
+          "embedUrl",
+          "watchUrl",
+          "chapters"
+        ]
+      },
+      "DailyReplay": {
+        "type": "object",
+        "properties": {
+          "cohortId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "videos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplayVideo"
+            }
+          },
+          "emptyMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "cohortId",
+          "date",
+          "videos",
+          "emptyMessage"
+        ]
+      },
+      "ReplayPeriodLink": {
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "periodNo": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "embedUrl": {
+            "type": "string"
+          },
+          "watchUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "videoId",
+          "periodNo",
+          "embedUrl",
+          "watchUrl"
+        ]
+      },
+      "ReplayCard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instructor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "videoUrl": {
+            "type": "string"
+          },
+          "embedUrl": {
+            "type": "string"
+          },
+          "keyTopics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hasAiSummary": {
+            "type": "boolean"
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplayPeriodLink"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "title",
+          "subject",
+          "instructor",
+          "duration",
+          "videoUrl",
+          "embedUrl",
+          "keyTopics",
+          "hasAiSummary",
+          "periods"
+        ]
+      },
+      "RecentReplays": {
+        "type": "object",
+        "properties": {
+          "cohortId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplayCard"
+            }
+          }
+        },
+        "required": [
+          "cohortId",
+          "items"
+        ]
+      },
+      "ReplayPlayback": {
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "videoTitle": {
+            "type": "string"
+          },
+          "lectureDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodNo": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "youtubeVideoId": {
+            "type": "string"
+          },
+          "chapterId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "chapterTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "embedUrl": {
+            "type": "string"
+          },
+          "watchUrl": {
+            "type": "string"
+          },
+          "autoplayNotice": {
+            "type": "string"
+          },
+          "unavailableMessage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "videoId",
+          "videoTitle",
+          "lectureDate",
+          "periodNo",
+          "youtubeVideoId",
+          "chapterId",
+          "chapterTitle",
+          "startSeconds",
+          "embedUrl",
+          "watchUrl",
+          "autoplayNotice",
+          "unavailableMessage"
+        ]
+      },
+      "ReviewClassification": {
+        "type": "object",
+        "properties": {
+          "subjectId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "subject": {
+            "type": "string"
+          },
+          "unitId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "unit": {
+            "type": "string"
+          },
+          "topicId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "topic": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectId",
+          "subject",
+          "unitId",
+          "unit",
+          "topicId",
+          "topic"
+        ]
+      },
+      "AssessmentReviewLink": {
+        "type": "object",
+        "properties": {
+          "chapterId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "chapterTitle": {
+            "type": "string"
+          },
+          "startSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "videoId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "videoTitle": {
+            "type": "string"
+          },
+          "lectureDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodNo": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "embedUrl": {
+            "type": "string"
+          },
+          "watchUrl": {
+            "type": "string"
+          },
+          "matchType": {
+            "type": "string",
+            "enum": [
+              "QUESTION",
+              "TOPIC"
+            ]
+          }
+        },
+        "required": [
+          "chapterId",
+          "chapterTitle",
+          "startSeconds",
+          "videoId",
+          "videoTitle",
+          "lectureDate",
+          "periodNo",
+          "embedUrl",
+          "watchUrl",
+          "matchType"
+        ]
+      },
+      "AssessmentQuestionGuide": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "position": {
+            "type": "integer"
+          },
+          "classification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewClassification"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "classificationLabel": {
+            "type": "string"
+          },
+          "reviewLinks": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AssessmentReviewLink"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviewMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "questionId",
+          "position",
+          "classification",
+          "classificationLabel",
+          "reviewLinks",
+          "reviewMessage"
+        ]
+      },
+      "AssessmentReviewGuide": {
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "reviewReleased": {
+            "type": "boolean"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssessmentQuestionGuide"
+            }
+          }
+        },
+        "required": [
+          "assessmentId",
+          "reviewReleased",
+          "questions"
+        ]
+      },
+      "ReviewRecommendation": {
+        "type": "object",
+        "properties": {
+          "chapterId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "chapterTitle": {
+            "type": "string"
+          },
+          "lectureDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodNo": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "startSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "embedUrl": {
+            "type": "string"
+          },
+          "watchUrl": {
+            "type": "string"
+          },
+          "matchType": {
+            "type": "string",
+            "enum": [
+              "QUESTION",
+              "TOPIC"
+            ]
+          },
+          "questionPositions": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "chapterId",
+          "chapterTitle",
+          "lectureDate",
+          "periodNo",
+          "startSeconds",
+          "embedUrl",
+          "watchUrl",
+          "matchType",
+          "questionPositions"
+        ]
+      },
+      "ReviewRecommendations": {
+        "type": "object",
+        "properties": {
+          "assessmentId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "reviewReleased": {
+            "type": "boolean"
+          },
+          "wrongCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewRecommendation"
+            }
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "assessmentId",
+          "reviewReleased",
+          "wrongCount",
+          "items",
+          "summary"
+        ]
+      },
+      "DiscordDeliveryView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "postId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SENT",
+              "FAILED"
+            ]
+          },
+          "externalMessageId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "postId",
+          "status",
+          "externalMessageId",
+          "errorCode"
         ]
       }
     }

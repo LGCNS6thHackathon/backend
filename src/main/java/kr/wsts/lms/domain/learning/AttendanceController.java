@@ -23,10 +23,10 @@ public class AttendanceController {
     public Map<String,Object> records(@PathVariable long cohortId,@RequestParam(required=false) Long userId,@RequestParam(required=false) String month,
             @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="50") int size) {
         actor.cohort(cohortId); LearningSupport.page(page); LearningSupport.size(size);
-        boolean staff=support.staff(cohortId);
-        if(!staff && userId!=null && userId!=actor.id()) throw AppException.forbidden();
+        boolean administrator=actor.admin();
+        if(!administrator && userId!=null && userId!=actor.id()) throw AppException.forbidden();
         String where=" WHERE e.cohort_id=? AND r.deleted_at IS NULL"; List<Object> args=new ArrayList<>(List.of(cohortId));
-        if(!staff || userId!=null) {where+=" AND e.user_id=?";args.add(staff?userId:actor.id());}
+        if(!administrator || userId!=null) {where+=" AND e.user_id=?";args.add(administrator?userId:actor.id());}
         String validMonth=LearningSupport.month(month);
         if(validMonth!=null) {YearMonth ym=YearMonth.parse(validMonth);where+=" AND r.attendance_date>=? AND r.attendance_date<?";args.add(ym.atDay(1));args.add(ym.plusMonths(1).atDay(1));}
         String from=" FROM attendance_records r JOIN enrollments e ON e.id=r.enrollment_id JOIN users u ON u.id=e.user_id";
@@ -38,7 +38,7 @@ public class AttendanceController {
     @PutMapping("/cohorts/{cohortId}/attendance")
     @Transactional
     public Map<String,Object> saveRecord(@PathVariable long cohortId,@RequestBody Map<String,Object> body) {
-        actor.staff(cohortId); long userId=Input.id(body,"userId");
+        actor.requireAdmin(); actor.cohort(cohortId); long userId=Input.id(body,"userId");
         Map<String,Object> enrollment=db.find("SELECT * FROM enrollments WHERE cohort_id=? AND user_id=? AND status='ACTIVE' FOR UPDATE",cohortId,userId)
                 .orElseThrow(()->AppException.bad("해당 기수에 등록된 사용자가 아닙니다."));
         long enrollmentId=Db.id(enrollment,"id"); LocalDate date=Input.date(body,"date");
@@ -47,12 +47,15 @@ public class AttendanceController {
         String unitType=body.get("unitType")==null?"DATE":Input.choice(body,"unitType","DATE","SESSION");
         int sessionNo=Input.integer(body,"sessionNo",0,0,Integer.MAX_VALUE);
         if((unitType.equals("DATE")&&sessionNo!=0)||(unitType.equals("SESSION")&&sessionNo==0)) throw AppException.bad("일 단위 출결은 sessionNo=0, 회차 단위 출결은 양수 회차가 필요합니다.");
-        String state=Input.choice(body,"status",STATES); LocalDateTime in=Input.nullableDateTime(body,"checkIn"),out=Input.nullableDateTime(body,"checkOut");
+        Optional<Map<String,Object>> existing=db.find("SELECT * FROM attendance_records WHERE enrollment_id=? AND attendance_date=? AND session_no=? FOR UPDATE",enrollmentId,date,sessionNo);
+        // Existing times survive forms that submit only status/note; explicit null clears a time.
+        Map<String,Object> merged=LearningSupport.merged(existing.orElse(Map.of()),body);
+        String state=Input.choice(body,"status",STATES);
+        LocalDateTime in=Input.nullableDateTime(merged,"checkIn"),out=Input.nullableDateTime(merged,"checkOut");
         if(state.equals("ABSENT")&&(in!=null||out!=null)) throw AppException.bad("결석 기록에는 입퇴실 시각을 입력할 수 없습니다.");
         if(in!=null&&!in.plusHours(9).toLocalDate().equals(date)) throw AppException.bad("입실 날짜와 출결 날짜가 다릅니다.");
         if(out!=null&&(in==null||out.isBefore(in)||out.isAfter(in.plusDays(1)))) throw AppException.bad("퇴실 시각은 입실 이후 24시간 이내여야 합니다.");
         String note=Input.optional(body,"note","",1000);
-        Optional<Map<String,Object>> existing=db.find("SELECT * FROM attendance_records WHERE enrollment_id=? AND attendance_date=? AND session_no=? FOR UPDATE",enrollmentId,date,sessionNo);
         long id;
         if(existing.isPresent()) {
             Map<String,Object> current=existing.get();id=Db.id(current,"id");
@@ -69,9 +72,8 @@ public class AttendanceController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
     public void deleteRecord(@PathVariable long attendanceId) {
+        actor.requireAdmin();
         Map<String,Object> record=db.one("SELECT * FROM attendance_records WHERE id=? FOR UPDATE",attendanceId);
-        Map<String,Object> enrollment=db.one("SELECT * FROM enrollments WHERE id=?",Db.id(record,"enrollmentId"));
-        actor.staff(Db.id(enrollment,"cohortId"));
         if(record.get("deletedAt")!=null) throw AppException.notFound();
         var now=Db.now();
         db.update("UPDATE attendance_records SET deleted_at=?,version=version+1,updated_at=? WHERE id=?",now,now,attendanceId);
@@ -102,7 +104,7 @@ public class AttendanceController {
     public Map<String,Object> corrections(@PathVariable long cohortId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
         actor.cohort(cohortId);LearningSupport.page(page);LearningSupport.size(size);
         String where=" WHERE e.cohort_id=?";List<Object> args=new ArrayList<>(List.of(cohortId));
-        if(!support.staff(cohortId)) {where+=" AND e.user_id=?";args.add(actor.id());}
+        if(!actor.admin()) {where+=" AND e.user_id=?";args.add(actor.id());}
         String from=" FROM attendance_corrections c JOIN enrollments e ON e.id=c.enrollment_id JOIN attendance_records a ON a.id=c.attendance_id JOIN users u ON u.id=e.user_id";
         return db.page("SELECT c.*,e.user_id,u.name AS user_name,a.attendance_date,a.unit_type,a.session_no"+from+where+" ORDER BY c.created_at DESC,c.id DESC","SELECT COUNT(*)"+from+where,page,size,args.toArray());
     }
@@ -110,9 +112,10 @@ public class AttendanceController {
     @PatchMapping("/attendance/corrections/{id}")
     @Transactional(noRollbackFor=AppException.class)
     public Map<String,Object> reviewCorrection(@PathVariable long id,@RequestBody Map<String,Object> body) {
+        actor.requireAdmin();
         Map<String,Object> correction=db.one("SELECT * FROM attendance_corrections WHERE id=?",id);
         Map<String,Object> enrollment=db.one("SELECT * FROM enrollments WHERE id=?",Db.id(correction,"enrollmentId"));
-        long cohortId=Db.id(enrollment,"cohortId");actor.staff(cohortId);
+        long cohortId=Db.id(enrollment,"cohortId");
         // Every attendance mutation takes the record lock before locking its requests.
         Map<String,Object> attendance=db.one("SELECT * FROM attendance_records WHERE id=? FOR UPDATE",Db.id(correction,"attendanceId"));
         correction=db.one("SELECT * FROM attendance_corrections WHERE id=? FOR UPDATE",id);
@@ -138,7 +141,7 @@ public class AttendanceController {
         return db.one("SELECT * FROM attendance_corrections WHERE id=?",id);
     }
 
-    private static boolean requiresCorrection(String original,String requested) {
+    static boolean requiresCorrection(String original,String requested) {
         return (original.equals("ABSENT")&&(requested.equals("LATE")||requested.equals("PRESENT")))
                 ||(Set.of("LATE","EXCUSED","LEAVE","EARLY").contains(original)&&requested.equals("PRESENT"));
     }

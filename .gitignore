@@ -46,3 +46,6 @@ logs/
 .data/
 .storage/
 *.log
+
+### Demo seed: LMS assessment questions are shared outside Git (see docs/DEMO_SEED.md)
+demo-data/lms_exam_*.json

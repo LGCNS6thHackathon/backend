@@ -2,7 +2,7 @@
 
 실행 기준은 `src/main/resources/db/migration`의 V1 + V2 + V3 + V4 + V5입니다. `docs/erd/lms-mariadb.sql`는 다섯 마이그레이션 적용 후의 전체 스키마입니다. 31개 테이블과 55개 외래 키를 ERD Cloud 스냅샷 JSON으로 제공합니다.
 
-V2는 추가 기능의 DB 기반이고, V3는 관리자 계정 발급 이력입니다. V4는 현재 과제 화면의 과목 표시명과 제출 배포 URL을 저장하며 기존 행은 NULL을 유지합니다. V5는 최신 프론트에서 사용하지 않는 스터디·기존 로드맵 네 테이블과 그 안의 데이터를 삭제하고 STUDY_GROUP 알림을 정리합니다. 관리자 계정 발급·출결 소명·과제 제출/첨부/평가 API를 구현했습니다. AI·영상·Discord의 신규 Java 모델·저장소 인터페이스는 기반이며 서비스·컨트롤러·외부 호출 구현은 각 담당자 작업 범위입니다. [설계 범위](foundation/DOMAIN_PLAN.md)와 [팀 인수인계](foundation/TEAM_HANDOFF.md)를 먼저 확인하세요.
+V2는 추가 기능의 DB 기반이고, V3는 관리자 계정 발급 이력입니다. V4는 과제 화면의 과목 표시명과 제출 배포 URL을 저장합니다. V5는 사용하지 않는 스터디·기존 로드맵 네 테이블과 데이터를 삭제하고 STUDY_GROUP 알림을 정리합니다. main·develop 통합 후에는 관리자 게시판·출결 캘린더·과제 화면·강의영상·평가 복습 연결·Discord 단건 발송 API까지 구현되어 있습니다. AI 복습의 Java 모델·저장소 인터페이스는 기반 단계입니다. [설계 범위](foundation/DOMAIN_PLAN.md)와 [팀 인수인계](foundation/TEAM_HANDOFF.md)를 확인하세요.
 
 ## 제공 파일
 

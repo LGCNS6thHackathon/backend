@@ -17,19 +17,19 @@
       },
       {
         "path": "src/main/resources/db/migration/V2__spec_domain_foundation.sql",
-        "sha256": "9c555db1d56fc4b932738790e6107304a1eccaa6a7d31d7339036e73b00848c5"
+        "sha256": "e1f14785604516f147b04e1bbcaac8d1a1d581b9726a4609fb0cd88bcaf7b675"
       },
       {
         "path": "src/main/resources/db/migration/V3__managed_account_provisioning.sql",
-        "sha256": "7d5856e53b00778867797a10afe2e3b5a658073ff5f5ecd6514a79f35a5341e9"
+        "sha256": "2bd57a2096bbd711fb7e78aeaa17e7dc7aab70ecf24f52ac08399b2098d60674"
       },
       {
         "path": "src/main/resources/db/migration/V4__assignment_screen_fields.sql",
-        "sha256": "ca5d1e96b2bef501cb95c488fda806f8e7e61e6818a5fdd98fe3298eba7c13c5"
+        "sha256": "a7b0215c3b0cbf236ee07a61cd09d319aff5f9e06ab13dc39bef0d67216749eb"
       },
       {
         "path": "src/main/resources/db/migration/V5__remove_unused_study_and_roadmap.sql",
-        "sha256": "1aa1c4d799928dc001b2d36b07e7960b0d50f9b241b11d4ac9143dc9f4bab2fb"
+        "sha256": "581c3536365d334a9e65e71f91c488b42888163b96cb17c3b5f96dc417dadd6b"
       }
     ]
   },
