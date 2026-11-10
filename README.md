@@ -14,6 +14,10 @@ Java 17 · Spring Boot 4.1.2 · Spring Security · JDBC · MariaDB 11.8 · Flywa
 
 AI 복습은 공통 세션과 백지 복습·객관식 복습의 공유 PK/FK로 IS-A를 표현합니다. 나머지는 기능에 맞는 FK 관계를 사용합니다. 구현체가 없는 저장소 인터페이스는 아직 Spring Bean이 아니므로 구현체를 만든 후 서비스에 연결하세요. 실제 API 계약은 [API 명세](docs/API_SPEC.md)를 확인하세요.
 
+## 실제 LMS 기반 시연 데이터
+
+[수집 범위와 실행 방법](docs/FULL_DEMO_SEED.md)에 따라 `.env`에 `app.full-demo.password`를 설정한 뒤 `bash scripts/seed-demo.sh mariadb`로 실행합니다. 실제 LMS 화면의 일정·공지·과제·평가 목록과 기존 강의 TSV를 사용합니다. 개인 출결·성적은 복사하지 않으며 출결은 출석 65일·지각 1일·결석 1일의 가상 시연 기록입니다. 추가 가상 과제·평가는 선택 옵션으로 분리했습니다.
+
 ## 구현 기능
 
 - 관리자 전용 수강생 계정 발급·발급자 이력, BCrypt 로그인, JWT 접근 토큰, 갱신 토큰 회전·폐기, 내 정보·비밀번호 변경, 계정 권한 관리
