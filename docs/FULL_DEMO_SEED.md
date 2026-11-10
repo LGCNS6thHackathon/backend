@@ -34,7 +34,7 @@ H2를 사용할 때는 `bash scripts/seed-demo.sh local`을 실행합니다. Win
 | 과제 | 실제 과제 `0917` 1개. 본문 `0917`, 등록 2026-09-17 06:34, 마감 2026-09-20 15:34(KST). 원본 ZIP 미등록 |
 | 평가 | 실제 목록의 1·2차 사전/사후 평가 4개와 기간·영역. 문제·정답·응시 기록은 미수집이므로 생성하지 않음 |
 | 강의 | 기존 저장소 TSV에 있는 실제 강의 230개를 재사용 |
-| 계정 | 가상 학생 2명·강사 1명·기수 매니저 1명. 관리자 계정은 기존 bootstrap 설정 |
+| 계정 | 가상 학생(STUDENT) 2명·관리자(ADMIN) 2명. 강사·매니저는 표시 이름이며 별도 권한이 아님. 초기 관리자는 기존 bootstrap 설정 |
 | 출결 | 실제 교육 기간·주말·확인된 휴강일 기준 67일에 **가상 출석 65일·지각 1일·결석 1일**. 실제 학생 출결을 복사하거나 수정하지 않음 |
 | 소명 | 위 가상 출결의 대기 2건, 승인·반려·무효화 각 1건. 대기 소명을 관리자가 직접 처리 가능 |
 | 알림 | 가상 학생 안내 3개. 실제 개인 알림은 가져오지 않음 |
@@ -49,9 +49,11 @@ H2를 사용할 때는 `bash scripts/seed-demo.sh local`을 실행합니다. Win
 | --- | --- |
 | 대표 학생 | `student@full-demo.test` |
 | 동료 학생 | `peer@full-demo.test` |
-| 강사 | `instructor@full-demo.test` |
-| 기수 매니저 | `manager@full-demo.test` (전역 STUDENT, 기수 MANAGER) |
+| 시연 강사 (ADMIN) | `instructor@full-demo.test` |
+| 시연 매니저 (ADMIN) | `manager@full-demo.test` |
 | 관리자 | `.env`의 `BOOTSTRAP_ADMIN_EMAIL` |
+
+V6 정책에 따라 계정과 기수 등록의 역할은 ADMIN 또는 STUDENT만 사용하며 서로 일치시킵니다. 강사·매니저 이름의 두 계정은 모두 ADMIN으로 관리 API를 사용합니다.
 
 가상 4계정의 초기 비밀번호는 `app.full-demo.password`입니다. 기존 계정은 역할·ACTIVE 상태가 맞으면 재사용하며 비밀번호를 덮어쓰지 않습니다. 출결 관리는 ADMIN 전용입니다.
 
@@ -86,3 +88,5 @@ app.full-demo.synthetic-scenarios=true
 신규 통합 테스트는 기본 수집 모드의 실제 제목·기간·건수·기본 가상 시나리오 비활성화, 출결 65/1/1, UTC 날짜 범위, 원본 과제 기한, 선택 시나리오의 조회·첨부 다운로드·소명 승인, 재실행 중복 방지를 검사합니다. 이번 변경의 실제 MariaDB·프론트 화면·YouTube 재생·Discord 전송 결과는 별도로 확인하기 전까지 미검증입니다.
 
 최종 검증: `SPRING_PROFILES_ACTIVE=test ./gradlew build --no-daemon --max-workers=1 --no-watch-fs` 성공. 전체 테스트 72개(신규 3개 포함), 실패·오류·건너뜀 0. `bash -n scripts/seed-demo.sh`와 `git diff --check` 통과. 이번 v2 변경은 H2 통합 테스트로 검증했으며 MariaDB 실행 검증은 재수행하지 않았습니다.
+
+V6 호환성 검증(2026-11-10): 최신 develop `e04fcc1` 병합 후 수정 전 시드 테스트 3개가 역할 제약 위반으로 실패하는 것을 재현했습니다. 역할 수정 후 위 build 명령으로 전체 75개 테스트가 실패·오류·건너뜀 없이 통과했습니다. 기본/선택 시드의 계정·기수 역할 일치, 두 시연 ADMIN 계정의 관리 API 접근 성공, 학생 접근 403을 확인했습니다. MariaDB 검증은 재수행하지 않았습니다.

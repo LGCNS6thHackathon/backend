@@ -63,14 +63,14 @@ public class FullDemoSeedRunner implements ApplicationRunner {
                 .map(r -> Db.id(r, "id")).orElseThrow(() -> new IllegalStateException("Configure an active bootstrap administrator."));
         long student = user("student@full-demo.test", "시연 교육생", "STUDENT");
         long peer = user("peer@full-demo.test", "동료 교육생", "STUDENT");
-        long instructor = user("instructor@full-demo.test", "시연 강사", "INSTRUCTOR");
-        long manager = user("manager@full-demo.test", "시연 매니저", "STUDENT");
+        long instructor = user("instructor@full-demo.test", "시연 강사", "ADMIN");
+        long manager = user("manager@full-demo.test", "시연 매니저", "ADMIN");
         LocalDate start = LocalDate.parse(snapshot.startDate()), end = LocalDate.parse(snapshot.endDate());
         long course = insert("courses", "title,description,total_hours,created_at,updated_at",
                 snapshot.courseTitle(), "LMS 화면 기반 메타데이터 + 가상 시연 기록 (실제 학생 기록 아님)", snapshot.totalHours(), Db.now(), Db.now());
         long cohort = insert("cohorts", "course_id,name,start_date,end_date,created_at,updated_at", course, COHORT_NAME, start, end, Db.now(), Db.now());
         long enrollment = enroll(cohort, student, "STUDENT");
-        enroll(cohort, peer, "STUDENT"); enroll(cohort, instructor, "INSTRUCTOR"); enroll(cohort, manager, "MANAGER");
+        enroll(cohort, peer, "STUDENT"); enroll(cohort, instructor, "ADMIN"); enroll(cohort, manager, "ADMIN");
         schedule(cohort, admin, snapshot);
         attendance(enrollment, admin, snapshot);
         community(cohort, admin, snapshot);

@@ -21,6 +21,11 @@ class LmsSnapshotSeedIntegrationTests {
 
     @Test
     void defaultUsesObservedContentWithoutInventingOriginalExamsOrAttachments() {
+        assertEquals(2, db.count("SELECT COUNT(*) FROM users WHERE role='STUDENT'"));
+        assertEquals(3, db.count("SELECT COUNT(*) FROM users WHERE role='ADMIN'"));
+        assertEquals(2, db.count("SELECT COUNT(*) FROM enrollments WHERE role='ADMIN'"));
+        assertEquals(2, db.count("SELECT COUNT(*) FROM enrollments WHERE role='STUDENT'"));
+        assertEquals(0, db.count("SELECT COUNT(*) FROM enrollments e JOIN users u ON u.id=e.user_id WHERE e.role<>u.role"));
         assertEquals(26, db.count("SELECT COUNT(*) FROM schedule_events"));
         assertEquals(21, db.count("SELECT COUNT(*) FROM posts"));
         assertEquals(1, db.count("SELECT COUNT(*) FROM assignments"));

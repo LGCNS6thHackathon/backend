@@ -45,6 +45,10 @@ class FullDemoSeedIntegrationTests {
     void seededFeaturesAreReadableAndPendingCorrectionCanBeApproved() throws Exception {
         long cohort = cohort();
         String student = token("student@full-demo.test"), admin = token("admin@full-demo.test");
+        for (String email : new String[]{"instructor@full-demo.test", "manager@full-demo.test"})
+            mvc.perform(get("/api/users").header("Authorization", "Bearer " + token(email))).andExpect(status().isOk());
+        mvc.perform(get("/api/users").header("Authorization", "Bearer " + student)).andExpect(status().isForbidden());
+        assertEquals(0, db.count("SELECT COUNT(*) FROM enrollments e JOIN users u ON u.id=e.user_id WHERE e.role<>u.role"));
         for (String path : new String[]{"/attendance/calendar?month=2026-11", "/events?month=2026-11", "/posts", "/assignments", "/assessments", "/assessment-report", "/lecture-replays/dates?from=2026-07-01&to=2026-08-31"})
             mvc.perform(get("/api/cohorts/" + cohort + path).header("Authorization", "Bearer " + student)).andExpect(status().isOk());
         assertEquals(67, db.count("SELECT COUNT(*) FROM attendance_records"));
