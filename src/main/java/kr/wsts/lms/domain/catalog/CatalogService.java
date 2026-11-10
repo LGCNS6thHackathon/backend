@@ -82,7 +82,6 @@ public class CatalogService {
         Map<String, Object> merged = new LinkedHashMap<>(db.one("SELECT * FROM cohorts WHERE id=?", cohortId)); merged.putAll(input);
         LocalDate start = Input.date(merged, "startDate"), end = Input.date(merged, "endDate");
         if (end.isBefore(start)) throw AppException.bad("과정 종료일은 시작일 이후여야 합니다.");
-        if (db.count("SELECT COUNT(*) FROM roadmap_phases WHERE cohort_id=? AND (start_date<? OR end_date>?)", cohortId, start, end) > 0) throw AppException.conflict("로드맵이 포함되는 기간으로 설정해주세요.");
         LocalDateTime lower = start.atStartOfDay().minusHours(9), upper = end.plusDays(1).atStartOfDay().minusHours(9);
         if (db.count("SELECT COUNT(*) FROM schedule_events WHERE cohort_id=? AND (start_at<? OR end_at>?)",cohortId,lower,upper)>0
                 || db.count("SELECT COUNT(*) FROM assignments WHERE cohort_id=? AND deleted_at IS NULL AND (due_at<? OR due_at>=?)",cohortId,lower,upper)>0

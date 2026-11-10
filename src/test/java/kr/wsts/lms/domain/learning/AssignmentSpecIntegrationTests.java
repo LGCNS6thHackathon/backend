@@ -129,9 +129,12 @@ class AssignmentSpecIntegrationTests {
         upload(student,"submissions",submission,"first.txt",201);
         var first=db.one("SELECT submitted_at,updated_at FROM submissions WHERE id=?",submission);
         assertTrue(LearningSupport.utc(first.get("submittedAt")).isAfter(original));assertEquals(first.get("submittedAt"),first.get("updatedAt"));
+        // Model elapsed time explicitly: two fast uploads can share the same OS clock tick.
+        LocalDateTime previousUpload=LearningSupport.utc(first.get("submittedAt")).minusSeconds(1);
+        db.update("UPDATE submissions SET submitted_at=?,updated_at=? WHERE id=?",previousUpload,previousUpload,submission);
         upload(student,"submissions",submission,"latest.txt",201);
         var latest=db.one("SELECT submitted_at,updated_at FROM submissions WHERE id=?",submission);
-        assertTrue(LearningSupport.utc(latest.get("submittedAt")).isAfter(LearningSupport.utc(first.get("submittedAt"))));
+        assertTrue(LearningSupport.utc(latest.get("submittedAt")).isAfter(previousUpload));
         assertEquals(latest.get("submittedAt"),latest.get("updatedAt"));
         assertEquals(2,db.count("SELECT COUNT(*) FROM files WHERE submission_id=?",submission));
     }

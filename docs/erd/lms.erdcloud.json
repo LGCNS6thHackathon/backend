@@ -823,252 +823,6 @@
       "color": "rgba(178, 69, 0, 0.5)"
     },
     {
-      "_id": "8708250465ebcb8e4",
-      "_diagramId": null,
-      "position": {
-        "x": 880,
-        "y": 980
-      },
-      "name": "roadmap_phases",
-      "pName": "roadmap_phases",
-      "fields": [
-        {
-          "_id": "bf131825d23fd57ff",
-          "name": "cohort_id",
-          "pName": "cohort_id",
-          "domain": "",
-          "type": "BIGINT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": "a4fb595b5419d9f6c",
-          "relFieldId": "32da87d8034be24e4",
-          "relType": "ZERO_OR_MANY",
-          "relGroupId": "b19df4e589d5b2ce2"
-        },
-        {
-          "_id": "0432ba629dd9da34f",
-          "name": "title",
-          "pName": "title",
-          "domain": "",
-          "type": "VARCHAR(160)",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "f5a881d5adc99c4bb",
-          "name": "description",
-          "pName": "description",
-          "domain": "",
-          "type": "TEXT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "2b92a97ba18b36618",
-          "name": "position",
-          "pName": "position",
-          "domain": "",
-          "type": "INT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "c30d05ecc572f4da1",
-          "name": "hours",
-          "pName": "hours",
-          "domain": "",
-          "type": "INT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "b474c7cd787eadd7d",
-          "name": "start_date",
-          "pName": "start_date",
-          "domain": "",
-          "type": "DATE",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "b00a5969f262460c2",
-          "name": "end_date",
-          "pName": "end_date",
-          "domain": "",
-          "type": "DATE",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        }
-      ],
-      "keys": {
-        "pks": [
-          {
-            "_id": "0363442ed0f3d0e53",
-            "name": "id",
-            "pName": "id",
-            "domain": "",
-            "type": "BIGINT",
-            "defaultValue": "",
-            "isAllowNull": false,
-            "comment": "AUTO_INCREMENT",
-            "relEntity": null,
-            "relFieldId": null,
-            "relType": null,
-            "relGroupId": null
-          }
-        ],
-        "fks": []
-      },
-      "color": "rgba(178, 69, 0, 0.5)"
-    },
-    {
-      "_id": "ced3f81fd72eb3bca",
-      "_diagramId": null,
-      "position": {
-        "x": 1680,
-        "y": 980
-      },
-      "name": "roadmap_modules",
-      "pName": "roadmap_modules",
-      "fields": [
-        {
-          "_id": "48cb6f1686333e93f",
-          "name": "phase_id",
-          "pName": "phase_id",
-          "domain": "",
-          "type": "BIGINT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": "8708250465ebcb8e4",
-          "relFieldId": "0363442ed0f3d0e53",
-          "relType": "ZERO_OR_MANY",
-          "relGroupId": "da77565c755a37b3a"
-        },
-        {
-          "_id": "0b19bb09748796a7f",
-          "name": "title",
-          "pName": "title",
-          "domain": "",
-          "type": "VARCHAR(160)",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "eac1a5af4e5a15ded",
-          "name": "hours",
-          "pName": "hours",
-          "domain": "",
-          "type": "INT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "73e658bf06549cda0",
-          "name": "start_date",
-          "pName": "start_date",
-          "domain": "",
-          "type": "DATE",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "833e24fc97a1a4bf1",
-          "name": "end_date",
-          "pName": "end_date",
-          "domain": "",
-          "type": "DATE",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "80722f3aed041ad46",
-          "name": "position",
-          "pName": "position",
-          "domain": "",
-          "type": "INT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        }
-      ],
-      "keys": {
-        "pks": [
-          {
-            "_id": "fc0274999bc8a848e",
-            "name": "id",
-            "pName": "id",
-            "domain": "",
-            "type": "BIGINT",
-            "defaultValue": "",
-            "isAllowNull": false,
-            "comment": "AUTO_INCREMENT",
-            "relEntity": null,
-            "relFieldId": null,
-            "relType": null,
-            "relGroupId": null
-          }
-        ],
-        "fks": []
-      },
-      "color": "rgba(178, 69, 0, 0.5)"
-    },
-    {
       "_id": "a1ad304828b1df862",
       "_diagramId": null,
       "position": {
@@ -1919,6 +1673,20 @@
           "relFieldId": null,
           "relType": null,
           "relGroupId": null
+        },
+        {
+          "_id": "e053c4e29e7e484df",
+          "name": "subject",
+          "pName": "subject",
+          "domain": "",
+          "type": "VARCHAR(100)",
+          "defaultValue": "",
+          "isAllowNull": true,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
         }
       ],
       "keys": {
@@ -2030,6 +1798,20 @@
           "type": "DATETIME(6)",
           "defaultValue": "",
           "isAllowNull": false,
+          "comment": "",
+          "relEntity": null,
+          "relFieldId": null,
+          "relType": null,
+          "relGroupId": null
+        },
+        {
+          "_id": "c952ef4edf85a221b",
+          "name": "deployment_url",
+          "pName": "deployment_url",
+          "domain": "",
+          "type": "VARCHAR(2000)",
+          "defaultValue": "",
+          "isAllowNull": true,
           "comment": "",
           "relEntity": null,
           "relFieldId": null,
@@ -3099,224 +2881,6 @@
         "pks": [
           {
             "_id": "6168f54f79287558e",
-            "name": "id",
-            "pName": "id",
-            "domain": "",
-            "type": "BIGINT",
-            "defaultValue": "",
-            "isAllowNull": false,
-            "comment": "AUTO_INCREMENT",
-            "relEntity": null,
-            "relFieldId": null,
-            "relType": null,
-            "relGroupId": null
-          }
-        ],
-        "fks": []
-      },
-      "color": "rgba(178, 69, 0, 0.5)"
-    },
-    {
-      "_id": "0954958cdce440ca4",
-      "_diagramId": null,
-      "position": {
-        "x": 80,
-        "y": 3680
-      },
-      "name": "study_groups",
-      "pName": "study_groups",
-      "fields": [
-        {
-          "_id": "7131ad751b7206e6c",
-          "name": "cohort_id",
-          "pName": "cohort_id",
-          "domain": "",
-          "type": "BIGINT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": "a4fb595b5419d9f6c",
-          "relFieldId": "32da87d8034be24e4",
-          "relType": "ZERO_OR_MANY",
-          "relGroupId": "73f40ee1d9c2318d2"
-        },
-        {
-          "_id": "e73870d9c43af8e4d",
-          "name": "owner_id",
-          "pName": "owner_id",
-          "domain": "",
-          "type": "BIGINT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": "de694949b51a78e40",
-          "relFieldId": "b5ebc02052b8bff5f",
-          "relType": "ZERO_OR_MANY",
-          "relGroupId": "a428f37f69971c4e6"
-        },
-        {
-          "_id": "e5b19edaef0249fa8",
-          "name": "name",
-          "pName": "name",
-          "domain": "",
-          "type": "VARCHAR(120)",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "5f2c4ecae318afaf3",
-          "name": "description",
-          "pName": "description",
-          "domain": "",
-          "type": "TEXT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "0dfa535dd5084cbdf",
-          "name": "capacity",
-          "pName": "capacity",
-          "domain": "",
-          "type": "INT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "265132d35b40ac9c1",
-          "name": "status",
-          "pName": "status",
-          "domain": "",
-          "type": "VARCHAR(20)",
-          "defaultValue": "'OPEN'",
-          "isAllowNull": false,
-          "comment": "허용값: OPEN, CLOSED",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "44c22d7474f446d52",
-          "name": "created_at",
-          "pName": "created_at",
-          "domain": "",
-          "type": "DATETIME(6)",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        },
-        {
-          "_id": "0d158103d1166b571",
-          "name": "updated_at",
-          "pName": "updated_at",
-          "domain": "",
-          "type": "DATETIME(6)",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        }
-      ],
-      "keys": {
-        "pks": [
-          {
-            "_id": "e1514582598e0cd8d",
-            "name": "id",
-            "pName": "id",
-            "domain": "",
-            "type": "BIGINT",
-            "defaultValue": "",
-            "isAllowNull": false,
-            "comment": "AUTO_INCREMENT",
-            "relEntity": null,
-            "relFieldId": null,
-            "relType": null,
-            "relGroupId": null
-          }
-        ],
-        "fks": []
-      },
-      "color": "rgba(178, 69, 0, 0.5)"
-    },
-    {
-      "_id": "7b8884e0047fa1bb5",
-      "_diagramId": null,
-      "position": {
-        "x": 880,
-        "y": 3680
-      },
-      "name": "study_group_members",
-      "pName": "study_group_members",
-      "fields": [
-        {
-          "_id": "c0f50cc6d560b83e3",
-          "name": "group_id",
-          "pName": "group_id",
-          "domain": "",
-          "type": "BIGINT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": "0954958cdce440ca4",
-          "relFieldId": "e1514582598e0cd8d",
-          "relType": "ZERO_OR_MANY",
-          "relGroupId": "cff7358af784e402c"
-        },
-        {
-          "_id": "be31f9d15cdfecea4",
-          "name": "user_id",
-          "pName": "user_id",
-          "domain": "",
-          "type": "BIGINT",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": "de694949b51a78e40",
-          "relFieldId": "b5ebc02052b8bff5f",
-          "relType": "ZERO_OR_MANY",
-          "relGroupId": "218b74c1adb591ea6"
-        },
-        {
-          "_id": "2dbfae31b4ae86b0e",
-          "name": "joined_at",
-          "pName": "joined_at",
-          "domain": "",
-          "type": "DATETIME(6)",
-          "defaultValue": "",
-          "isAllowNull": false,
-          "comment": "",
-          "relEntity": null,
-          "relFieldId": null,
-          "relType": null,
-          "relGroupId": null
-        }
-      ],
-      "keys": {
-        "pks": [
-          {
-            "_id": "44903732cafe5139f",
             "name": "id",
             "pName": "id",
             "domain": "",
@@ -4833,7 +4397,7 @@
   ],
   "memoData": [],
   "domainData": [],
-  "createdAt": "2026-11-09T08:07:06.100Z",
+  "createdAt": "2026-11-10T00:24:21.521Z",
   "creatorName": "",
   "creatorThumb": ""
 }

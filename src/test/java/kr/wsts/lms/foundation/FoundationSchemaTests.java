@@ -27,6 +27,66 @@ class FoundationSchemaTests {
     }
 
     @Test
+    void frontendScopeUpgradeRemovesUnusedFeaturesAndPreservesActiveScreenData() {
+        var dataSource = database();
+        migration(dataSource, "4").migrate();
+        var jdbc = new JdbcTemplate(dataSource);
+        seedEnrollment(jdbc);
+        jdbc.update("INSERT INTO study_groups(id,cohort_id,owner_id,name,description,capacity,created_at,updated_at) VALUES(1,1,1,'Legacy study','Removed feature',5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO study_group_members(group_id,user_id,joined_at) VALUES(1,1,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO roadmap_phases(id,cohort_id,title,description,position,hours,start_date,end_date) VALUES(1,1,'Legacy roadmap','Removed feature',1,8,'2026-01-01','2026-01-02')");
+        jdbc.update("INSERT INTO roadmap_modules(phase_id,title,hours,start_date,end_date,position) VALUES(1,'Legacy module',8,'2026-01-01','2026-01-02',1)");
+        jdbc.update("INSERT INTO schedule_events(id,cohort_id,title,type,start_at,end_at,location,description,created_by,created_at) VALUES(1,1,'Kept calendar event','LECTURE','2026-01-01 09:00:00','2026-01-01 18:00:00','Classroom','Instructions',1,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO assignments(id,cohort_id,author_id,title,description,due_at,subject,created_at,updated_at) VALUES(1,1,1,'Kept assignment','Instructions',CURRENT_TIMESTAMP,'Java',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO submissions(id,assignment_id,user_id,body,deployment_url,submitted_at,updated_at) VALUES(1,1,1,'Kept submission','https://example.test/demo',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO assessments(id,cohort_id,title,description,domain,start_at,end_at,duration_minutes,status,created_by,created_at) VALUES(1,1,'Kept assessment','Instructions','Java','2026-01-01 09:00:00','2026-01-01 10:00:00',60,'CLOSED',1,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO assessment_questions(id,assessment_id,prompt,position,points,explanation) VALUES(1,1,'Kept question',1,1,'Kept explanation')");
+        jdbc.update("INSERT INTO assessment_options(id,question_id,label,is_correct) VALUES(1,1,'Kept option',TRUE)");
+        jdbc.update("INSERT INTO assessment_attempts(id,assessment_id,user_id,status,started_at,submitted_at,score) VALUES(1,1,1,'SUBMITTED',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,100)");
+        jdbc.update("INSERT INTO assessment_answers(attempt_id,question_id,option_id,is_correct,earned_points) VALUES(1,1,1,TRUE,1)");
+        jdbc.update("INSERT INTO notifications(user_id,cohort_id,type,title,body,resource_type,resource_id,created_at) VALUES(1,1,'STUDY_JOIN','Legacy study notice','Removed feature','STUDY_GROUP',1,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO notifications(user_id,cohort_id,type,title,body,resource_type,resource_id,created_at) VALUES(1,1,'ASSIGNMENT_REVIEW','Kept notification','Active feature','SUBMISSION',1,CURRENT_TIMESTAMP)");
+
+        migration(dataSource, null).migrate();
+
+        var tables = tableNames(jdbc);
+        assertEquals(31, tables.size());
+        assertTrue(Collections.disjoint(tables, Set.of("study_groups", "study_group_members", "roadmap_phases", "roadmap_modules")));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM users", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM enrollments", Integer.class));
+        assertEquals("Kept calendar event", jdbc.queryForObject("SELECT title FROM schedule_events WHERE id=1", String.class));
+        assertEquals("Java", jdbc.queryForObject("SELECT subject FROM assignments WHERE id=1", String.class));
+        assertEquals("https://example.test/demo", jdbc.queryForObject("SELECT deployment_url FROM submissions WHERE id=1", String.class));
+        assertEquals(100, jdbc.queryForObject("SELECT score FROM assessment_attempts WHERE id=1", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM assessment_answers WHERE attempt_id=1", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM notifications", Integer.class));
+        assertEquals("SUBMISSION", jdbc.queryForObject("SELECT resource_type FROM notifications", String.class));
+        assertTrue(tables.containsAll(Set.of("learning_subjects", "learning_units", "learning_topics", "lecture_videos", "review_sessions", "notice_deliveries")));
+    }
+
+    @Test
+    void assignmentScreenUpgradePreservesExistingSubmissionsAndAddsOptionalFormFields() {
+        var dataSource = database();
+        migration(dataSource, "3").migrate();
+        var jdbc = new JdbcTemplate(dataSource);
+        seedEnrollment(jdbc);
+        jdbc.update("INSERT INTO assignments(id,cohort_id,author_id,title,description,due_at,created_at,updated_at) VALUES(1,1,1,'Legacy assignment','Instructions',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO submissions(id,assignment_id,user_id,body,repository_url,submitted_at,updated_at) VALUES(1,1,1,'Legacy memo','https://github.com/example/legacy',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+
+        migration(dataSource, null).migrate();
+
+        assertEquals("Legacy assignment", jdbc.queryForObject("SELECT title FROM assignments WHERE id=1", String.class));
+        assertNull(jdbc.queryForObject("SELECT subject FROM assignments WHERE id=1", String.class));
+        assertEquals("Legacy memo", jdbc.queryForObject("SELECT body FROM submissions WHERE id=1", String.class));
+        assertEquals("https://github.com/example/legacy", jdbc.queryForObject("SELECT repository_url FROM submissions WHERE id=1", String.class));
+        assertNull(jdbc.queryForObject("SELECT deployment_url FROM submissions WHERE id=1", String.class));
+        jdbc.update("UPDATE assignments SET subject='웹 개발' WHERE id=1");
+        jdbc.update("UPDATE submissions SET deployment_url='https://example.test/demo' WHERE id=1");
+        assertEquals("웹 개발", jdbc.queryForObject("SELECT subject FROM assignments WHERE id=1", String.class));
+        assertEquals("https://example.test/demo", jdbc.queryForObject("SELECT deployment_url FROM submissions WHERE id=1", String.class));
+    }
+
+    @Test
     void managedAccountUpgradePreservesLegacyAccountsAndTracksKnownIssuers() {
         var dataSource = database();
         migration(dataSource, "2").migrate();
@@ -116,7 +176,7 @@ class FoundationSchemaTests {
         try (Connection connection = snapshot.getConnection()) {
             ScriptUtils.executeSqlScript(connection, new FileSystemResource("docs/erd/lms-mariadb.sql"));
         }
-        assertEquals(35, tableNames(new JdbcTemplate(migrated)).size());
+        assertEquals(31, tableNames(new JdbcTemplate(migrated)).size());
         assertEquals(schemaSignature(migrated), schemaSignature(snapshot), "The handoff SQL/ERD must describe the schema Flyway actually builds.");
         var jdbc = new JdbcTemplate(snapshot);
         assertEquals("NO", jdbc.queryForObject("SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='blank_reviews' AND column_name='session_id'", String.class));
